@@ -8,9 +8,11 @@ from pyglet.gl import *
 from nutshell import *
 import robo,VRMLloader
 from motionRecord import Motion
-from camera import Camera
-from math import atan2,sin,cos,sqrt
+from camera import Camera,norm,normalized
+from math import atan2,sin,cos,sqrt,acos
 import warnings
+import numpy as np
+
 ##########################################################
 ################# MIS FUNCTIONS ##########################
 ##########################################################
@@ -28,14 +30,17 @@ COLOR_BLACK=vec(0,0,0,1)
 def glsetup():
     # One-time GL setup
     glutInit(0)
-
+#    glEnable (GL_BLEND) 
+#    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+#    glEnable(GL_LINE_SMOOTH)
+#    glEnable(GL_POINT_SMOOTH)
     glEnable(GL_CULL_FACE)
     glEnable(GL_DEPTH_TEST)
     glEnable(GL_LIGHTING)
-
+    glShadeModel(GL_SMOOTH)
     ca=0.0
     la=0.6
-    qa=0.1
+    qa=0.2
 
     glLightfv(GL_LIGHT0, GL_POSITION, vec(-3.0,3.0,3.0,1.0))
     glLightfv(GL_LIGHT0, GL_DIFFUSE, vec(1,1,1,1))
@@ -88,8 +93,6 @@ def draw_floor():
                      GL_AMBIENT_AND_DIFFUSE, COLOR_WHITE)
     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, COLOR_WHITE)
     glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 0)
-    glEnable(GL_LINE_SMOOTH)
-    glEnable(GL_POINT_SMOOTH)
     floorvtl.draw(GL_LINES)
 
     glMaterialfv(GL_FRONT_AND_BACK, \
@@ -338,23 +341,50 @@ M       : toggle robot mesh
 #                print "idx=",idx
                 ii=0
                 polyline=[]
+                normals=[]                
+                points=[]
+                for k in range(npoints):
+                    normals.append(np.array([0.0,0.0,0.0]))
+                    points.append(np.array([coord[3*k],coord[3*k+1],coord[3*k+2]]))
                 
                 while ii < len(idx):
                     if idx[ii]!=-1:
                         polyline.append(idx[ii])
+
                     else:
                         if len(polyline)!=3:
                             warnings.warn("oops not a triangle, n=%d. The program only support triangle mesh for the moment"\
                                               %len(polyline))
                         else:
+                            # update the normals
+                            # using G. Thurmer, C. A. Wuthrich, "Computing vertex normals from polygonal facets"
+                            #Journal of Graphics Tools, 3 1998
+                            id0=polyline[0];id1=polyline[1];id2=polyline[2]
+
+                            p10=normalized(points[id1]-points[id0])                            
+                            p21=normalized(points[id2]-points[id1])
+                            p02=normalized(points[id0]-points[id2])
+                            alpha0=acos(np.dot(p10,p02))
+                            alpha1=acos(np.dot(p21,p10))
+                            alpha2=acos(np.dot(p02,p21))
+
+                            normals[id0]+=alpha0*normalized(np.cross(p02,p10))
+                            normals[id1]+=alpha1*normalized(np.cross(p10,p21))
+                            normals[id2]+=alpha2*normalized(np.cross(p21,p02))
                             tri_lists[i][j]+=polyline
                         polyline=[]
                     ii+=1                    
-                        
+                norm_array=[]
+                for normal in normals:
+                    normal=normalized(normal)
+#                    print normal                    
+                    norm_array+=[normal[0],normal[1],normal[2]]
 #                print "creating list %d for mesh %d (%s) with %d vertices and %d faces"%\
                     (j,i,mesh.name,npoints,len(coord)/3)
                 self.vertex_lists[i][j]=pyglet.graphics.vertex_list_indexed\
-                    (npoints,tri_lists[i][j],('v3f', coord))
+                    (npoints,tri_lists[i][j],('v3f', coord)\
+                         ,('n3f',norm_array)\
+                         )
 
             glPushMatrix()
 #            listIndex=0

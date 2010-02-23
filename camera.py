@@ -15,8 +15,12 @@ Special configuration for camera, adapted for viewing HRP
 import robo
 from math import sqrt,sin,cos,atan2
 import numpy as np
+
 def norm(a):
     return sqrt(np.dot(a,a))
+
+def normalized(v):
+    return v/norm(v)
 
 
 class Camera(object):
