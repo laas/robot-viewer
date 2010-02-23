@@ -1,0 +1,5 @@
+module RoboViewer {
+  interface Request {
+    string req(in string mesg);
+  };
+};
