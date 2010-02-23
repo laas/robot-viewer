@@ -309,16 +309,13 @@ M       : toggle robot mesh
         self.stopwatch.tic(["lr"])
         if VRMLFile:
             self.robot=VRMLloader.VRMLloader(VRMLFile,not self.simplify)
-            f=open('lastRobot.pickle','w')
-            pickle.dump(self.robot,f)
-            f.close()
         else:
             if not os.path.exists('lastRobot.pickle'):
                 raise Exception("No robot found. If this is your first time, use -w VRML_File.wrl to load a robot.")
-    
-        print "loading the last loaded robot \n"
-        self.robot=pickle.load(open('lastRobot.pickle','r'))
-        print "loaded ",self.robot.name
+            print "loading the last loaded robot \n"
+            self.robot=pickle.load(open('lastRobot.pickle','r'))
+            print "loaded ",self.robot.name
+
         if self.measureTime:
             print "VRMLloader\t: %3.2fs"%self.stopwatch.toc("lr")
         self.stopwatch.tic(["vl"])
@@ -341,11 +338,13 @@ M       : toggle robot mesh
 #                print "idx=",idx
                 ii=0
                 polyline=[]
-                normals=[]                
-                points=[]
-                for k in range(npoints):
-                    normals.append(np.array([0.0,0.0,0.0]))
-                    points.append(np.array([coord[3*k],coord[3*k+1],coord[3*k+2]]))
+
+                if ashape.geo.norm==[]:
+                    normals=[]                
+                    points=[]
+                    for k in range(npoints):
+                        normals.append(np.array([0.0,0.0,0.0]))
+                        points.append(np.array([coord[3*k],coord[3*k+1],coord[3*k+2]]))
                 
                 while ii < len(idx):
                     if idx[ii]!=-1:
@@ -356,50 +355,52 @@ M       : toggle robot mesh
                             warnings.warn("oops not a triangle, n=%d. The program only support triangle mesh for the moment"\
                                               %len(polyline))
                         else:
-                            # update the normals
-                            # using G. Thurmer, C. A. Wuthrich, "Computing vertex normals from polygonal facets"
-                            #Journal of Graphics Tools, 3 1998
-                            id0=polyline[0];id1=polyline[1];id2=polyline[2]
+                            if ashape.geo.norm==[]:                                
+                                # update the normals
+                                # using G. Thurmer, C. A. Wuthrich, "Computing vertex normals from polygonal facets"
+                                # Journal of Graphics Tools, 3 1998
+                                id0=polyline[0];id1=polyline[1];id2=polyline[2]
 
-                            p10=normalized(points[id1]-points[id0])                            
-                            p21=normalized(points[id2]-points[id1])
-                            p02=normalized(points[id0]-points[id2])
-                            alpha0=acos(np.dot(p10,p02))
-                            alpha1=acos(np.dot(p21,p10))
-                            alpha2=acos(np.dot(p02,p21))
+                                p10=normalized(points[id1]-points[id0])                            
+                                p21=normalized(points[id2]-points[id1])
+                                p02=normalized(points[id0]-points[id2])
+                                alpha0=acos(np.dot(p10,p02))
+                                alpha1=acos(np.dot(p21,p10))
+                                alpha2=acos(np.dot(p02,p21))
 
-                            normals[id0]+=alpha0*normalized(np.cross(p02,p10))
-                            normals[id1]+=alpha1*normalized(np.cross(p10,p21))
-                            normals[id2]+=alpha2*normalized(np.cross(p21,p02))
+                                normals[id0]+=alpha0*normalized(np.cross(p02,p10))
+                                normals[id1]+=alpha1*normalized(np.cross(p10,p21))
+                                normals[id2]+=alpha2*normalized(np.cross(p21,p02))
                             tri_lists[i][j]+=polyline
                         polyline=[]
-                    ii+=1                    
-                norm_array=[]
-                for normal in normals:
-                    normal=normalized(normal)
-#                    print normal                    
-                    norm_array+=[normal[0],normal[1],normal[2]]
+                    ii+=1
+                if ashape.geo.norm==[]:
+                    norm_array=[]
+                    for normal in normals:
+                        normal=normalized(normal)
+                        norm_array+=[normal[0],normal[1],normal[2]]
+                    ashape.geo.norm=norm_array
 #                print "creating list %d for mesh %d (%s) with %d vertices and %d faces"%\
-                    (j,i,mesh.name,npoints,len(coord)/3)
+#                    (j,i,mesh.name,npoints,len(coord)/3)
                 self.vertex_lists[i][j]=pyglet.graphics.vertex_list_indexed\
                     (npoints,tri_lists[i][j],('v3f', coord)\
-                         ,('n3f',norm_array)\
+                         ,('n3f',ashape.geo.norm)\
                          )
 
-            glPushMatrix()
-#            listIndex=0
-#            while listIndex==0:
-#                listIndex=glGenLists(1)
-            listIndex=i+1
-            self.meshId2glListId[i]=listIndex
+        f=open('lastRobot.pickle','w')
+        pickle.dump(self.robot,f)
+        f.close()
+#             glPushMatrix()
+#             listIndex=i+1
+#             self.meshId2glListId[i]=listIndex
 
-            glNewList(listIndex,GL_COMPILE)
-            for j in range(len(self.vertex_lists[i])):
-                prepareMesh(mesh.shapes[j].app)         
-                alist=self.vertex_lists[i][j]
-                alist.draw(pyglet.gl.GL_TRIANGLES)#,tri_lists[i][j])
-            glEndList()
-            glPopMatrix()
+#             glNewList(listIndex,GL_COMPILE)
+#             for j in range(len(self.vertex_lists[i])):
+#                 prepareMesh(mesh.shapes[j].app)         
+#                 alist=self.vertex_lists[i][j]
+#                 alist.draw(pyglet.gl.GL_TRIANGLES)#,tri_lists[i][j])
+#             glEndList()
+#             Glpopmatrix()
 
         self.setRobot(self.simTime)
         # create_the display list
@@ -763,84 +764,88 @@ def main():
     app.init()
 
     if not standalone:
-         
-        ##################################
-        #      omniORB
-        ##################################
-        from omniORB import CORBA, PortableServer
-
-        # Import the stubs for the Naming service
-        import CosNaming
-
-        # Import the stubs and skeletons
-        import RoboViewer, RoboViewer__POA
-
-        # Define an implementation of the Echo interface
-        class Request_i (RoboViewer__POA.Request):
-            def req(self, mesg):
-                print "request %s:", mesg
-                return app.execute(mesg)
-
-        # Initialise the ORB
-        orb = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
-
-        # Find the root POA
-        poa = orb.resolve_initial_references("RootPOA")
-
-        # Create an instance of Request_i
-        ri = Request_i()
-
-        # Create an object reference, and implicitly activate the object
-        ro = ri._this()
-
-        # Obtain a reference to the root naming context
-        obj         = orb.resolve_initial_references("NameService")
-        rootContext = obj._narrow(CosNaming.NamingContext)
-
-        if rootContext is None:
-            print "Failed to narrow the root naming context"
-            sys.exit(1)
-
-        # Bind a context named "test.my_context" to the root context
-        name = [CosNaming.NameComponent("test", "my_context")]
-
         try:
-            testContext = rootContext.bind_new_context(name)
-            print "New test context bound"
 
-        except CosNaming.NamingContext.AlreadyBound, ex:
-            print "Test context already exists"
-            obj = rootContext.resolve(name)
-            testContext = obj._narrow(CosNaming.NamingContext)
-            if testContext is None:
-                print "test.mycontext exists but is not a NamingContext"
+
+            ##################################
+            #      omniORB
+            ##################################
+            from omniORB import CORBA, PortableServer
+
+            # Import the stubs for the Naming service
+            import CosNaming
+
+            # Import the stubs and skeletons
+            import RoboViewer, RoboViewer__POA
+
+            # Define an implementation of the Echo interface
+            class Request_i (RoboViewer__POA.Request):
+                def req(self, mesg):
+                    print "request %s:", mesg
+                    return app.execute(mesg)
+
+            # Initialise the ORB
+            orb = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
+
+            # Find the root POA
+            poa = orb.resolve_initial_references("RootPOA")
+
+            # Create an instance of Request_i
+            ri = Request_i()
+
+            # Create an object reference, and implicitly activate the object
+            ro = ri._this()
+
+            # Obtain a reference to the root naming context
+            obj         = orb.resolve_initial_references("NameService")
+            rootContext = obj._narrow(CosNaming.NamingContext)
+
+            if rootContext is None:
+                print "Failed to narrow the root naming context"
                 sys.exit(1)
 
-        # Bind the Echo object to the test context
-        name = [CosNaming.NameComponent("Request", "Object")]
+            # Bind a context named "test.my_context" to the root context
+            name = [CosNaming.NameComponent("test", "my_context")]
 
-        try:
-            testContext.bind(name, ro)
-            print "New Request object bound"
+            try:
+                testContext = rootContext.bind_new_context(name)
+                print "New test context bound"
 
-        except CosNaming.NamingContext.AlreadyBound:
-            testContext.rebind(name, ro)
-            print "Request binding already existed -- rebound"
+            except CosNaming.NamingContext.AlreadyBound, ex:
+                print "Test context already exists"
+                obj = rootContext.resolve(name)
+                testContext = obj._narrow(CosNaming.NamingContext)
+                if testContext is None:
+                    print "test.mycontext exists but is not a NamingContext"
+                    sys.exit(1)
 
-            # Note that is should be sufficient to just call rebind() without
-            # calling bind() first. Some Naming service implementations
-            # incorrectly raise NotFound if rebind() is called for an unknown
-            # name, so we use the two-stage approach above
+            # Bind the Echo object to the test context
+            name = [CosNaming.NameComponent("Request", "Object")]
 
-        # Activate the POA
-        poaManager = poa._get_the_POAManager()
-        poaManager.activate()
+            try:
+                testContext.bind(name, ro)
+                print "New Request object bound"
 
-        # Everything is running now, but if this thread drops out of the end
-        # of the file, the process will exit. orb.run() just blocks until the
-        # ORB is shut down
+            except CosNaming.NamingContext.AlreadyBound:
+                testContext.rebind(name, ro)
+                print "Request binding already existed -- rebound"
+
+                # Note that is should be sufficient to just call rebind() without
+                # calling bind() first. Some Naming service implementations
+                # incorrectly raise NotFound if rebind() is called for an unknown
+                # name, so we use the two-stage approach above
+
+            # Activate the POA
+            poaManager = poa._get_the_POAManager()
+            poaManager.activate()
+
+            # Everything is running now, but if this thread drops out of the end
+            # of the file, the process will exit. orb.run() just blocks until the
+            # ORB is shut down
 
 
+        except Exception,error:
+            warnings.warn("%s.\n Starting in standalone mode"%error)
 
 
     ##################################

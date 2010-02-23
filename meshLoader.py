@@ -40,6 +40,7 @@ class geometry():
     def __init__(self):
         self.coord=[]
         self.idx=[]
+        self.norm=[]
     def __str__(self):
         s="Geometry:"
         s+="%d points and %d faces"%(len(self.coord)/3,len(self.idx)/4)
