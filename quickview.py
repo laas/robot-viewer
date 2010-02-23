@@ -207,13 +207,17 @@ class Application:
 
     def init(self):
         self.stopwatch.tic([1,2,3])
+
         self.loadBasename()
+
         t1=self.stopwatch.toc(1)
         self.loadRobot(self.VRMLfile)
+
         t2=self.stopwatch.toc(2)
         self.initWindow()
-        t3=self.stopwatch.toc(3)
 
+        t3=self.stopwatch.toc(3)
+        
         self.bn_list=[defaultBasename]
         self.bn_info_list=[self.motion.getInfo()]
         self.current_bn_id=0
@@ -227,11 +231,16 @@ class Application:
     def run(self):
         pyglet.app.run()
         
-    def loadBasename(self,abn=defaultBasename):
+    def loadBasename(self,abn=defaultBasename):        
         self.state="LOADING"
-        self.motion.loadBasename(abn)
         print "loading %s"%abn
-        self.simTime=self.motion.getTimeMin()
+        try:
+            self.motion.loadBasename(abn)
+            self.simTime=self.motion.getTimeMin()
+
+        except:
+            warnings.warn("Unable to load motion file")
+            self.simTime=0.0
         self.state="STOP"
 
     def usage(self):
@@ -302,9 +311,12 @@ M       : toggle robot mesh
             pickle.dump(self.robot,f)
             f.close()
         else:
-            print "loading the last loaded robot \n"
-            self.robot=pickle.load(open('lastRobot.pickle','r'))
-            print "loaded ",self.robot.name
+            if not os.path.exists('lastRobot.pickle'):
+                raise Exception("No robot found. If this is your first time, use -w VRML_File.wrl to load a robot.")
+    
+        print "loading the last loaded robot \n"
+        self.robot=pickle.load(open('lastRobot.pickle','r'))
+        print "loaded ",self.robot.name
         if self.measureTime:
             print "VRMLloader\t: %3.2fs"%self.stopwatch.toc("lr")
         self.stopwatch.tic(["vl"])
@@ -539,6 +551,8 @@ M       : toggle robot mesh
 
 
     def setRobot(self,atime):
+        if self.motion.posRecord.isEmpty():
+            return
         while self.line_index_pos<len(self.motion.posRecord.times)-1\
            and self.motion.posRecord.times[self.line_index_pos+1]<atime:
             self.line_index_pos+=1
@@ -669,7 +683,7 @@ def main():
     standalone=False
     try:
         opts,args=getopt(sys.argv[1:],
-                         "l:w:sdmho:v", ["load=","wml=","simplify","debug","help", "measure-time","output=","standalone"])
+                         "l:w:sdmho:v", ["load=","wrl=","simplify","debug","help", "measure-time","output=","standalone"])
     except getopt.GetoptError, err:
         # print help information and exit:
         print str(err) # will print something like "option -a not recognized"
@@ -697,8 +711,13 @@ def main():
 
         elif o in ("-o", "--output"):
             output = a
+
         elif o in ("-l", "--load"):
             sequenceFile=a        
+
+
+        elif o in ("-w", "--wrl"):
+            VRMLmesh=a
 
         elif o in ("--standalone"):
             standalone=True

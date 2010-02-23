@@ -1,0 +1,7 @@
+*.pyc
+\#*\#
+*~
+data/*
+RoboViewer*/*
+roboviewer_idl*
+*.pickle
