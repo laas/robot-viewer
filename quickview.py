@@ -2,7 +2,6 @@
 
 from math import pi, sin, cos
 import time
-from OpenGL.GLUT import *
 import pyglet
 from pyglet.window import Window,key,mouse
 from pyglet.gl import *
