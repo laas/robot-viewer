@@ -12,6 +12,11 @@
 === INSTALLATION ===
 
  * Download the tar balls and follow instructions. In general, 'sudo python setup.py install' will install the packages to the right path
+ 
+ * MacOS X:
+      On Snow Leopard, python is set to 64 bit by default, that can cause pyglet to crash, 
+      if that happen on your system, try:
+         defaults write com.apple.versioner.python Prefer-32-Bit -bool yes   
 
 === USAGE ===
  * Stand-alone mode

@@ -8,7 +8,6 @@ from math import sin,cos
 
 
 from pyglet.gl import *
-from OpenGL.GLUT import *
 from nutshell import *
 import pyglet
 
@@ -177,7 +176,8 @@ class joint(genericObject):
             pos=self.globalTransformation[0:3,3]
             glPushMatrix()
             glTranslatef(pos[0], pos[1], pos[2])
-            glutSolidSphere(0.01,10,10)
+            sphere = gluNewQuadric() 
+            gluSphere(sphere,0.01,10,10)
             glPopMatrix()
 
             if self.jointType=="rotate":

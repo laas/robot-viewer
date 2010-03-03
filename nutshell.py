@@ -9,7 +9,6 @@ from math import sin,cos,sqrt,acos,pi
 
 
 from pyglet.gl import *
-from OpenGL.GLUT import *
 import pyglet
 
 def rot2AngleAxis(M):
