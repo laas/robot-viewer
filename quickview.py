@@ -12,6 +12,7 @@ from camera import Camera,norm,normalized
 from math import atan2,sin,cos,sqrt,acos
 import warnings
 import numpy as np
+import os
 
 ##########################################################
 ################# MIS FUNCTIONS ##########################
@@ -29,7 +30,7 @@ COLOR_BLACK=vec(0,0,0,1)
 
 def glsetup():
     # One-time GL setup
-    glutInit(0)
+#    glutInit(0)
 #    glEnable (GL_BLEND) 
 #    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #    glEnable(GL_LINE_SMOOTH)
@@ -534,7 +535,8 @@ M       : toggle robot mesh
 
                 glPushMatrix()
                 glTranslatef(self.motion.targetx, self.motion.targety, 0.05)
-                glutSolidSphere(0.03,10,10)
+                sphere = gluNewQuadric() 
+                gluSphere(sphere,0.03,10,10)
                 glPopMatrix()
             except Exception,error:
                 print error
