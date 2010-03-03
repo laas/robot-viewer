@@ -1,4 +1,7 @@
-#!/usr/bin/env python
+#! /usr/bin/env python
+
+# Copyright LAAS/CNRS 2009-2012
+# Authors Duong Dang
 
 from math import pi, sin, cos
 import time

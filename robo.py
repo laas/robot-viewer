@@ -175,9 +175,9 @@ class joint(genericObject):
         if self.jointType in ["free","rotate"]:
             pos=self.globalTransformation[0:3,3]
             glPushMatrix()
-##            glTranslatef(pos[0], pos[1], pos[2])
+            glTranslatef(pos[0], pos[1], pos[2])
             sphere = gluNewQuadric() 
-            glutSolidSphere(sphere,0.01,10,10)
+            gluSphere(sphere,0.01,10,10)
             glPopMatrix()
 
             if self.jointType=="rotate":
