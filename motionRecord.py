@@ -66,14 +66,10 @@ class Motion():
         self.posRecord=Record()
         self.wstRecord=Record()
         self.rpyRecord=Record()
+        self.info="NO_INFO"
 
-        self.targetx=None
-        self.targety=None
-        self.numsteps=None
-        
     def getInfo(self):
-        return ("%1.2f\t%1.2f\t%d \t%s")%\
-            (self.targetx,self.targety,self.numsteps,self.basename)
+        return self.info
 
     def __str__(self):
         s=""
@@ -85,11 +81,7 @@ class Motion():
         return s
 
     def loadInfo(self,infoFile):
-        st=open(infoFile,"r").read()
-        words=st.split()
-        self.targetx=float(words[0])
-        self.targety=float(words[1])
-        self.numsteps=int(words[2])
+        self.info=open(infoFile,"r").read()
         return self.getInfo()
 
     def loadBasename(self,bn):
@@ -98,7 +90,7 @@ class Motion():
         self.posRecord.loadFile("%s.pos"%bn)
         self.wstRecord.loadFile("%s.wst"%bn)
         self.rpyRecord.loadFile("%s.rpy"%bn)
-        self.loadInfo("%s.target"%bn)
+        self.loadInfo("%s.info"%bn)
 #        print '''loaded pos (%d lines), wst (%d lines) 
 #    and rpy (%d lines)''' %(len(self.poslines),len(wstlines),len(rpylines))
 

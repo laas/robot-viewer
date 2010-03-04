@@ -4,7 +4,7 @@
 # Authors Duong Dang
 
 from math import pi, sin, cos
-import time
+import time,os,threading
 import pyglet
 from pyglet.window import Window,key,mouse
 from pyglet.gl import *
@@ -15,11 +15,30 @@ from camera import Camera,norm,normalized
 from math import atan2,sin,cos,sqrt,acos
 import warnings
 import numpy as np
-import os
+
 
 ##########################################################
 ################# MIS FUNCTIONS ##########################
 ##########################################################
+        
+def draw_skeleton(robot):
+    # draw_skeleton a sphere at each mobile joint
+    if robot.jointType in ["free","rotate"]:
+        pos=robot.globalTransformation[0:3,3]
+        glPushMatrix()
+        glTranslatef(pos[0], pos[1], pos[2])
+        sphere = gluNewQuadric() 
+        gluSphere(sphere,0.01,10,10)
+        glPopMatrix()
+
+        if robot.jointType=="rotate":
+            parent=robot.parent
+            parent_pos=parent.globalTransformation[0:3,3]
+            draw_link(pos,parent_pos)
+        glPopMatrix()
+    for child in robot.children:
+        child.draw_skeleton()
+        
 
 def vec(*args):
     return (GLfloat * len(args))(*args)
@@ -212,7 +231,7 @@ class Application:
         self.fps_display = pyglet.clock.ClockDisplay()
 
     def init(self):
-        self.stopwatch.tic([1,2,3])
+        self.stopwatch.tic([1,2,3,4])
 
         self.loadBasename()
 
@@ -228,13 +247,14 @@ class Application:
         self.bn_info_list=[self.motion.getInfo()]
         self.current_bn_id=0
 
+        t4=self.stopwatch.toc(4)
         if self.measureTime:
-            print "loadMovement \t: %3.2fs \nloadRobot \t: %3.2fs \ninitWindow \t: %3.2fs"%(t1,t2-t1,t3-t2)
-            print "Total       \t: %3.2fs"%(t3)
+            print "loadMovement \t: %3.2fs \nloadRobot \t: %3.2fs \ninitWindow \t: %3.2fs\ninitUI \t: %3.2fs"%(t1,t2-t1,t3-t2,t4-t3)
+            print "Total       \t: %3.2fs"%(t4)
 
         self.usage()
 
-    def run(self):
+    def run(self):        
         pyglet.app.run()
         
     def loadBasename(self,abn=defaultBasename):        
@@ -306,7 +326,6 @@ M       : toggle robot mesh
                 self.timeFactor*=-1
             elif symbol == key.M:
                 self.showMesh=not self.showMesh
-
 
     def loadRobot(self,VRMLFile=None):
         import pickle
@@ -464,8 +483,7 @@ M       : toggle robot mesh
                 if self.state=="STOP":
                     text1="Bored, nothing to do"
                 elif self.state in ["PLAY","PAUSE"]: 
-                    text1="target: (%3.2f,%3.2f)"\
-                        %(self.motion.targetx,self.motion.targety)
+                    text1="INFO:"+self.motion.info
                 else:
                     text1="OOPS, where am I?"
 
@@ -502,7 +520,7 @@ M       : toggle robot mesh
                              GL_AMBIENT_AND_DIFFUSE, COLOR_RED)
             glMaterialfv(GL_FRONT_AND_BACK, \
                              GL_SPECULAR, COLOR_RED)
-            self.robot.draw_skeleton()
+            draw_skeleton(self.robot)
 
         else:
             for i in range(self.numMeshes):
@@ -537,7 +555,10 @@ M       : toggle robot mesh
                 glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, COLOR_GREEN)
 
                 glPushMatrix()
-                glTranslatef(self.motion.targetx, self.motion.targety, 0.05)
+                targetx=float(self.motion.info.split()[0])
+                targety=float(self.motion.info.split()[1])
+                glTranslatef(targetx,targety, 0.05)
+
                 sphere = gluNewQuadric() 
                 gluSphere(sphere,0.03,10,10)
                 glPopMatrix()
@@ -704,6 +725,8 @@ M       : toggle robot mesh
         else:
             return "Unknown command"
 
+
+
 #########################################################
 ################   MAIN PROGRAM    ######################
 #########################################################
@@ -856,4 +879,6 @@ def main():
     ##################################
     
     app.run()
-if __name__=="__main__": main()
+if __name__=="__main__": 
+    main()
+

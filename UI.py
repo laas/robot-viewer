@@ -4,9 +4,14 @@
 # Authors Duong Dang
 
 from Tkinter import *
+from tkFileDialog   import askopenfilename      
 
-def callback():
-    print "called the callback!"
+def openFileCallback():
+    print "opening :\t",askopenfilename()
+
+
+def dummyCallback():
+    print "called the dummyCallback!"
 
 root = Tk()
 
@@ -16,13 +21,13 @@ root.config(menu=menu)
 
 filemenu = Menu(menu)
 menu.add_cascade(label="File", menu=filemenu)
-filemenu.add_command(label="New", command=callback)
-filemenu.add_command(label="Open...", command=callback)
+filemenu.add_command(label="Load Robo", command=openFileCallback)
+filemenu.add_command(label="Load Motion", command=dummyCallback)
 filemenu.add_separator()
-filemenu.add_command(label="Exit", command=callback)
+filemenu.add_command(label="Exit", command=dummyCallback)
 
 helpmenu = Menu(menu)
 menu.add_cascade(label="Help", menu=helpmenu)
-helpmenu.add_command(label="About...", command=callback)
+helpmenu.add_command(label="About...", command=dummyCallback)
 
 mainloop()
