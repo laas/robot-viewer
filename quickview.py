@@ -187,14 +187,15 @@ class Application:
         self.state=None
 
         ## two beautiful window
-        self.w1=None
-        self.w2=None
+        self.w1=None  # GUI
+        self.w2=None  # OpenGL
         self.status="Uninitialized"
         self.keys=None #keyboard handler
         ## redering stuff
         self.VRMLFile=None
-        self.meshes=None
-        self.vertex_lists=None
+        self.meshes=[]
+        self.meshBatches=[]
+        self.shapeBatches=[]
         self.meshId2glListId=dict()
         
         ## motion records
@@ -344,19 +345,19 @@ M       : toggle robot mesh
         self.stopwatch.tic(["vl"])
         self.meshes=self.robot.mesh_list 
         self.numMeshes=len(self.meshes)
-        self.vertex_lists=[None]*self.numMeshes
-        tri_lists=[None]*self.numMeshes
-
+        self.shapeBatches=[None]*len(self.meshes)
+        self.meshBatches=[None]*len(self.meshes)
         for i in range(self.numMeshes):
             mesh=self.meshes[i]
             shapes=mesh.shapes
-            self.vertex_lists[i]=[None]*len(shapes)
-            tri_lists[i]=[None]*len(shapes)
+            self.shapeBatches[i]=[None]*len(mesh.shapes)
+            self.meshBatches[i]=pyglet.graphics.Batch()
             for j in range(len(shapes)):
+                self.shapeBatches[i][j]=pyglet.graphics.Batch()
                 ashape=shapes[j]
                 coord=ashape.geo.coord
                 npoints=len(coord)/3
-                tri_lists[i][j]=[]
+                tri_list=[]
                 idx=ashape.geo.idx
 #                print "idx=",idx
                 ii=0
@@ -394,7 +395,7 @@ M       : toggle robot mesh
                                 normals[id0]+=alpha0*normalized(np.cross(p02,p10))
                                 normals[id1]+=alpha1*normalized(np.cross(p10,p21))
                                 normals[id2]+=alpha2*normalized(np.cross(p21,p02))
-                            tri_lists[i][j]+=polyline
+                            tri_list+=polyline
                         polyline=[]
                     ii+=1
                 if ashape.geo.norm==[]:
@@ -403,12 +404,9 @@ M       : toggle robot mesh
                         normal=normalized(normal)
                         norm_array+=[normal[0],normal[1],normal[2]]
                     ashape.geo.norm=norm_array
-#                print "creating list %d for mesh %d (%s) with %d vertices and %d faces"%\
-#                    (j,i,mesh.name,npoints,len(coord)/3)
-                self.vertex_lists[i][j]=pyglet.graphics.vertex_list_indexed\
-                    (npoints,tri_lists[i][j],('v3f', coord)\
-                         ,('n3f',ashape.geo.norm)\
-                         )
+
+                self.meshBatches[i].add_indexed(npoints,GL_TRIANGLES,None,tri_list,('v3f', coord),('n3f',ashape.geo.norm))
+                self.shapeBatches[i][j].add_indexed(npoints,GL_TRIANGLES,None,tri_list,('v3f', coord),('n3f',ashape.geo.norm))
 
         f=open('lastRobot.pickle','w')
         pickle.dump(self.robot,f)
@@ -430,12 +428,14 @@ M       : toggle robot mesh
         if self.measureTime:
             print "createVList\t: %3.2fs"%self.stopwatch.toc("vl")
 
-    def initWindow(self):        
-        self.w1 = Window(600,100,caption='Text',resizable=False)
-        self.w1.on_draw = self.on_draw_text
+    def initWindow(self):
+        #####  GUI   ######        
+        self.w1 = Window(600,100,caption='GUI',resizable=False)
+        self.w1.on_draw = self.on_draw_GUI
         self.w1.switch_to()
+        
 
-    # Try and create a window with multisampling (antialiasing)
+        ##### OpenGL ######
         try:
             config = Config(sample_buffers=1, samples=4, 
                             depth_size=16, double_buffer=True,)
@@ -450,60 +450,27 @@ M       : toggle robot mesh
         self.keys = key.KeyStateHandler()
         self.w2.push_handlers(self.keys)
 
+        
         glsetup()
         self.w2.switch_to()
         pyglet.clock.schedule(self.update)
 
 
-    def on_draw_text(self):
+
+    ###########################
+    ### GUI on draw binding ###
+    ###########################
+    def on_draw_GUI(self):
         if self.state=="LOADING":
             return
         else:
-            try:
-                self.appTime=time.time()
-                if self.appTime - self.lastTime >= 1:
-                    self.fps=self.count
-                    self.count=0
-                    self.lastTime=self.appTime
-
-                glClear(GL_COLOR_BUFFER_BIT)    
-                text1=""
-
-                if abs(self.timeFactor)>=1:
-                    sp="%dx\t"%int(abs(self.timeFactor))
-                else:
-                    sp="1/%dx\t"%int(1/abs(self.timeFactor))
-                if self.timeFactor > 0:
-                    sp+= ">>"
-                else:
-                    sp+= "<<"
-                text2="time=%3.1f fps=%3.0f speed=%s"\
-                    %(self.simTime , self.fps,sp)  
-                text3="self.state=%s"%self.state
-                if self.state=="STOP":
-                    text1="Bored, nothing to do"
-                elif self.state in ["PLAY","PAUSE"]: 
-                    text1="INFO:"+self.motion.info
-                else:
-                    text1="OOPS, where am I?"
-
-                label1 = pyglet.text.Label(\
-                    text1,font_name='Times New Roman',\
-                        font_size=24,x=0, y=70 )
-                label2 = pyglet.text.Label(\
-                    text2,font_name='Times New Roman',\
-                        font_size=24,x=0, y=40 )
-                label3 = pyglet.text.Label(\
-                    text3,font_name='Times New Roman',\
-                        font_size=24,x=0, y=10 )
-                self.status="%s\n%s\n%s"%(text1,text2,text3)
-                label1.draw()    
-                label2.draw()    
-                label3.draw()
-            except Exception,error:
-                print error
+            pass
 
 
+
+    ##############################
+    ### OpenGL on draw binding ###
+    ##############################
     def on_draw_scene(self):
         self.w2.clear()
         self.count+=1
@@ -525,6 +492,7 @@ M       : toggle robot mesh
         else:
             for i in range(self.numMeshes):
                 mesh=self.meshes[i]
+                prepareMesh(mesh.shapes[0].app)
                 Tmatrix=mesh.globalTransformation
                 R=Tmatrix[0:3,0:3]
                 p=Tmatrix[0:3,3]
@@ -532,16 +500,9 @@ M       : toggle robot mesh
                 glPushMatrix()
                 glTranslatef(p[0],p[1],p[2])
                 glRotated(agax[0],agax[1],agax[2],agax[3])
-                
-                for j in range(len(self.vertex_lists[i])):
-                    prepareMesh(mesh.shapes[j].app)         
-                    alist=self.vertex_lists[i][j]
-                    alist.draw(pyglet.gl.GL_TRIANGLES)
-
-                    ## glList id is eq to meshId
-                    ## drawing by list
-    #                li=self.meshId2glListId[i]
-    #                glCallList(li)
+                for j in range(len(mesh.shapes)):
+                    prepareMesh(mesh.shapes[j].app)
+                    self.shapeBatches[i][j].draw()
                 glPopMatrix()
 
         glFlush()
