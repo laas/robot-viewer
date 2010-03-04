@@ -59,47 +59,22 @@ def glsetup():
 #    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #    glEnable(GL_LINE_SMOOTH)
 #    glEnable(GL_POINT_SMOOTH)
-    glEnable(GL_CULL_FACE)
+#    glEnable(GL_CULL_FACE)
     glEnable(GL_DEPTH_TEST)
     glEnable(GL_LIGHTING)
-    glShadeModel(GL_SMOOTH)
+#    glShadeModel(GL_SMOOTH)
     ca=0.0
-    la=0.6
-    qa=0.2
+    la=0.0
+    qa=0.08
 
     glLightfv(GL_LIGHT0, GL_POSITION, vec(-3.0,3.0,3.0,1.0))
     glLightfv(GL_LIGHT0, GL_DIFFUSE, vec(1,1,1,1))
     glLightfv(GL_LIGHT0, GL_AMBIENT, vec(1,1,1,1))
     glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, ca)
-    glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, la)
+    glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, la) 
     glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, qa)
 
-    glLightfv(GL_LIGHT1, GL_POSITION, vec(3.0,3.0,3.0,1.0))
-    glLightfv(GL_LIGHT1, GL_DIFFUSE, vec(1,1,1,1))
-    glLightfv(GL_LIGHT1, GL_AMBIENT, vec(1,1,1,1))
-    glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, ca)
-    glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, la)
-    glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, qa)
-
-    glLightfv(GL_LIGHT2, GL_POSITION, vec(3.0,-3.0,3.0,1.0))
-    glLightfv(GL_LIGHT2, GL_DIFFUSE, vec(1,1,1,1))
-    glLightfv(GL_LIGHT2, GL_AMBIENT, vec(1,1,1,1))
-    glLightf(GL_LIGHT2, GL_CONSTANT_ATTENUATION, ca)
-    glLightf(GL_LIGHT2, GL_LINEAR_ATTENUATION, la)
-    glLightf(GL_LIGHT2, GL_QUADRATIC_ATTENUATION, qa)
-
-    glLightfv(GL_LIGHT3, GL_POSITION, vec(-3.0,-3.0,3.0,1.0))
-    glLightfv(GL_LIGHT3, GL_DIFFUSE, vec(1,1,1,1))
-    glLightfv(GL_LIGHT3, GL_AMBIENT, vec(1,1,1,1))
-    glLightf(GL_LIGHT3, GL_CONSTANT_ATTENUATION, ca)
-    glLightf(GL_LIGHT3, GL_LINEAR_ATTENUATION, la)   
-    glLightf(GL_LIGHT3, GL_QUADRATIC_ATTENUATION, qa)
-
     glEnable(GL_LIGHT0)
-    glEnable(GL_LIGHT1)
-    glEnable(GL_LIGHT2)
-    glEnable(GL_LIGHT3)
-
 
 lp=[]
 N=5
@@ -127,7 +102,6 @@ def draw_floor():
 
     pyglet.graphics.draw(4,GL_QUADS,
                          ('v3f',(-L,-L,0.0, L,-L,0.0, L,L,0, -L,L,0.0)))
-
     glPopMatrix()
 
 
@@ -440,7 +414,10 @@ M       : toggle robot mesh
 
 
 
-    def initWindow(self):        
+    def initWindow(self):
+        # disable error checking for increased performance
+        pyglet.options['debug_gl'] = False
+        
         self.w1 = Window(300,400,caption='Text',resizable=False)
         self.w1.on_draw = self.on_draw_GUI
         self.w1.switch_to()
@@ -566,11 +543,8 @@ M       : toggle robot mesh
     ### OpenGL on draw binding ###
     ##############################
     def on_draw_scene(self):
-
         self.w2.clear()
         self.count+=1            
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        self.fps_display.draw()
         glLoadIdentity()
         p=self.camera.position
         f=self.camera.lookat
@@ -603,26 +577,21 @@ M       : toggle robot mesh
                     self.shapeBatches[i][j].draw()
                 glPopMatrix()
 
-        glFlush()
-
-        if self.state=="LOADING":
-            return
-        else:
-            try:
-                glMaterialfv(GL_FRONT_AND_BACK,\
+        try:
+            glMaterialfv(GL_FRONT_AND_BACK,\
                              GL_AMBIENT_AND_DIFFUSE, COLOR_GREEN)
-                glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, COLOR_GREEN)
-
-                glPushMatrix()
-                targetx=float(self.motion.info.split()[0])
-                targety=float(self.motion.info.split()[1])
-                glTranslatef(targetx,targety, 0.05)
-
-                sphere = gluNewQuadric() 
-                gluSphere(sphere,0.03,10,10)
-                glPopMatrix()
-            except Exception,error:
-                print error
+            glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, COLOR_GREEN)
+            
+            glPushMatrix()
+            targetx=float(self.motion.info.split()[0])
+            targety=float(self.motion.info.split()[1])
+            glTranslatef(targetx,targety, 0.05)
+            
+            sphere = gluNewQuadric() 
+            gluSphere(sphere,0.03,10,10)
+            glPopMatrix()
+        except Exception,error:
+            warnings.warn( error )
 
     def update(self,dt):
         if self.state==None or self.state=="LOADING" or self.robot==None:
