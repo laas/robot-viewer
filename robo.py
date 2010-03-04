@@ -5,11 +5,7 @@
 import numpy as np
 import re
 from math import sin,cos
-
-
-from pyglet.gl import *
 from nutshell import *
-import pyglet
 
 class genericObject():
     def __init__(self,translation=[0,0,0],rotation=[1,0,0,0]):
@@ -27,8 +23,6 @@ class genericObject():
         self.localR1=np.eye(3)  # due to offset of coordonee
         self.localR2=np.eye(3)  # due to self rotation (revolute joint)
         self.id=None
-    def draw_skeleton(self):
-        pass
 
     def __str__(self): 
         s= "%s \t= %s\n"%(self.type,self.name)
@@ -169,23 +163,6 @@ class joint(genericObject):
         self.localR=np.eye(3)   # local rotation
         self.localR1=np.eye(3)  # due to offset of coordonee
         self.localR2=np.eye(3)  # due to self rotation (revolute joint)
-        
-    def draw_skeleton(self):
-        # draw_skeleton a sphere at each mobile joint
-        if self.jointType in ["free","rotate"]:
-            pos=self.globalTransformation[0:3,3]
-            glPushMatrix()
-            glTranslatef(pos[0], pos[1], pos[2])
-            sphere = gluNewQuadric() 
-            gluSphere(sphere,0.01,10,10)
-            glPopMatrix()
-
-            if self.jointType=="rotate":
-                parent=self.parent
-                parent_pos=parent.globalTransformation[0:3,3]
-                draw_link(pos,parent_pos)
-        for child in self.children:
-            child.draw_skeleton()
             
 class baseNode(joint):
     def __init__(self,translation=[0,0,0],rotation=[1,0,0,0],children=[]):

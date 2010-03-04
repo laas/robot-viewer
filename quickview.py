@@ -13,9 +13,11 @@ import robo,VRMLloader
 from motionRecord import Motion
 from camera import Camera,norm,normalized
 from math import atan2,sin,cos,sqrt,acos
-import warnings
+import warnings,sys
 import numpy as np
-
+import Tkinter, tkFileDialog 
+sys.path.append('simplui-1.0.4')
+from simplui import *
 
 ##########################################################
 ################# MIS FUNCTIONS ##########################
@@ -191,6 +193,11 @@ class Application:
         self.w2=None  # OpenGL
         self.status="Uninitialized"
         self.keys=None #keyboard handler
+        self.GUIthemes=None
+        self.GUItheme=0
+        self.GUIframe=None
+
+
         ## redering stuff
         self.VRMLFile=None
         self.meshes=[]
@@ -268,6 +275,7 @@ class Application:
         except:
             warnings.warn("Unable to load motion file")
             self.simTime=0.0
+            self.state=None
         self.state="STOP"
 
     def usage(self):
@@ -329,19 +337,26 @@ M       : toggle robot mesh
                 self.showMesh=not self.showMesh
 
     def loadRobot(self,VRMLFile=None):
+        self.state="LOADING"
         import pickle
         self.stopwatch.tic(["lr"])
         if VRMLFile:
             self.robot=VRMLloader.VRMLloader(VRMLFile,not self.simplify)
         else:
             if not os.path.exists('lastRobot.pickle'):
-                raise Exception("No robot found. If this is your first time, use -w VRML_File.wrl to load a robot.")
+                warnings.warn("No robot found. If this is your first time, use -w VRML_File.wrl to load a robot.")
+                self.state=None
+                self.stopwatch.toc("lr")
+                return
             print "loading the last loaded robot \n"
             self.robot=pickle.load(open('lastRobot.pickle','r'))
             print "loaded ",self.robot.name
-
+        foo=self.stopwatch.toc("lr")
         if self.measureTime:
-            print "VRMLloader\t: %3.2fs"%self.stopwatch.toc("lr")
+            print "VRMLloader\t: %3.2fs"%foo
+
+        self.state="STOP"
+
         self.stopwatch.tic(["vl"])
         self.meshes=self.robot.mesh_list 
         self.numMeshes=len(self.meshes)
@@ -411,31 +426,92 @@ M       : toggle robot mesh
         f=open('lastRobot.pickle','w')
         pickle.dump(self.robot,f)
         f.close()
-#             glPushMatrix()
-#             listIndex=i+1
-#             self.meshId2glListId[i]=listIndex
-
-#             glNewList(listIndex,GL_COMPILE)
-#             for j in range(len(self.vertex_lists[i])):
-#                 prepareMesh(mesh.shapes[j].app)         
-#                 alist=self.vertex_lists[i][j]
-#                 alist.draw(pyglet.gl.GL_TRIANGLES)#,tri_lists[i][j])
-#             glEndList()
-#             Glpopmatrix()
-
         self.setRobot(self.simTime)
+        self.state="STOP"
         # create_the display list
+        foo=self.stopwatch.toc("vl")
         if self.measureTime:
-            print "createVList\t: %3.2fs"%self.stopwatch.toc("vl")
+            print "createVList\t: %3.2fs"%foo
 
-    def initWindow(self):
-        #####  GUI   ######        
-        self.w1 = Window(600,100,caption='GUI',resizable=False)
+
+    ###############################
+    #      INIT THE WINDOWS       #
+    ###############################
+
+
+
+    def initWindow(self):        
+        self.w1 = Window(300,400,caption='Text',resizable=False)
         self.w1.on_draw = self.on_draw_GUI
         self.w1.switch_to()
+        pyglet.gl.glClearColor(0.8, 0.8, 1.0, 1.0)
         
+        def button_action(button):
+            name=button._get_text()
+            if name=="LoadRobot":
+                root = Tkinter.Tk()
+                root.withdraw()
+                filename = tkFileDialog.askopenfilename()
+                root.destroy()
+                self.loadRobot(filename)
 
-        ##### OpenGL ######
+            elif name=="LoadMotion":
+                root = Tkinter.Tk()
+                root.withdraw()
+                filename = tkFileDialog.askopenfilename()
+                root.destroy()
+                import re
+                # strip the extension
+                bn=re.sub(r"\.\w+$","",filename)
+                self.loadBasename(bn)
+            elif name=="Play":
+                self.playMovement()
+            elif name=="Pause":
+                self.pauseMovement()
+            elif name=="Stop":
+                self.stopMovement()
+            
+            
+        themes = [Theme('simplui-1.0.4/themes/macos'),\
+                      Theme('simplui-1.0.4/themes/pywidget')]
+        theme = 0
+
+        # create a frame to contain our gui, the full size of our window
+        self.GUIframe = Frame(themes[theme], w=300, h=400)
+        # let the frame recieve events from the window
+        self.w1.push_handlers(self.GUIframe)
+
+        # create and add a window
+        dialogue2 = Dialogue('GUI', x=0, y=400, content=
+                             VLayout(w=300,children=[
+                    HLayout(autosizey=True,vpadding=0,children=[
+                            Button('LoadRobot',action=button_action),
+                            Button('LoadMotion',action=button_action),
+                            ]),
+                    HLayout(autosizey=True,vpadding=0,children=[
+                            Button('Play',action=button_action),
+                            Button('Pause',action=button_action),
+                            Button('Stop',action=button_action),
+                            Button('Next',action=button_action),
+                            Button('Prev',action=button_action),
+                            ]),
+                    FoldingBox('Info',name='Info',content=
+                               VLayout(w=300,children=[
+                               Label("Motion  : None",name='motion_info_label'),
+                               Label("Time    : None",name='time_label'),
+                               Label("State   : None",name='state_label'),
+                               Label("fps     : None",name='fps_label'),
+                               Label("Speed     : None",name='speed_label'),
+                               ]),
+                               )
+                    ])                         
+
+        )
+
+        self.GUIframe.add( dialogue2 )        
+
+
+        #### GL ##
         try:
             config = Config(sample_buffers=1, samples=4, 
                             depth_size=16, double_buffer=True,)
@@ -443,37 +519,56 @@ M       : toggle robot mesh
                                  config=config)
         except pyglet.window.NoSuchConfigException:
             self.w2 = Window(resizable=True)
-
         self.w2.on_draw = self.on_draw_scene
         self.w2.on_resize = self.on_resize
         self.w2.on_key_press = self.on_key_press
         self.keys = key.KeyStateHandler()
         self.w2.push_handlers(self.keys)
-
-        
         glsetup()
-        self.w2.switch_to()
+        self.w2.switch_to()        
         pyglet.clock.schedule(self.update)
-
 
 
     ###########################
     ### GUI on draw binding ###
     ###########################
     def on_draw_GUI(self):
-        if self.state=="LOADING":
-            return
-        else:
-            pass
+        if self.state!="LOADING" and self.state!=None:
+            if self.appTime-self.lastTime < 1.0:
+                pass
+            else:
+                self.lastTime=time.time()
+                self.fps=self.count
+                self.count=0
+            self.w1.clear()
+            foo=self.GUIframe.get_element_by_name('time_label')
+            try:
+                foo.text="time         : %3.2f"%self.simTime
+            except:                    
+                foo.text="time         : "+str(self.simTime)
+            foo=self.GUIframe.get_element_by_name('state_label')
+            foo.text="State        : "+str(self.state)
+            foo=self.GUIframe.get_element_by_name('motion_info_label')
+            foo.text="Motion info  : "+str(self.motion.getInfo())
+            foo=self.GUIframe.get_element_by_name('fps_label')
+            foo.text="Fps          : "+str(self.fps)
+            foo=self.GUIframe.get_element_by_name('speed_label')            
+            foo.text="Playing speed: %3.2f"%self.timeFactor
+            if self.timeFactor > 0:
+                foo.text+=" (Forwards)"
+            else:
+                foo.text+=" (Backwards)"
 
+        self.GUIframe.draw()
 
 
     ##############################
     ### OpenGL on draw binding ###
     ##############################
     def on_draw_scene(self):
+
         self.w2.clear()
-        self.count+=1
+        self.count+=1            
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         self.fps_display.draw()
         glLoadIdentity()
@@ -482,6 +577,9 @@ M       : toggle robot mesh
         u=self.camera.up
         gluLookAt(p[0],p[1],p[2],f[0],f[1],f[2],u[0],u[1],u[2])
         draw_floor()
+
+        if self.state=="LOADING" or self.state==None or self.robot==None:
+            return
         if self.simplify or (not self.showMesh):
             glMaterialfv(GL_FRONT_AND_BACK, \
                              GL_AMBIENT_AND_DIFFUSE, COLOR_RED)
@@ -527,7 +625,9 @@ M       : toggle robot mesh
                 print error
 
     def update(self,dt):
-        
+        if self.state==None or self.state=="LOADING" or self.robot==None:
+            return
+
         if self.keys[key.LEFT]:
             self.camera.rotateZ(dt*0.5)
 
@@ -547,7 +647,7 @@ M       : toggle robot mesh
                 self.camera.moveZ(-dt*0.5)
 
         self.camera.adjust(self.robot,dt)
-
+        self.appTime=time.time()
 
 
         if self.state=="STOP":
@@ -754,7 +854,6 @@ def main():
 
     if not standalone:
         try:
-
 
             ##################################
             #      omniORB
