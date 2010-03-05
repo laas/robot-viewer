@@ -1,4 +1,5 @@
 === Dependencies ===
+ * Python 2.6
 
  * SimpleParse 2.1 
    http://simpleparse.sourceforge.net/
@@ -14,7 +15,7 @@
 
 === INSTALLATION ===
 
- * Only simpleparse requires installation, go to respective folder(s) and do "sudo python setup.py install"
+ * Only simpleparse,omniORB requires installation, go to respective folder(s) and do "sudo python setup.py install"
  
  * MacOS X:
       On Snow Leopard, python is set to 64 bit by default, that can cause pyglet to crash, 
