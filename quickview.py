@@ -15,7 +15,14 @@ from camera import Camera,norm,normalized
 from math import atan2,sin,cos,sqrt,acos
 import warnings,sys
 import numpy as np
-import Tkinter, tkFileDialog 
+
+noTkinter=False
+try:
+    import Tkinter, tkFileDialog 
+except:
+    warnings.warn("Tkinter not available")
+    noTkinter=True
+
 sys.path.append('simplui-1.0.4')
 from simplui import *
 
@@ -424,21 +431,26 @@ M       : toggle robot mesh
         def button_action(button):
             name=button._get_text()
             if name=="LoadRobot":
-                root = Tkinter.Tk()
-                root.withdraw()
-                filename = tkFileDialog.askopenfilename()
-                root.destroy()
-                self.loadRobot(filename)
-
+                if not noTkinter:
+                    root = Tkinter.Tk()
+                    root.withdraw()
+                    filename = tkFileDialog.askopenfilename()
+                    root.destroy()
+                    self.loadRobot(filename)
+                else:
+                    warnings.warn("Tkinter not available")
             elif name=="LoadMotion":
-                root = Tkinter.Tk()
-                root.withdraw()
-                filename = tkFileDialog.askopenfilename()
-                root.destroy()
-                import re
+                if not noTkinter:
+                    root = Tkinter.Tk()
+                    root.withdraw()
+                    filename = tkFileDialog.askopenfilename()
+                    root.destroy()
+                    import re
                 # strip the extension
-                bn=re.sub(r"\.\w+$","",filename)
-                self.loadBasename(bn)
+                    bn=re.sub(r"\.\w+$","",filename)
+                    self.loadBasename(bn)
+                else:
+                    warnings.warn("Tkinter not available")
             elif name=="Play":
                 self.playMovement()
             elif name=="Pause":
