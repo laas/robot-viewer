@@ -32,14 +32,12 @@ def draw_skeleton(robot):
         sphere = gluNewQuadric() 
         gluSphere(sphere,0.01,10,10)
         glPopMatrix()
-
         if robot.jointType=="rotate":
             parent=robot.parent
             parent_pos=parent.globalTransformation[0:3,3]
             draw_link(pos,parent_pos)
-        glPopMatrix()
     for child in robot.children:
-        child.draw_skeleton()
+        draw_skeleton(child)
         
 
 def vec(*args):
