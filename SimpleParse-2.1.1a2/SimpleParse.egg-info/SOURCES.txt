@@ -9,6 +9,7 @@ objectgenerator.py
 parser.py
 printers.py
 processor.py
+setup.cfg
 setup.py
 simpleparsegrammar.py
 ./__init__.py

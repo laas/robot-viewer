@@ -6,3 +6,4 @@ RoboViewer*/*
 roboviewer_idl*
 *.pickle
 hrpmodel/*
+*build*
