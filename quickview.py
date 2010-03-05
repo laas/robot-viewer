@@ -15,7 +15,7 @@ from camera import Camera,norm,normalized
 from math import atan2,sin,cos,sqrt,acos
 import warnings,sys
 import numpy as np
-#import Tkinter, tkFileDialog 
+import Tkinter, tkFileDialog 
 sys.path.append('simplui-1.0.4')
 from simplui import *
 
@@ -424,10 +424,17 @@ M       : toggle robot mesh
         def button_action(button):
             name=button._get_text()
             if name=="LoadRobot":
-                pass
+                root = Tkinter.Tk()
+                root.withdraw()
+                filename = tkFileDialog.askopenfilename()
+                root.destroy()
+                self.loadRobot(filename)
 
             elif name=="LoadMotion":
-                pass
+                root = Tkinter.Tk()
+                root.withdraw()
+                filename = tkFileDialog.askopenfilename()
+                root.destroy()
                 import re
                 # strip the extension
                 bn=re.sub(r"\.\w+$","",filename)
