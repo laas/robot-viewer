@@ -770,6 +770,18 @@ M       : toggle robot mesh
 #########################################################
 ################   MAIN PROGRAM    ######################
 #########################################################
+def usage():
+    print """
+Usage ./quickview [options]
+
+Options:
+
+-w, --wrl      : load a wrl file
+-s, --simplify : simplify display (only draw a skeleton)
+-m, --measure  : measure startup time
+--standalone   : standalone mode
+ 
+"""
 
 import getopt,sys
 from getopt import getopt
@@ -782,10 +794,10 @@ def main():
     try:
         opts,args=getopt(sys.argv[1:],
                          "l:w:sdmho:v", ["load=","wrl=","simplify","debug","help", "measure-time","output=","standalone"])
-    except getopt.GetoptError, err:
+    except Exception, err:
         # print help information and exit:
         print str(err) # will print something like "option -a not recognized"
- #       usage()
+        usage()
         sys.exit(2)
     output = None
     sequenceFile = None
@@ -795,7 +807,7 @@ def main():
         if o == "-v":
             verbose = True
         elif o in ("-h", "--help"):
-#            Application().usage()
+            usage()
             sys.exit()
  
         elif o in ("-d", "--debug"):
