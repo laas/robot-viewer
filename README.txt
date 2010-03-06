@@ -8,7 +8,7 @@
    http://www.pyglet.org/
 
  * simplui 1.0.4 (an extension of pyglet)
-   http://code.google.com/p/simplui/   
+   http://simplui.googlecode.com
 
  * omniORB 4.1.4 (optional)
    http://omniORB.sourceforge.net

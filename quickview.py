@@ -457,6 +457,13 @@ M       : toggle robot mesh
                 self.pauseMovement()
             elif name=="Stop":
                 self.stopMovement()
+            elif name=="Reverse":
+                self.timeFactor*=-1
+            elif name=="Speedup":
+                self.timeFactor*=2
+            elif name=="Slowdown":
+                self.timeFactor*=0.5
+
             
             
         themes = [Theme('simplui-1.0.4/themes/macos'),\
@@ -479,8 +486,11 @@ M       : toggle robot mesh
                             Button('Play',action=button_action),
                             Button('Pause',action=button_action),
                             Button('Stop',action=button_action),
-                            Button('Next',action=button_action),
-                            Button('Prev',action=button_action),
+                            ]),
+                    HLayout(autosizey=True,vpadding=0,children=[
+                            Button('Reverse',action=button_action),
+                            Button('Speedup',action=button_action),
+                            Button('Slowdown',action=button_action),
                             ]),
                     FoldingBox('Info',name='Info',content=
                                VLayout(w=300,children=[
