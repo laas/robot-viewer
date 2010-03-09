@@ -12,7 +12,7 @@ from nutshell import *
 import robo,VRMLloader
 from motionRecord import Motion
 from camera import Camera,norm,normalized
-from math import atan2,sin,cos,sqrt,acos
+from math import atan2,sin,cos,sqrt,acos,pi
 import warnings,sys
 import numpy as np
 
@@ -30,19 +30,85 @@ from simplui import *
 ################# MIS FUNCTIONS ##########################
 ##########################################################
         
-def draw_skeleton(robot):
+def draw_skeleton2(robot):
+    glMaterialfv(GL_FRONT_AND_BACK, \
+                     GL_AMBIENT_AND_DIFFUSE, COLOR_RED)
+    glMaterialfv(GL_FRONT_AND_BACK, \
+                     GL_SPECULAR, COLOR_RED)
     # draw_skeleton a sphere at each mobile joint
     if robot.jointType in ["free","rotate"]:
-        pos=robot.globalTransformation[0:3,3]
+
+        Tmatrix=robot.globalTransformation
+        R=Tmatrix[0:3,0:3]
+        p=Tmatrix[0:3,3]
+        agax=rot2AngleAxis(R)        
         glPushMatrix()
-        glTranslatef(pos[0], pos[1], pos[2])
-        sphere = gluNewQuadric() 
-        gluSphere(sphere,0.01,10,10)
+        glTranslatef(p[0],p[1],p[2])
+        glRotated(agax[0],agax[1],agax[2],agax[3])
+        pos=robot.globalTransformation[0:3,3]
+        qua = gluNewQuadric()         
+        if robot.axis in ("X","x"):
+            glRotated(90,0,1,0)
+        elif robot.axis in ("Y","y"):
+            glRotated(90,1,0,0)
+
+        r=0.01
+        h=0.05
+        glTranslated(0.0,0.0,-h/2)
+        gluDisk(qua,0,r,10,5)
+        gluCylinder(qua,r,r,h,10,5)
+        glTranslated(0.0,0.0,h)
+        gluDisk(qua,0,r,10,5)
         glPopMatrix()
+
         if robot.jointType=="rotate":
             parent=robot.parent
-            parent_pos=parent.globalTransformation[0:3,3]
-            draw_link(pos,parent_pos)
+            p2=parent.globalTransformation[0:3,3]
+            p1=p
+            ## draw link
+            r=0.0025
+            h=norm(p2-p1)
+            dir=normalized(p2-p1)
+            alpha=180/pi*acos(dir[2])
+            axis=np.cross(np.array([0,0,1]),dir)
+            glPushMatrix()
+            glTranslatef(p1[0],p1[1],p1[2])
+            glRotated(alpha,axis[0],axis[1],axis[2])
+            gluCylinder(qua,r,r,h,10,5)
+            glPopMatrix()
+
+    for child in robot.children:
+        draw_skeleton2(child)
+        
+def draw_skeleton(robot):
+    glMaterialfv(GL_FRONT_AND_BACK, \
+                     GL_AMBIENT_AND_DIFFUSE, COLOR_RED)
+    glMaterialfv(GL_FRONT_AND_BACK, \
+                     GL_SPECULAR, COLOR_RED)
+    # draw_skeleton a sphere at each mobile joint
+    if robot.jointType in ["free","rotate"]:
+        Tmatrix=robot.globalTransformation
+        R=Tmatrix[0:3,0:3]
+        p=Tmatrix[0:3,3]
+        agax=rot2AngleAxis(R)        
+
+        if robot.jointType=="rotate":
+            parent=robot.parent
+            p2=parent.globalTransformation[0:3,3]
+            p1=p
+            glPushMatrix()
+            glTranslated(p1[0],p1[1],p1[2])
+            qua = gluNewQuadric()         
+            gluSphere(qua,0.01,5,5)
+            glPopMatrix()
+            ## draw link
+            glPushMatrix()
+            glBegin(GL_LINES)
+            glVertex3f(p1[0],p1[1],p1[2])
+            glVertex3f(p2[0],p2[1],p2[2])
+            glEnd()
+            glPopMatrix()
+
     for child in robot.children:
         draw_skeleton(child)
         
@@ -463,6 +529,8 @@ M       : toggle robot mesh
                 self.timeFactor*=2
             elif name=="Slowdown":
                 self.timeFactor*=0.5
+            elif name=="Exit":
+                sys.exit(0)
 
             
             
@@ -481,6 +549,7 @@ M       : toggle robot mesh
                     HLayout(autosizey=True,vpadding=0,children=[
                             Button('LoadRobot',action=button_action),
                             Button('LoadMotion',action=button_action),
+                            Button('Exit',action=button_action),
                             ]),
                     HLayout(autosizey=True,vpadding=0,children=[
                             Button('Play',action=button_action),
@@ -575,11 +644,7 @@ M       : toggle robot mesh
         if self.state=="LOADING" or self.state==None or self.robot==None:
             return
         if self.simplify or (not self.showMesh):
-            glMaterialfv(GL_FRONT_AND_BACK, \
-                             GL_AMBIENT_AND_DIFFUSE, COLOR_RED)
-            glMaterialfv(GL_FRONT_AND_BACK, \
-                             GL_SPECULAR, COLOR_RED)
-            draw_skeleton(self.robot)
+            draw_skeleton2(self.robot)
 
         else:
             for i in range(self.numMeshes):
