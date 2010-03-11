@@ -9,7 +9,7 @@ import pyglet
 from pyglet.window import Window,key,mouse
 from pyglet.gl import *
 from nutshell import *
-import robo,VRMLloader
+import robo,robotLoader
 from motionRecord import Motion
 from camera import Camera,norm,normalized
 from math import atan2,sin,cos,sqrt,acos,pi
@@ -46,20 +46,24 @@ def draw_skeleton2(robot):
         glTranslatef(p[0],p[1],p[2])
         glRotated(agax[0],agax[1],agax[2],agax[3])
         pos=robot.globalTransformation[0:3,3]
-        qua = gluNewQuadric()         
-        if robot.axis in ("X","x"):
-            glRotated(90,0,1,0)
-        elif robot.axis in ("Y","y"):
-            glRotated(90,1,0,0)
-
+        qua = gluNewQuadric()
         r=0.01
         h=0.05
-        glTranslated(0.0,0.0,-h/2)
-        gluDisk(qua,0,r,10,5)
-        gluCylinder(qua,r,r,h,10,5)
-        glTranslated(0.0,0.0,h)
-        gluDisk(qua,0,r,10,5)
-        glPopMatrix()
+
+        if robot.jointType=="free":
+            gluSphere(qua,r,10,5)
+            glPopMatrix()
+        elif robot.jointType=="rotate":         
+            if robot.axis in ("X","x"):
+                glRotated(90,0,1,0)
+            elif robot.axis in ("Y","y"):
+                glRotated(90,1,0,0)
+            glTranslated(0.0,0.0,-h/2)
+            gluDisk(qua,0,r,10,5)
+            gluCylinder(qua,r,r,h,10,5)
+            glTranslated(0.0,0.0,h)
+            gluDisk(qua,0,r,10,5)
+            glPopMatrix()
 
         if robot.jointType=="rotate":
             parent=robot.parent
@@ -225,7 +229,7 @@ class StopWatch():
 ################# MAIN CLASS #######################
 ####################################################
 
-defaultVRML="./hrpmodel/HRP2JRL/model/HRP2JRLBush_main.wrl"
+defaultRobotKinematics="./hrpmodel/HRP2JRL/model/HRP2JRLBush_main.wrl"
 defaultBasename="data/seq-cleo0.3x-wbm"
 
 class Application:
@@ -244,7 +248,7 @@ class Application:
 
 
         ## redering stuff
-        self.VRMLFile=None
+        self.RobotKinematicsFile=None
         self.meshes=[]
         self.meshBatches=[]
         self.shapeBatches=[]
@@ -289,7 +293,7 @@ class Application:
         self.loadBasename()
 
         t1=self.stopwatch.toc(1)
-        self.loadRobot(self.VRMLfile)
+        self.loadRobot(self.RobotKinematicsFile)
 
         t2=self.stopwatch.toc(2)
         self.initWindow()
@@ -381,15 +385,15 @@ M       : toggle robot mesh
             elif symbol == key.M:
                 self.showMesh=not self.showMesh
 
-    def loadRobot(self,VRMLFile=None):
+    def loadRobot(self,RobotKinematicsFile=None):
         self.state="LOADING"
         import pickle
         self.stopwatch.tic(["lr"])
-        if VRMLFile:
-            self.robot=VRMLloader.VRMLloader(VRMLFile,not self.simplify)
+        if RobotKinematicsFile:
+            self.robot=robotLoader.robotLoader(RobotKinematicsFile,not self.simplify)
         else:
             if not os.path.exists('lastRobot.pickle'):
-                warnings.warn("No robot found. If this is your first time, use -w VRML_File.wrl to load a robot.")
+                warnings.warn("No robot found. If this is your first time, use -w RobotKinematics_File.wrl to load a robot.")
                 self.state=None
                 self.stopwatch.toc("lr")
                 return
@@ -398,7 +402,7 @@ M       : toggle robot mesh
             print "loaded ",self.robot.name
         foo=self.stopwatch.toc("lr")
         if self.measureTime:
-            print "VRMLloader\t: %3.2fs"%foo
+            print "RobotKinematicsLoader\t: %3.2fs"%foo
 
         self.state="STOP"
 
@@ -643,7 +647,7 @@ M       : toggle robot mesh
 
         if self.state=="LOADING" or self.state==None or self.robot==None:
             return
-        if self.simplify or (not self.showMesh):
+        if self.simplify or (not self.showMesh) or self.robot.mesh_list==[]:
             draw_skeleton2(self.robot)
 
         else:
@@ -734,7 +738,10 @@ M       : toggle robot mesh
         ## the above snipsets move the line_index point to the nearest time to the left
         ## of atime in the pos_times list       
         angles=self.motion.posRecord.coors[self.line_index_pos]
-        self.robot.jointAngles(angles)
+        try:
+            self.robot.jointAngles(angles)
+        except Exception,error:
+            warnings.warn("Something wrong: %s"%error)
 
 #         #+ Wst
 #         while self.line_index_wst < len(self.motion.wstRecord.times)-1 \
@@ -745,9 +752,10 @@ M       : toggle robot mesh
 #            and self.motion.wstRecord.times[self.line_index_wst] > atime:
 #                self.line_index_wst-=1
 
-        self.line_index_wst=self.line_index_pos
-        wstPos=self.motion.wstRecord.coors[self.line_index_wst]
-        self.robot.waist.translation=wstPos
+        try:
+            self.line_index_wst=self.line_index_pos
+            wstPos=self.motion.wstRecord.coors[self.line_index_wst]
+            self.robot.waist.translation=wstPos
         
 #         # Rpy
 #         while self.line_index_rpy < len(self.motion.rpyRecord.times)-1 \
@@ -758,10 +766,12 @@ M       : toggle robot mesh
 #            and self.motion.rpyRecord.times[self.line_index_rpy] > atime:
 #                 self.line_index_rpy-=1
 
-        self.line_index_rpy=self.line_index_pos
-        wstRpy=self.motion.rpyRecord.coors[self.line_index_rpy]
-        self.robot.waist.rpy=wstRpy
+            self.line_index_rpy=self.line_index_pos
+            wstRpy=self.motion.rpyRecord.coors[self.line_index_rpy]
+            self.robot.waist.rpy=wstRpy
 
+        except Exception,error:
+            warnings.warn( "Something wrong: %s"%error)
 
         self.robot.update()
 

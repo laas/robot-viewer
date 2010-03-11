@@ -35,6 +35,8 @@ class Camera(object):
 
     
     def adjust(self,robot,dt):
+        if not robot.waist:
+            return
         robotpos=robot.waist.translation
         self.lookat[2]=self.position[2]
 

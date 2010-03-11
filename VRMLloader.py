@@ -1,5 +1,9 @@
 #! /usr/bin/env python
 
+# Copyright LAAS/CNRS 2009-2012
+# Authors Duong Dang
+
+
 class leaf():
     def __init__(self):
         self.children=[]
@@ -141,10 +145,6 @@ def getObject(nodeLeaf,isRoot=True):
 #           A note must start with either
 #              DEF something something {..
 #     or       something {
-
-    objectName=None
-
-
 
     objectName=None
     if childLeaves[0].distro=="name":
