@@ -6,6 +6,7 @@ import numpy as np
 import re
 from math import sin,cos
 from nutshell import *
+from collections import deque
 
 class genericObject():
     def __init__(self,translation=[0,0,0],rotation=[1,0,0,0]):
@@ -95,7 +96,8 @@ class genericObject():
     def init(self):
         if self.type=="baseNode":
             self.update()
-            from collections import deque
+            self.joint_list=[]
+            self.mesh_list=[]
             pile=deque()
             pile.append(self)
         
@@ -104,6 +106,8 @@ class genericObject():
 
                 if an_element.type=="joint":
                     self.joint_list.append(an_element)
+#                    print "adding joint. Now have %d joint"%len(self.joint_list)
+
                 elif an_element.type=="mesh":
                     self.mesh_list.append(an_element)
 
@@ -165,18 +169,18 @@ class joint(genericObject):
         self.localR2=np.eye(3)  # due to self rotation (revolute joint)
             
 class baseNode(joint):
-    def __init__(self,translation=[0,0,0],rotation=[1,0,0,0],children=[]):
+    def __init__(self):
         self.type= "baseNode"
         self.jointType=""
         self.name=None
         self.id=-999
-        self.translation=translation
-        self.rotation=rotation
-        self.children=children
+        self.translation=[0,0,0]
+        self.rotation=[1,0,0,0]
+        self.children=[]
         self.parent=None
         self.localTransformation=np.zeros([4,4])
         self.globalTransformation=np.zeros([4,4])
-        self.joint_list=[]
+        self.joint_list=list()
         self.joint_dict=dict()
         self.rpy=[0,0,0]
         self.waist=None
