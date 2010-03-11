@@ -3,6 +3,7 @@
 from VRMLloader import *
 from robo import genericObject
 import numpy as np
+import re
 '''
 Asumption:
 The mesh is of the form 
@@ -18,7 +19,7 @@ Geometry
 }
 '''
 
-class appearance():
+class Appearance():
     def __init__(self):
         self.diffuseColor   =None
         self.specularColor  =None
@@ -36,7 +37,7 @@ class appearance():
         s+="\nambientIntensity="+str(self.ambientIntensity)
         return s
 
-class geometry():
+class Geometry():
     def __init__(self):
         self.coord=[]
         self.idx=[]
@@ -49,8 +50,8 @@ class geometry():
 
 class Shape():
     def __init__(self):
-        self.app=appearance()
-        self.geo=geometry()
+        self.app=Appearance()
+        self.geo=Geometry()
     def __str__(self):
         s=""
         s=self.app.__str__()
@@ -134,7 +135,7 @@ class Shape():
                             for indexLeaf in indexLeaves:
                                 self.geo.idx.append(int(indexLeaf.value))
                                                                   
-class mesh(genericObject):
+class Mesh(genericObject):
     def __init__(self,translation=[0,0,0],rotation=[1,0,0,0]):
         self.type="mesh"
         self.name=None
@@ -154,12 +155,14 @@ class mesh(genericObject):
 
     def __str__(self):
         s=""
+        s+="\nrotation="+str(self.rotation)
+        s+="\ntranslation="+str(self.translation)
         for shape in self.shapes:
             s+=shape.__str__()
             s+="\n"
         return s
 
-def meshLoader(filename):
+def VRMLmeshLoader(filename):
     from vrml_grammar import VRMLPARSERDEF,buildVRMLParser
     data=open(filename,'r').read()
     parser = buildVRMLParser()
@@ -172,12 +175,14 @@ def meshLoader(filename):
     if len(tree.children)>1:
         raise Exception("%s failed. 1 child is enough"%filename)
 
-    resultingMesh=getMesh(tree.children[0])
+    resultingMesh=getVRMLMesh(tree.children[0])
     resultingMesh.name=filename
+
+
     return resultingMesh
     
 
-def getMesh(nodeLeaf):
+def getVRMLMesh(nodeLeaf):
     leaf=nodeLeaf
     childLeaves=leaf.children[:]
     if leaf.distro != "Node":
@@ -195,7 +200,7 @@ def getMesh(nodeLeaf):
     if  (objectType not in ["Transform"]):
         raise Exception("Expecting a Tranform but objectType=%s. \n Parsing:\n %s"%( objectType,leaf.fullString() ))
 
-    new_mesh=mesh()
+    new_mesh=Mesh()
     for a_leaf in childLeaves:
         if a_leaf.distro!="Attr":
             raise Exception ("Expecting an attribute")
@@ -228,6 +233,53 @@ def getMesh(nodeLeaf):
                              fieldLeaf.children[3].value]
                     
     return new_mesh
+
+def OBJmeshLoader(filename):
+    amesh=Mesh()
+    ## doesn't support color, normals ... yet    
+    # no group so just one shape
+    ashape=Shape()
+    ashape.app.diffuseColor=[1,1,1]
+    ashape.app.specularColor=[1,1,1]
+    ashape.app.emissiveColor=[0,0,0]
+    ashape.app.shininess=1.0
+
+    lines=open(filename).readlines()
+    for line in lines:
+        words=line.split()
+        if not words[:]:
+            continue
+        if re.match(r"\s*v\s*$",words[0]):
+            if len(words)!=4:
+                raise Exception("invalid vertex: line=%s,words[0]=%s"%(line,words[0]))
+            else:
+                for word in words[1:]:
+                    p=float(word)
+                    ashape.geo.coord.append(p)
+
+
+        elif re.match(r"\s*f\s*",words[0]):
+            if len(words)<2:
+                raise Exception("Invalid face")
+            else:
+                for word in words[1:]:
+                    m=re.search(r"^(\d+)\/",word)
+                    if m:
+                        idx=int(m.group(1))-1
+                        ashape.geo.idx.append(idx)
+                ashape.geo.idx.append(-1)        
+
+    amesh.shapes.append(ashape)
+    return amesh
+
+def meshLoader(filename):    
+    if re.search(r"\.wrl$",filename):
+        return VRMLmeshLoader(filename)
+
+    elif re.search(r"\.obj$",filename):
+        return OBJmeshLoader(filename)
+
+    return None
 
 def main():
     import sys

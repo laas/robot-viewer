@@ -448,14 +448,16 @@ M       : toggle robot mesh
                                 # using G. Thurmer, C. A. Wuthrich, "Computing vertex normals from polygonal facets"
                                 # Journal of Graphics Tools, 3 1998
                                 id0=polyline[0];id1=polyline[1];id2=polyline[2]
-
                                 p10=normalized(points[id1]-points[id0])                            
                                 p21=normalized(points[id2]-points[id1])
                                 p02=normalized(points[id0]-points[id2])
-                                alpha0=acos(np.dot(p10,p02))
-                                alpha1=acos(np.dot(p21,p10))
-                                alpha2=acos(np.dot(p02,p21))
-
+                                alpha0=alpha1=alpha2=0
+                                try:
+                                    alpha0=acos(np.dot(p10,p02))
+                                    alpha1=acos(np.dot(p21,p10))
+                                    alpha2=acos(np.dot(p02,p21))
+                                except Exception,error:
+                                    warnings.warn("something wrong %s"%error)
                                 normals[id0]+=alpha0*normalized(np.cross(p02,p10))
                                 normals[id1]+=alpha1*normalized(np.cross(p10,p21))
                                 normals[id2]+=alpha2*normalized(np.cross(p21,p02))

@@ -28,7 +28,7 @@ def main():
     debug=False
     mst=False
     smp=False
-    VRMLmesh=None
+    RobotKinematics=None
     standalone=False
     try:
         opts,args=getopt(sys.argv[1:],
@@ -66,7 +66,7 @@ def main():
 
 
         elif o in ("-w", "--wrl"):
-            VRMLmesh=a
+            RobotKinematics=a
 
         elif o in ("--standalone"):
             standalone=True
@@ -77,7 +77,7 @@ def main():
     app=Application(debug)
     if sequenceFile:
         app.basename=sequenceFile    
-    app.VRMLfile=VRMLmesh
+    app.RobotKinematicsFile=RobotKinematics
     app.measureTime=mst
     app.simplify=smp
     app.init()
