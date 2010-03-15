@@ -539,9 +539,10 @@ M       : toggle robot mesh
                 sys.exit(0)
 
             
-            
-        themes = [Theme('simplui-1.0.4/themes/macos'),\
-                      Theme('simplui-1.0.4/themes/pywidget')]
+        path=sys.path[0]+'/'        
+#        path="/home/john/softs/devel/robotviewer/"
+        themes = [Theme(path+'simplui-1.0.4/themes/macos'),\
+                      Theme(path+'simplui-1.0.4/themes/pywidget')]
         theme = 0
 
         # create a frame to contain our gui, the full size of our window
@@ -668,22 +669,23 @@ M       : toggle robot mesh
                     self.shapeBatches[i][j].draw()
                 glPopMatrix()
 
+        glMaterialfv(GL_FRONT_AND_BACK,\
+                         GL_AMBIENT_AND_DIFFUSE, COLOR_GREEN)
+        glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, COLOR_GREEN)
+        
+        glPushMatrix()
+
         try:
-            glMaterialfv(GL_FRONT_AND_BACK,\
-                             GL_AMBIENT_AND_DIFFUSE, COLOR_GREEN)
-            glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, COLOR_GREEN)
-            
-            glPushMatrix()
             targetx=float(self.motion.info.split()[0])
             targety=float(self.motion.info.split()[1])
             glTranslatef(targetx,targety, 0.05)
-            
             sphere = gluNewQuadric() 
             gluSphere(sphere,0.03,10,10)
-            glPopMatrix()
         except Exception,error:
-            warnings.warn( error )
+            warnings.warn("something wrong %s"%error )
 
+        glPopMatrix()
+        
     def update(self,dt):
         if self.state==None or self.state=="LOADING" or self.robot==None:
             return
