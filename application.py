@@ -325,8 +325,9 @@ class Application:
             warnings.warn("Unable to load motion file")
             self.simTime=0.0
             self.state=None
+        print "loaded"
         self.state="STOP"
-
+        
     def usage(self):
         print("""
 Press a key to:
@@ -495,10 +496,24 @@ M       : toggle robot mesh
         # disable error checking for increased performance
         pyglet.options['debug_gl'] = False
         
-        self.w1 = Window(300,400,caption='Text',resizable=False)
+        self.w1 = Window(300,400,caption='GUI',resizable=False)
         self.w1.on_draw = self.on_draw_GUI
         self.w1.switch_to()
         pyglet.gl.glClearColor(0.8, 0.8, 1.0, 1.0)
+
+        path=sys.path[0]+'/'        
+#        path="/home/john/softs/devel/robotviewer/"
+        themes = [Theme(path+'simplui-1.0.4/themes/macos'),\
+                      Theme(path+'simplui-1.0.4/themes/pywidget')]
+        theme = 0
+
+        # create a frame to contain our gui, the full size of our window
+        self.GUIframe = Frame(themes[theme], w=300, h=400)
+        # let the frame recieve events from the window
+        self.w1.push_handlers(self.GUIframe)
+
+        # create and add a window
+
         
         def button_action(button):
             name=button._get_text()
@@ -538,19 +553,23 @@ M       : toggle robot mesh
             elif name=="Exit":
                 sys.exit(0)
 
+        def plan_and_play(button):
+            targ_text = self.GUIframe.get_element_by_name('target_input').text            
+            nsteps_text = self.GUIframe.get_element_by_name('nstep_input').text            
+            output="m_"+nsteps_text+"_"+targ_text
+            output=re.sub(r" ","_",output)
+            command="./ball-picking $HOME/licenses "+ targ_text + " " + nsteps_text +" " +output
             
-        path=sys.path[0]+'/'        
-#        path="/home/john/softs/devel/robotviewer/"
-        themes = [Theme(path+'simplui-1.0.4/themes/macos'),\
-                      Theme(path+'simplui-1.0.4/themes/pywidget')]
-        theme = 0
+            print "executing '%s'"%command
+            try:
+                os.system(command)
+            except:
+                print "cannot execute %s"%command
+            else:
+                self.loadBasename("seq-"+output+"-wbm")
+                self.setRobot(0.0)
+                self.state="STOP"
 
-        # create a frame to contain our gui, the full size of our window
-        self.GUIframe = Frame(themes[theme], w=300, h=400)
-        # let the frame recieve events from the window
-        self.w1.push_handlers(self.GUIframe)
-
-        # create and add a window
         dialogue2 = Dialogue('GUI', x=0, y=400, content=
                              VLayout(w=300,children=[
                     HLayout(autosizey=True,vpadding=0,children=[
@@ -576,7 +595,18 @@ M       : toggle robot mesh
                                Label("fps     : None",name='fps_label'),
                                Label("Speed     : None",name='speed_label'),
                                ]),
-                               )
+                               ),
+                    FoldingBox('Plan',name='Info',content=
+                               VLayout(w=300,children=[
+                                HLayout(autosizey=True,vpadding=0,children=[
+                                        Label("Target"),TextInput(text="0 0 0.05",name="target_input")
+                                        ]),
+                                HLayout(autosizey=True,vpadding=0,children=[
+                                        Label("Numsteps"),TextInput(text="2",name="nstep_input")
+                                        ]),
+                                Button('Plan and Play',action=plan_and_play)
+                               ]),
+                               ),
                     ])                         
 
         )
@@ -588,7 +618,7 @@ M       : toggle robot mesh
         try:
             config = Config(sample_buffers=1, samples=4, 
                             depth_size=16, double_buffer=True,)
-            self.w2 = Window(900 , 600,resizable=False,\
+            self.w2 = Window(900 , 600,resizable=False,caption='OpenGL',\
                                  config=config)
         except pyglet.window.NoSuchConfigException:
             self.w2 = Window(resizable=True)
@@ -676,9 +706,10 @@ M       : toggle robot mesh
         glPushMatrix()
 
         try:
-            targetx=float(self.motion.info.split()[0])
-            targety=float(self.motion.info.split()[1])
-            glTranslatef(targetx,targety, 0.05)
+            targetx=float(self.motion.info.split()[1])
+            targety=float(self.motion.info.split()[2])
+            targetz=float(self.motion.info.split()[3])
+            glTranslatef(targetx,targety, targetz)
             sphere = gluNewQuadric() 
             gluSphere(sphere,0.03,10,10)
         except Exception,error:
