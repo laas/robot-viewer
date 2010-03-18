@@ -1,7 +1,10 @@
 #! /usr/bin/env python
 
-# Copyright LAAS/CNRS 2009-2012
+# Copyright LAAS/CNRS 2009-2010
 # Authors Duong Dang
+
+# auxilaries functions that don't belong to any class
+
 
 import numpy as np
 import re

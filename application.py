@@ -15,6 +15,12 @@ from camera import Camera,norm,normalized
 from math import atan2,sin,cos,sqrt,acos,pi
 import warnings,sys
 import numpy as np
+import re
+
+def customwarning(message,cat,filename,lineno,file="out.err",line=0):
+     print "WARNING: %s"%message
+
+warnings.showwarning=customwarning
 
 noTkinter=False
 try:
@@ -27,7 +33,7 @@ sys.path.append('simplui-1.0.4')
 from simplui import *
 
 ##########################################################
-################# MIS FUNCTIONS ##########################
+################# HELPER FUNCTIONS #######################
 ##########################################################
         
 def draw_skeleton2(robot):
@@ -37,7 +43,6 @@ def draw_skeleton2(robot):
                      GL_SPECULAR, COLOR_RED)
     # draw_skeleton a sphere at each mobile joint
     if robot.jointType in ["free","rotate"]:
-
         Tmatrix=robot.globalTransformation
         R=Tmatrix[0:3,0:3]
         p=Tmatrix[0:3,3]
@@ -458,7 +463,7 @@ M       : toggle robot mesh
                                     alpha1=acos(np.dot(p21,p10))
                                     alpha2=acos(np.dot(p02,p21))
                                 except Exception,error:
-                                    warnings.warn("something wrong %s"%error)
+                                    warnings.warn("Mesh processing error: %s"%error)
                                 normals[id0]+=alpha0*normalized(np.cross(p02,p10))
                                 normals[id1]+=alpha1*normalized(np.cross(p10,p21))
                                 normals[id2]+=alpha2*normalized(np.cross(p21,p02))
@@ -514,7 +519,7 @@ M       : toggle robot mesh
 
         # create and add a window
 
-        
+        ## HELPER FUNCTION ##
         def button_action(button):
             name=button._get_text()
             if name=="LoadRobot":
@@ -523,7 +528,8 @@ M       : toggle robot mesh
                     root.withdraw()
                     filename = tkFileDialog.askopenfilename()
                     root.destroy()
-                    self.loadRobot(filename)
+                    if filename:
+                        self.loadRobot(filename)
                 else:
                     warnings.warn("Tkinter not available")
             elif name=="LoadMotion":
@@ -532,10 +538,11 @@ M       : toggle robot mesh
                     root.withdraw()
                     filename = tkFileDialog.askopenfilename()
                     root.destroy()
-                    import re
+
                 # strip the extension
-                    bn=re.sub(r"\.\w+$","",filename)
-                    self.loadBasename(bn)
+                    if filename:
+                        bn=re.sub(r"\.\w+$","",filename)
+                        self.loadBasename(bn)
                 else:
                     warnings.warn("Tkinter not available")
             elif name=="Play":
@@ -554,6 +561,7 @@ M       : toggle robot mesh
                 sys.exit(0)
 
         def plan_and_play(button):
+            self.state="COMPUTING"
             targ_text = self.GUIframe.get_element_by_name('target_input').text            
             nsteps_text = self.GUIframe.get_element_by_name('nstep_input').text            
             output="m_"+nsteps_text+"_"+targ_text
@@ -567,9 +575,10 @@ M       : toggle robot mesh
                 print "cannot execute %s"%command
             else:
                 self.loadBasename("seq-"+output+"-wbm")
-                self.setRobot(0.0)
+                self.simTime=0
                 self.state="STOP"
 
+        ## END HELPER FUNCTIONS ##
         dialogue2 = Dialogue('GUI', x=0, y=400, content=
                              VLayout(w=300,children=[
                     HLayout(autosizey=True,vpadding=0,children=[
@@ -636,7 +645,7 @@ M       : toggle robot mesh
     ### GUI on draw binding ###
     ###########################
     def on_draw_GUI(self):
-        if self.state!="LOADING" and self.state!=None:
+        if  self.state!=None:
             if self.appTime-self.lastTime < 1.0:
                 pass
             else:
@@ -713,12 +722,12 @@ M       : toggle robot mesh
             sphere = gluNewQuadric() 
             gluSphere(sphere,0.03,10,10)
         except Exception,error:
-            warnings.warn("something wrong %s"%error )
+            warnings.warn("Couldn't draw the target. Caught exception: %s "%error )
 
         glPopMatrix()
         
     def update(self,dt):
-        if self.state==None or self.state=="LOADING" or self.robot==None:
+        if self.state==None or self.state=="LOADING" or self.robot==None or self.state=="COMPUTING":
             return
 
         if self.keys[key.LEFT]:
@@ -776,7 +785,7 @@ M       : toggle robot mesh
         try:
             self.robot.jointAngles(angles)
         except Exception,error:
-            warnings.warn("Something wrong: %s"%error)
+            warnings.warn("setRobot warning, caught excpetion: %s"%error)
 
 #         #+ Wst
 #         while self.line_index_wst < len(self.motion.wstRecord.times)-1 \
@@ -806,7 +815,7 @@ M       : toggle robot mesh
             self.robot.waist.rpy=wstRpy
 
         except Exception,error:
-            warnings.warn( "Something wrong: %s"%error)
+            warnings.warn( "Couldn't set wst position. caught exception: %s "%error)
 
         self.robot.update()
 
@@ -835,7 +844,7 @@ M       : toggle robot mesh
                     self.loadBasename(self.bn_list[id])
                     self.current_bn_id=id
                 except:
-                    return "something went wrong"
+                    return "Caught exception %s"%error
 
             self.playMovement()
             return ""    

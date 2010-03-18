@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-# Copyright LAAS/CNRS 2009-2012
+# Copyright LAAS/CNRS 2009-2010
 # Authors Duong Dang
 import numpy as np
 import re
@@ -20,9 +20,9 @@ class genericObject():
         self.rpy=[0,0,0]
         self.localTransformation=np.zeros([4,4])
         self.globalTransformation=np.zeros([4,4])
-        self.localR=np.eye(3)   # local rotation
-        self.localR1=np.eye(3)  # due to offset of coordonee
-        self.localR2=np.eye(3)  # due to self rotation (revolute joint)
+        self.localR=np.eye(3)   # local rotation in 2 parts:
+        self.localR1=np.eye(3)  #   * due to cooridnate offsets
+        self.localR2=np.eye(3)  #   * due to self rotation (revolute joint)
         self.id=None
 
     def __str__(self): 
@@ -69,7 +69,6 @@ class genericObject():
                 self.localTransformation[0:3,0:3]=self.localR
     
     def initLocalTransformation(self):
-
         if self.jointType=="free":                
             self.localR=euleur2rotation(self.rpy)            
         elif self.jointType=="rotate":                
@@ -78,8 +77,6 @@ class genericObject():
             self.localR=np.dot(self.localR1,self.localR2)
         else:
             self.localR=rot1(self.rotation)
-
-
         self.localTransformation[0:3,0:3]=self.localR
         self.localTransformation[0:3,3]=self.translation
         self.localTransformation[3,0:4]=[0,0,0,1]
@@ -89,9 +86,8 @@ class genericObject():
         if self.parent==None:           
             self.globalTransformation=self.localTransformation
         else:
-            self.globalTransformation=np.dot(self.parent.globalTransformation,\
-                self.localTransformation)
-
+            self.globalTransformation=np.dot\
+                (self.parent.globalTransformation,self.localTransformation)
 
     def init(self):
         if self.type=="baseNode":
@@ -100,43 +96,35 @@ class genericObject():
             self.mesh_list=[]
             pile=deque()
             pile.append(self)
-        
+
+            ## loop through the tree to create a list of joints 
             while not len(pile)==0:
                 an_element=pile.pop()
-
                 if an_element.type=="joint":
                     self.joint_list.append(an_element)
-#                    print "adding joint. Now have %d joint"%len(self.joint_list)
-
                 elif an_element.type=="mesh":
                     self.mesh_list.append(an_element)
-
                 for child in reversed(an_element.children):
                     pile.append(child)
                     if child.id!=None:
                         self.joint_dict[child.id]=child
-
             for joint in self.joint_list:
                 if joint.jointType=="free":
                     joint.getBaseNode().waist=joint
 
         self.initLocalTransformation()
         self.updateGlobalTransformation()    
-
         for child in self.children:
             try:
                 child.init()
             except Exception, error:
                 print error, "on object %s"%child.name
 
-
     def update(self):
         self.updateLocalTransformation()
         self.updateGlobalTransformation()    
         for child in self.children:
             child.update()
-
-
     def getBaseNode(self):
         if self.parent==None:
             return self
@@ -144,10 +132,10 @@ class genericObject():
             return self.parent.getBaseNode()
 
 
-# ******************************
-#                              #
-#                              # 
-# ******************************
+#*****************************#
+#           JOINT             #
+#*****************************#
+
 class joint(genericObject):
     def __init__(self,id=None,translation=[0,0,0],rotation=[1,0,0,0],axis= ""):
         self.type= "joint"
@@ -192,7 +180,6 @@ class baseNode(joint):
             angle=angles[i]
             (self.joint_dict[i]).angle=angle
     
-
     def printJoints(self):
         for joint in self.joint_list:
             print "\n====\n",joint
@@ -201,4 +188,3 @@ class baseNode(joint):
         self.waist.translation=p
     def waistRpy(self,p):
         self.waist.rpy=p
-

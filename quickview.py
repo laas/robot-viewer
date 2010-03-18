@@ -163,7 +163,7 @@ def main():
 
 
         except Exception,error:
-            warnings.warn("%s.\n Starting in standalone mode"%error)
+            warnings.warn("Corbaserver init failed. caught exception: %s.\nWARNING: Starting in standalone mode"%error)
 
 
     ##################################
