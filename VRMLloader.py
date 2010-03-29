@@ -4,7 +4,7 @@
 # Authors Duong Dang
 
 
-class leaf():
+class Leaf():
     def __init__(self):
         self.children=[]
         self.parent=None
@@ -66,14 +66,14 @@ class leaf():
         self.end_idx=a_struct[2]
         if a_struct[3]:
             for substruct in a_struct[3]:
-                child_leaf=leaf()
+                child_leaf=Leaf()
                 child_leaf.depth=self.depth+1
                 child_leaf.parse(substruct)
                 child_leaf.setParent(self)
                 self.addChild(child_leaf)
       
 def parseVRML(struct,data):
-    l=leaf()
+    l=Leaf()
     l.parse(struct,data)
     l.updateValue()
     return l
@@ -83,7 +83,7 @@ def parseVRML(struct,data):
 '''
 - function nodeparse(Node):
       case node_name:
-          Robot: object=baseNode()
+          Robot: object=BaseNode()
           Joint: object=Joint()
           Generic: object=Generic()
           Inline:  object=mesh
@@ -161,12 +161,12 @@ def getObject(nodeLeaf,isRoot=True):
         raise Exception("Expecting a Humanoid or a Joint but objectType=%s. \n Parsing:\n %s"%( objectType,leaf.fullString() ))
 
     if objectType in ["Joint","joint"]:
-        object=robo.joint()
+        object=robo.Joint()
     elif objectType=="Humanoid":
-        object=robo.baseNode()
+        object=robo.BaseNode()
     else:
 #        print "creating generic object, objecType=%s"%objectType
-        object=robo.genericObject()
+        object=robo.GenericObject()
 
 
     for a_leaf in childLeaves:

@@ -8,9 +8,9 @@ from math import sin,cos
 from nutshell import *
 from collections import deque
 
-class genericObject():
+class GenericObject():
     def __init__(self,translation=[0,0,0],rotation=[1,0,0,0]):
-        self.type="genericObject"
+        self.type="GenericObject"
         self.name=None
         self.jointType=""
         self.translation=translation
@@ -57,7 +57,7 @@ class genericObject():
         self.parent=parent
 
     def updateLocalTransformation(self):
-        if self.type in ["joint","baseNode"]:
+        if self.type in ["joint","BaseNode"]:
             if self.jointType=="free":                
                 self.localR=euleur2rotation(self.rpy)        
                 self.localTransformation[0:3,0:3]=self.localR    
@@ -90,7 +90,7 @@ class genericObject():
                 (self.parent.globalTransformation,self.localTransformation)
 
     def init(self):
-        if self.type=="baseNode":
+        if self.type=="BaseNode":
             self.update()
             self.joint_list=[]
             self.mesh_list=[]
@@ -136,7 +136,7 @@ class genericObject():
 #           JOINT             #
 #*****************************#
 
-class joint(genericObject):
+class Joint(GenericObject):
     def __init__(self,id=None,translation=[0,0,0],rotation=[1,0,0,0],axis= ""):
         self.type= "joint"
         self.jointType=""
@@ -155,10 +155,16 @@ class joint(genericObject):
         self.localR=np.eye(3)   # local rotation
         self.localR1=np.eye(3)  # due to offset of coordonee
         self.localR2=np.eye(3)  # due to self rotation (revolute joint)
+
+
+#*****************************#
+#         BASE NODE           #
+#*****************************#
+
             
-class baseNode(joint):
+class BaseNode(Joint):
     def __init__(self):
-        self.type= "baseNode"
+        self.type= "BaseNode"
         self.jointType=""
         self.name=None
         self.id=-999

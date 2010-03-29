@@ -15,7 +15,7 @@ def XMLloader(filename):
     root = ET.fromstring(s)
     robots=[]
     for element in root.getchildren():
-        if element.tag=="baseNode":
+        if element.tag=="BaseNode":
             robot=parseBaseNode(element)
             robots.append(robot)
 #    robots[0].printJoints()
@@ -23,7 +23,7 @@ def XMLloader(filename):
 
 def parseBaseNode(element):
     global xmlFilePath    
-    robot=robo.baseNode()
+    robot=robo.BaseNode()
     robot.jointType="free"
     imageRot=[1,0,0,0]
     imagePos=[0,0,0]

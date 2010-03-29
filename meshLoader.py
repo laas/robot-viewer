@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 from VRMLloader import *
-from robo import genericObject
+from robo import GenericObject
 import numpy as np
 import re
 '''
@@ -135,7 +135,7 @@ class Shape():
                             for indexLeaf in indexLeaves:
                                 self.geo.idx.append(int(indexLeaf.value))
                                                                   
-class Mesh(genericObject):
+class Mesh(GenericObject):
     def __init__(self,translation=[0,0,0],rotation=[1,0,0,0]):
         self.type="mesh"
         self.name=None
