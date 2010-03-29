@@ -6,7 +6,7 @@
 
 import getopt,sys, warnings
 from getopt import getopt
-from application import Application
+from robotviewer import Application
 
 #########################################################
 ################   MAIN PROGRAM    ######################
@@ -74,7 +74,8 @@ def main():
             assert False, "unhandled option"
             
     
-    app=Application(debug)
+    app=Application()
+    app.verbose=True
     if sequenceFile:
         app.basename=sequenceFile    
     app.RobotKinematicsFile=RobotKinematics

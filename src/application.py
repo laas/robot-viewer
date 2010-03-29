@@ -15,7 +15,7 @@ from camera import Camera,norm,normalized
 from math import atan2,sin,cos,sqrt,acos,pi
 import warnings,sys
 import numpy as np
-import re
+import re,imp
 
 def customwarning(message,cat,filename,lineno,file="out.err",line=0):
      print "WARNING: %s"%message
@@ -237,7 +237,7 @@ defaultRobotKinematics="./hrpmodel/HRP2JRL/model/HRP2JRLBush_main.wrl"
 defaultBasename="data/seq-cleo0.3x-wbm"
 
 class Application:
-    def __init__(self,db=False):
+    def __init__(self):
         self.robot=None
         self.state=None
 
@@ -275,10 +275,11 @@ class Application:
         self.camera=Camera()
 
         ## flags 
-        self.debug=db
+        self.debug=False
         self.measureTime=True
         self.simplify=False
         self.showMesh=True
+        self.verbose=False
 
         ## time stuff
         self.stopwatch=StopWatch()
@@ -499,14 +500,16 @@ M       : toggle robot mesh
     def initWindow(self):
         # disable error checking for increased performance
         pyglet.options['debug_gl'] = False
-        
+        if self.verbose:
+             print "entering initWindow"
         self.w1 = Window(300,400,caption='GUI',resizable=False)
         self.w1.on_draw = self.on_draw_GUI
         self.w1.switch_to()
         pyglet.gl.glClearColor(0.8, 0.8, 1.0, 1.0)
-
-        path=sys.path[0]+'/'        
-#        path="/home/john/softs/devel/robotviewer/"
+        tmp=imp.find_module('robotviewer')
+        path=tmp[1]
+        if self.verbose:
+             print "loading themes in %s"%path
         themes = [Theme(path+'/themes/macos'),\
                       Theme(path+'/themes/pywidget')]
         theme = 0
@@ -623,6 +626,8 @@ M       : toggle robot mesh
 
 
         #### GL ##
+        if self.verbose:
+             print "creating OpenGL window"
         try:
             config = Config(sample_buffers=1, samples=4, 
                             depth_size=16, double_buffer=True,)
