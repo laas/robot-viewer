@@ -29,7 +29,6 @@ except:
     warnings.warn("Tkinter not available")
     noTkinter=True
 
-sys.path.append('simplui-1.0.4')
 from simplui import *
 
 ##########################################################
@@ -508,8 +507,8 @@ M       : toggle robot mesh
 
         path=sys.path[0]+'/'        
 #        path="/home/john/softs/devel/robotviewer/"
-        themes = [Theme(path+'simplui-1.0.4/themes/macos'),\
-                      Theme(path+'simplui-1.0.4/themes/pywidget')]
+        themes = [Theme(path+'/themes/macos'),\
+                      Theme(path+'/themes/pywidget')]
         theme = 0
 
         # create a frame to contain our gui, the full size of our window
