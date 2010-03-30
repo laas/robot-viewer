@@ -607,17 +607,17 @@ M       : toggle robot mesh
                                Label("Speed     : None",name='speed_label'),
                                ]),
                                ),
-                    FoldingBox('Plan',name='Info',content=
-                               VLayout(w=300,children=[
-                                HLayout(autosizey=True,vpadding=0,children=[
-                                        Label("Target"),TextInput(text="0 0 0.05",name="target_input")
-                                        ]),
-                                HLayout(autosizey=True,vpadding=0,children=[
-                                        Label("Numsteps"),TextInput(text="2",name="nstep_input")
-                                        ]),
-                                Button('Plan and Play',action=plan_and_play)
-                               ]),
-                               ),
+#                     FoldingBox('Plan',name='Plan',content=
+#                                VLayout(w=300,children=[
+#                                 HLayout(autosizey=True,vpadding=0,children=[
+#                                         Label("Target"),TextInput(text="0 0 0.05",name="target_input")
+#                                         ]),
+#                                 HLayout(autosizey=True,vpadding=0,children=[
+#                                         Label("Numsteps"),TextInput(text="2",name="nstep_input")
+#                                         ]),
+#                                 Button('Plan and Play',action=plan_and_play)
+#                                ]),
+#                                ),
                     ])                         
 
         )

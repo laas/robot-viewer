@@ -39,6 +39,27 @@ class Leaf():
             return self.data
         else:
             return self.parent.getData()
+    
+    def nextSibling(self):
+        found=False
+        if self.parent:
+            for child in self.parent.children:
+                if found:
+                    return child
+                if child == self:
+                    found = True
+        return None
+
+
+    def nextSiblings(self):
+        alist=[]
+        tmp = self.nextSibling()
+        while tmp:
+            alist.append(tmp)
+            tmp=tmp.nextSibling()
+
+        return alist
+
 
     def fullString(self):
         data_string=self.getData()
@@ -146,7 +167,7 @@ def getObject(nodeLeaf,isRoot=True):
 #           A note must start with either
 #              DEF something something {..
 #     or       something {
-
+ 
     objectName=None
     if childLeaves[0].distro=="name":
         nameleaf=childLeaves.pop(0)
@@ -263,7 +284,9 @@ def VRMLloader(filename,loadMesh=True):
 
 def main():
     robot=VRMLloader(sys.argv[1])
+
     print robot
     print "it has %d meshes"%len(robot.mesh_list)
-
+    for mesh in robot.mesh_list:
+        print mesh
 if __name__=="__main__":main()

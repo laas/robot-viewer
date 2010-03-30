@@ -21,8 +21,8 @@ class GenericObject():
         self.localTransformation=np.zeros([4,4])
         self.globalTransformation=np.zeros([4,4])
         self.localR=np.eye(3)   # local rotation in 2 parts:
-        self.localR1=np.eye(3)  #   * due to cooridnate offsets
-        self.localR2=np.eye(3)  #   * due to self rotation (revolute joint)
+        self.localR1=np.eye(3)  #   - due to cooridnate offsets
+        self.localR2=np.eye(3)  #   - due to self rotation (revolute joint)
         self.id=None
 
     def __str__(self): 
@@ -47,6 +47,18 @@ class GenericObject():
 
         s+= "\nT=\n"+str(self.globalTransformation)
         s+= "\nlocalT=\n"+str(self.localTransformation)        
+
+
+        # count the size of the tree
+        count = 0
+        pile = deque()
+        pile.append(self)            
+        while not len(pile) == 0:
+            an_element = pile.pop()
+            count +=  1
+            for child in reversed(an_element.children):
+                pile.append(child)                                
+        s += "\nThe hierarchy tree has %d elements"%count
         return s
 
 
@@ -108,6 +120,7 @@ class GenericObject():
                     pile.append(child)
                     if child.id!=None:
                         self.joint_dict[child.id]=child
+
             for joint in self.joint_list:
                 if joint.jointType=="free":
                     joint.getBaseNode().waist=joint
@@ -194,3 +207,6 @@ class BaseNode(Joint):
         self.waist.translation=p
     def waistRpy(self,p):
         self.waist.rpy=p
+
+
+    

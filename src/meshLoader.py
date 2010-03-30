@@ -4,6 +4,7 @@ from VRMLloader import *
 from robo import GenericObject
 import numpy as np
 import re,warnings
+from collections import deque
 '''
 Asumption:
 The mesh is of the form 
@@ -48,6 +49,31 @@ class Geometry():
         return s
                                      
 
+
+# helper function
+def getLeavesNextTo(tree,leafValue):
+    pile = deque()
+    pile.append(tree)            
+    while not len(pile) == 0:
+        an_element = pile.pop()
+        if an_element.value == leafValue :
+            return an_element.nextSiblings()
+        for child in reversed(an_element.children):
+            pile.append(child)                                
+    return []
+
+def getLeafNextTo(tree,leafValue):
+    pile = deque()
+    pile.append(tree)            
+    while not len(pile) == 0:
+        an_element = pile.pop()
+        if an_element.value == leafValue :
+            return an_element.nextSibling()
+        for child in reversed(an_element.children):
+            pile.append(child)                                
+    return None
+
+
 class Shape():
     def __init__(self):
         self.app=Appearance()
@@ -59,41 +85,46 @@ class Shape():
         s+=self.geo.__str__()
         return s
     
+
+    ## this function needs a throughout cleanup !!!!
     def loadVRMLleaf(self,aleaf):
         if aleaf.distro != "Node":
             raise Exception("Expecting a node")    
         childLeaves=aleaf.children[:]
 
         if not childLeaves[0].distro=="nodegi":
-            raise Exception("Expecting a nodegi but distro=%s Parsing:\n %s"%(childLeaves[0].distro,childLeaves[0]))
+            raise Exception("Expecting a nodegi but distro=%s Parsing:\n %s"\
+                                %(childLeaves[0].distro,childLeaves[0]))
 
         typeleaf=childLeaves.pop(0)
         objectType=typeleaf.value
         if  (objectType not in ["Shape"]):
-            raise Exception("Expecting a Shape but objectType=%s. \n Parsing:\n %s"%( objectType,aleaf.fullString() ))
+            raise Exception("Expecting a Shape but objectType=%s. \n Parsing:\n %s"\
+                                %( objectType,aleaf.fullString() ))
 
-        for aaa_leaf in childLeaves:
-            if aaa_leaf.distro!="Attr":
+        for a_leaf in childLeaves:
+            if a_leaf.distro!="Attr":
                 raise Exception ("Expecting an attribute")
 
-            if len(aaa_leaf.children) !=2:
-                raise Exception ("Atribute must have 2 children. But lhere we have %d"%(len(aaa_leaf.children)))
+            if len(a_leaf.children) !=2:
+                raise Exception ("Atribute must have 2 children. But lhere we have %d"\
+                                     %(len(a_leaf.children)))
 
-            fffieldName=aaa_leaf.children[0].value
-            fffieldLeaf=aaa_leaf.children[1]
+            fieldName=a_leaf.children[0].value
+            fieldLeaf=a_leaf.children[1]
 
-            if fffieldName=="appearance":
-                matLeaves=[]
-                matLeaves=fffieldLeaf.children[0].children[1]\
-                    .children[1].children[0].children[:]
-                matLeaves.pop(0) # should check the name but im lazy
+            if fieldName=="appearance":
+                # search the tree for Material leaf
+                matLeaves = getLeavesNextTo(fieldLeaf,"Material")
 
-                for matLeaf in matLeaves:
+                for matLeaf in matLeaves:                    
                     matfieldName=matLeaf.children[0].value
                     matfieldLeaf=matLeaf.children[1]
 
                     if matfieldName=="diffuseColor":
-                        self.app.diffuseColor=[matfieldLeaf.children[0].value, matfieldLeaf.children[1].value, matfieldLeaf.children[2].value]
+                        self.app.diffuseColor=[matfieldLeaf.children[0].value,\
+                                                   matfieldLeaf.children[1].value, \
+                                                   matfieldLeaf.children[2].value]
                                                 
                     elif matfieldName=="specularColor":
                         self.app.specularColor=\
@@ -120,20 +151,14 @@ class Shape():
                         self.app.ambientIntensity=\
                             matfieldLeaf.children[0].value
 
-            elif fffieldName=="geometry":
-                geoLeaves=fffieldLeaf.children[0].children
-                for geoLeaf in geoLeaves:
-                    if geoLeaf.distro=="Attr":
-                        if geoLeaf.children[0].value=="coord":
-                            pointLeaf=geoLeaf.children[1]\
-                                .children[0].children[1].\
-                                children[1]
-                            for numLeaf in pointLeaf.children:
-                                self.geo.coord.append(numLeaf.value)
-                        elif geoLeaf.children[0].value=="coordIndex":
-                            indexLeaves=geoLeaf.children[1].children
-                            for indexLeaf in indexLeaves:
-                                self.geo.idx.append(int(indexLeaf.value))
+            elif fieldName=="geometry":                
+                pointLeaves = getLeafNextTo(fieldLeaf,"point").children
+                for pointLeaf in pointLeaves:
+                    self.geo.coord.append(pointLeaf.value)
+
+                idxLeaves = getLeafNextTo(fieldLeaf,"coordIndex").children
+                for idxLeaf in idxLeaves:
+                    self.geo.idx.append(int(idxLeaf.value))
                                                                   
 class Mesh(GenericObject):
     def __init__(self,translation=[0,0,0],rotation=[1,0,0,0]):
@@ -161,92 +186,6 @@ class Mesh(GenericObject):
             s+=shape.__str__()
             s+="\n"
         return s
-
-def VRMLmeshLoader(filename):
-    from vrml_grammar import VRMLPARSERDEF,buildVRMLParser
-    data=open(filename,'r').read()
-    parser = buildVRMLParser()
-    success, tags, next = parser.parse( data)
-    if len(tags)>1:
-        warnings.warn("%s failed. Expected 1 tag, has %d tags"%(filename,len(tags)))
-
-    for tag in tags:
-        tree=parseVRML(tag,data)
-        if len(tree.children)>1:
-            raise Exception("%s failed. 1 child is enough"%filename)
-
-        resultingMesh=None
-        try:
-            resultingMesh=getVRMLMesh(tree.children[0])
-        except Exception,error:
-            print "caught error %s"%error
-
-            
-        if resultingMesh:
-            resultingMesh.name=filename
-            resultingMesh
-    
-
-def getVRMLMesh(nodeLeaf):
-    leaf=nodeLeaf
-    childLeaves=leaf.children[:]
-    if leaf.distro != "Node":
-        raise Exception("Expecting a node")    
-#           A note must start with either
-#              DEF something something {..
-#     or       something {
-
-#    if childLeaves[0].distro=="name":
-#        nameleaf=childLeaves.pop(0)
-#        objectName=nameleaf.value        
-#        print "caught DEF :%s"%objectName
-
-    if not childLeaves[0].distro == "nodegi":
-        raise Exception("Expecting a nodegi but distro=%s Parsing:\n %s"%(childLeaves[0].distro,childLeaves[0]))
-
-    typeleaf=childLeaves.pop(0)
-    objectType=typeleaf.value
-
-    if  (objectType not in ["Transform"]):
-        raise Exception("Expecting a Tranform but objectType=%s. \n Parsing:\n %s"%( objectType,leaf.fullString() ))
-
-    new_mesh=Mesh()
-    for a_leaf in childLeaves:
-        if a_leaf.distro!="Attr":
-            raise Exception ("Expecting an attribute")
-
-        if len(a_leaf.children) !=2:
-            raise Exception ("Atribute must have 2 children. But lhere we have %d"%(len(a_leaf.children)))
-
-        fieldName=a_leaf.children[0].value
-        fieldLeaf=a_leaf.children[1]
-        
-        if fieldName in ["children"]:
-            for childNode in fieldLeaf.children:
-                a_shape=Shape()
-                a_shape.loadVRMLleaf(childNode)
-                new_mesh.shapes.append(a_shape)
-
-        elif fieldName=="translation":
-            if len(fieldLeaf.children)!=3:
-                raise Exception("Invalid translation")
-            new_mesh.translation=[fieldLeaf.children[0].value,\
-                             fieldLeaf.children[1].value,\
-                             fieldLeaf.children[2].value]
-
-        elif fieldName=="rotation":
-            if len(fieldLeaf.children)!=4:
-                raise Exception("Invalid rotation")
-            new_mesh.rotation=[fieldLeaf.children[0].value,\
-                             fieldLeaf.children[1].value,\
-                             fieldLeaf.children[2].value,\
-                             fieldLeaf.children[3].value]
-
-    if new_mesh.shapes!=[]:
-        return new_mesh
-    else:
-        raise Exception("Invalid mesh")
-                    
  
 def OBJmeshLoader(filename):
     amesh=Mesh()
@@ -265,7 +204,8 @@ def OBJmeshLoader(filename):
             continue
         if re.match(r"\s*v\s*$",words[0]):
             if len(words)!=4:
-                raise Exception("invalid vertex: line=%s,words[0]=%s"%(line,words[0]))
+                raise Exception("invalid vertex: line=%s,words[0]=%s"\
+                                    %(line,words[0]))
             else:
                 for word in words[1:]:
                     p=float(word)
