@@ -35,5 +35,6 @@ setup(name='robot-viewer',
       package_data={'robotviewer':['themes/macos/theme.json',\
                                       'themes/macos/theme.png',\
                                       'themes/pywidget/theme.json',\
-                                      'themes/pywidget/theme.png']}
+                                      'themes/pywidget/theme.png']},
+      requires=['simpleparse']
      )
