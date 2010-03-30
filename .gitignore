@@ -7,3 +7,5 @@ roboviewer_idl*
 *.pickle
 hrpmodel/*
 *build*
+MANIFEST
+dist/*

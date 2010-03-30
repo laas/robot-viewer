@@ -3,7 +3,7 @@
 from VRMLloader import *
 from robo import GenericObject
 import numpy as np
-import re
+import re,warnings
 '''
 Asumption:
 The mesh is of the form 
@@ -168,18 +168,23 @@ def VRMLmeshLoader(filename):
     parser = buildVRMLParser()
     success, tags, next = parser.parse( data)
     if len(tags)>1:
-        raise Exception("%s failed. 1 tag is enough"%filename)
-    tag=tags[0]
-    
-    tree=parseVRML(tag,data)
-    if len(tree.children)>1:
-        raise Exception("%s failed. 1 child is enough"%filename)
+        warnings.warn("%s failed. Expected 1 tag, has %d tags"%(filename,len(tags)))
 
-    resultingMesh=getVRMLMesh(tree.children[0])
-    resultingMesh.name=filename
+    for tag in tags:
+        tree=parseVRML(tag,data)
+        if len(tree.children)>1:
+            raise Exception("%s failed. 1 child is enough"%filename)
 
+        resultingMesh=None
+        try:
+            resultingMesh=getVRMLMesh(tree.children[0])
+        except Exception,error:
+            print "caught error %s"%error
 
-    return resultingMesh
+            
+        if resultingMesh:
+            resultingMesh.name=filename
+            resultingMesh
     
 
 def getVRMLMesh(nodeLeaf):
@@ -191,7 +196,12 @@ def getVRMLMesh(nodeLeaf):
 #              DEF something something {..
 #     or       something {
 
-    if not childLeaves[0].distro=="nodegi":
+#    if childLeaves[0].distro=="name":
+#        nameleaf=childLeaves.pop(0)
+#        objectName=nameleaf.value        
+#        print "caught DEF :%s"%objectName
+
+    if not childLeaves[0].distro == "nodegi":
         raise Exception("Expecting a nodegi but distro=%s Parsing:\n %s"%(childLeaves[0].distro,childLeaves[0]))
 
     typeleaf=childLeaves.pop(0)
@@ -231,9 +241,13 @@ def getVRMLMesh(nodeLeaf):
                              fieldLeaf.children[1].value,\
                              fieldLeaf.children[2].value,\
                              fieldLeaf.children[3].value]
-                    
-    return new_mesh
 
+    if new_mesh.shapes!=[]:
+        return new_mesh
+    else:
+        raise Exception("Invalid mesh")
+                    
+ 
 def OBJmeshLoader(filename):
     amesh=Mesh()
     ## doesn't support color, normals ... yet    
@@ -270,7 +284,11 @@ def OBJmeshLoader(filename):
                 ashape.geo.idx.append(-1)        
 
     amesh.shapes.append(ashape)
-    return amesh
+    if amesh.shapes!=[]:
+        return amesh
+    else:
+        raise Exception("Invalid mesh")
+    
 
 def meshLoader(filename):    
     if re.search(r"\.wrl$",filename):

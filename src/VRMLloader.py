@@ -1,8 +1,9 @@
 #! /usr/bin/env python
 
-# Copyright LAAS/CNRS 2009-2012
+# Copyright LAAS/CNRS 2009-2010
 # Authors Duong Dang
 
+import sys,re
 
 class Leaf():
     def __init__(self):
@@ -141,7 +142,7 @@ def getObject(nodeLeaf,isRoot=True):
     childLeaves=leaf.children[:]
 
     if leaf.distro != "Node":
-        raise Exception("Expectin a node")    
+        raise Exception("Expecting a node")    
 #           A note must start with either
 #              DEF something something {..
 #     or       something {
@@ -164,8 +165,13 @@ def getObject(nodeLeaf,isRoot=True):
         object=robo.Joint()
     elif objectType=="Humanoid":
         object=robo.BaseNode()
+    
+    elif objectType in ["Shape"]:
+        object=Mesh()
+        shape=Shape()
+        shape.loadVRMLleaf(leaf)
+        object.shapes.append(shape)
     else:
-#        print "creating generic object, objecType=%s"%objectType
         object=robo.GenericObject()
 
 
@@ -214,14 +220,6 @@ def getObject(nodeLeaf,isRoot=True):
                 raise Exception("Invalid jointType")
             object.jointType=fieldLeaf.children[0].children[0].value
 
-        elif fieldName in ["url"]:
-            global vrmlFilePath
-            global loadMeshBool
-            if loadMeshBool:
-                meshFile=fieldLeaf.children[0].children[0].value
-                amesh=meshLoader(vrmlFilePath+meshFile)
-                amesh.setParent(object)
-                object.addChild(amesh)
 
     object.name= objectName   
     
@@ -230,19 +228,20 @@ def getObject(nodeLeaf,isRoot=True):
         print object.children[0]
     return object
 
-import re
-loadMeshBool=True 
 
 def VRMLloader(filename,loadMesh=True):
-    global loadMeshBool # this is ugly
-    loadMeshBool=loadMesh
-
-    global vrmlFilePath
+    vrmlFilePath=re.sub(r"[\w_\d]+\.wrl","",filename)
     from vrml_grammar import VRMLPARSERDEF,buildVRMLParser
     data = open(filename).read()
-
-    vrmlFilePath=re.sub(r"[\w_\d]+\.wrl","",filename)
-#    print "roddot=",vrmlFilePath
+    
+    if loadMesh:
+        # replace in place Inline { url "" } directives
+        matches = re.finditer(r'Inline\s+\{\s+url\s+\"([^\"]+)\"\s+\}',data)        
+        for match in matches:
+            directive = match.group(0)
+            url = match.group(1)
+            tmp = open(vrmlFilePath+"/"+url).read()
+            data=data.replace(directive,tmp)
 
     parser = buildVRMLParser()
     success, tags, next = parser.parse( data)
@@ -261,9 +260,10 @@ def VRMLloader(filename,loadMesh=True):
         raise Exception(errorMsg)
     return robots[0]
 
-import sys
+
 def main():
     robot=VRMLloader(sys.argv[1])
     print robot
     print "it has %d meshes"%len(robot.mesh_list)
+
 if __name__=="__main__":main()
