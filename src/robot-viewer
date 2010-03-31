@@ -1,12 +1,18 @@
 #! /usr/bin/env python
 
-# Copyright LAAS/CNRS 2009-2012
+# Copyright LAAS/CNRS 2009-2010
 # Authors Duong Dang
 
 
-import getopt,sys, warnings
+import getopt,sys, warnings, imp
 from getopt import getopt
+
+tmp=imp.find_module('robotviewer')
+path=tmp[1]
+sys.path.append(path)
+
 from robotviewer import Application
+
 
 #########################################################
 ################   MAIN PROGRAM    ######################
