@@ -224,7 +224,8 @@ class StopWatch():
         try:
             c=self.chronos[event]
         except KeyError:
-            raise Exception("Invalid chrono %s, available chronos are %s:"%(str(event),str(self.chronos))  )
+            raise Exception("Invalid chrono %s, available chronos are %s:"\
+                                 %(str(event),str(self.chronos))  )
         if c:
             c[1]="Stop"
             return time.time()-c[0]
@@ -311,7 +312,8 @@ class Application:
 
         t4=self.stopwatch.toc(4)
         if self.measureTime:
-            print "loadMovement \t: %3.2fs \nloadRobot \t: %3.2fs \ninitWindow \t: %3.2fs\ninitUI \t: %3.2fs"%(t1,t2-t1,t3-t2,t4-t3)
+            print "loadMovement \t: %3.2fs \nloadRobot \t: %3.2fs \ninitWindow \t: %3.2fs\ninitUI \t: %3.2fs"\
+                %(t1,t2-t1,t3-t2,t4-t3)
             print "Total       \t: %3.2fs"%(t4)
 
         self.usage()
@@ -396,10 +398,12 @@ M       : toggle robot mesh
         import pickle
         self.stopwatch.tic(["lr"])
         if RobotKinematicsFile:
-            self.robot=robotLoader.robotLoader(RobotKinematicsFile,not self.simplify)
+            self.robot=robotLoader.robotLoader(RobotKinematicsFile,\
+                                                    not self.simplify)
         else:
             if not os.path.exists('lastRobot.pickle'):
-                warnings.warn("No robot found. If this is your first time, use -w RobotKinematics_File.wrl to load a robot.")
+                warnings.warn("""No robot found. If this is your first time, 
+                                 use -w RobotKinematics_File.wrl to load a robot.""")
                 self.state=None
                 self.stopwatch.toc("lr")
                 return
@@ -477,8 +481,12 @@ M       : toggle robot mesh
                         norm_array+=[normal[0],normal[1],normal[2]]
                     ashape.geo.norm=norm_array
 
-                self.meshBatches[i].add_indexed(npoints,GL_TRIANGLES,None,tri_list,('v3f', coord),('n3f',ashape.geo.norm))
-                self.shapeBatches[i][j].add_indexed(npoints,GL_TRIANGLES,None,tri_list,('v3f', coord),('n3f',ashape.geo.norm))
+                self.meshBatches[i].add_indexed(npoints,GL_TRIANGLES,None,\
+                                                     tri_list,('v3f', coord),\
+                                                     ('n3f',ashape.geo.norm))
+                self.shapeBatches[i][j].add_indexed\
+                    (npoints,GL_TRIANGLES,None,tri_list,('v3f', coord),\
+                          ('n3f',ashape.geo.norm))
 
         f=open('lastRobot.pickle','w')
         pickle.dump(self.robot,f)
@@ -564,11 +572,14 @@ M       : toggle robot mesh
 
         def plan_and_play(button):
             self.state="COMPUTING"
-            targ_text = self.GUIframe.get_element_by_name('target_input').text            
-            nsteps_text = self.GUIframe.get_element_by_name('nstep_input').text            
+            targ_text = self.GUIframe.get_element_by_name\
+                ('target_input').text            
+            nsteps_text = self.GUIframe.get_element_by_name\
+                ('nstep_input').text            
             output="m_"+nsteps_text+"_"+targ_text
             output=re.sub(r" ","_",output)
-            command="./ball-picking $HOME/licenses "+ targ_text + " " + nsteps_text +" " +output
+            command="./ball-picking $HOME/licenses "+\
+                targ_text + " " + nsteps_text +" " +output
             
             print "executing '%s'"%command
             try:
@@ -600,11 +611,11 @@ M       : toggle robot mesh
                             ]),
                     FoldingBox('Info',name='Info',content=
                                VLayout(w=300,children=[
-                               Label("Motion  : None",name='motion_info_label'),
-                               Label("Time    : None",name='time_label'),
-                               Label("State   : None",name='state_label'),
-                               Label("fps     : None",name='fps_label'),
-                               Label("Speed     : None",name='speed_label'),
+                               Label("Motion : None",name='motion_info_label'),
+                               Label("Time   : None",name='time_label'),
+                               Label("State  : None",name='state_label'),
+                               Label("fps    : None",name='fps_label'),
+                               Label("Speed    : None",name='speed_label'),
                                ]),
                                ),
 #                     FoldingBox('Plan',name='Plan',content=
@@ -695,7 +706,6 @@ M       : toggle robot mesh
             return
         if self.simplify or (not self.showMesh) or self.robot.mesh_list==[]:
             draw_skeleton2(self.robot)
-
         else:
             for i in range(self.numMeshes):
                 mesh=self.meshes[i]
@@ -726,12 +736,14 @@ M       : toggle robot mesh
             sphere = gluNewQuadric() 
             gluSphere(sphere,0.03,10,10)
         except Exception,error:
-            warnings.warn("Couldn't draw the target. Caught exception: %s "%error )
+            warnings.warn("Couldn't draw the target. Caught exception: %s "\
+                               %error )
 
         glPopMatrix()
         
     def update(self,dt):
-        if self.state==None or self.state=="LOADING" or self.robot==None or self.state=="COMPUTING":
+        if self.state==None or self.state=="LOADING" \
+                 or self.robot==None or self.state=="COMPUTING":
             return
 
         if self.keys[key.LEFT]:
@@ -783,8 +795,8 @@ M       : toggle robot mesh
             while self.line_index_pos >0 \
            and self.motion.posRecord.times[self.line_index_pos] > atime:
                 self.line_index_pos-=1
-        ## the above snipsets move the line_index point to the nearest time to the left
-        ## of atime in the pos_times list       
+        # the above snipsets move the line_index point to the nearest time to
+        # the left of atime in the pos_times list
         angles=self.motion.posRecord.coors[self.line_index_pos]
         try:
             self.robot.jointAngles(angles)
@@ -819,7 +831,8 @@ M       : toggle robot mesh
             self.robot.waist.rpy=wstRpy
 
         except Exception,error:
-            warnings.warn( "Couldn't set wst position. caught exception: %s "%error)
+            warnings.warn( "Couldn't set wst position. caught exception: %s "\
+                                %error)
 
         self.robot.update()
 
@@ -830,15 +843,41 @@ M       : toggle robot mesh
             return "Error: Blank msg"
         path=words[0]
         if words[1:]==[]:
-            return """Possible command:
-   play
-   stop
-   pause
-   speed 2.3 (float)
-   
-   
+            return """Available commands:
+   list                          : list loaded segments
+   play [id]                     : play a segment in the list
+   stop                          :
+   pause                         :
+   next                          :
+   prev                          :
+   speed <s>                     : set playing speed
+   load <segment.pos>            : load a segment
+   getConfig                     : print robot config (x y z r p y q)
+   setConfig <0 0.6 etc.>        : set robot to a config (x y z r p y q)
 """
-        if words[1]=="status":
+        elif words[1]=="getConfig":
+            return str(self.robot.waist.translation+self.robot.waist.rpy\
+                            +[joint.angle for joint in self.robot.joint_list])
+
+        elif words[1]=="setConfig":
+            if self.state!="STOP":
+                 return "stop the robot first"    
+            else:
+                 try:
+                      config=[float(w) for w in words[2:]]
+                      if len(config)!=len(self.robot.joint_list)+5:  
+                           # first node does not count
+                           return "config dimension not matched, need %d , %d given"\
+                               %(len(config),len(self.robot.joint_list)+6)
+                      else:
+                           self.robot.waistPos(config[0:3])
+                           self.robot.waistRpy(config[3:6])
+                           self.robot.jointAngles(config[6:])
+                           self.robot.update() # update the kinematic chains
+                 except Exception,error:
+                      return str(error)
+            return ""
+        elif words[1]=="status":
             return self.status
 
         elif words[1]=="play":
@@ -856,7 +895,7 @@ M       : toggle robot mesh
         elif words[1]=="stop":
             self.stopMovement()
             return ""    
-
+ 
         elif words[1]=="pause":
             self.pauseMovement()
             return ""    
@@ -894,8 +933,7 @@ M       : toggle robot mesh
         elif words[1]=="clear":
             self.bn_list=[]
             return ""
-
         else:
-            return "Unknown command"
+            return "Unknown command: %s"%words[1]
 
 

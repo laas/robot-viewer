@@ -1,12 +1,22 @@
-#!/usr/bin/env python
+#! /usr/bin/env python
 
-import sys,os
+# Copyright LAAS/CNRS 2009-2010
+# Authors Duong Dang
+
+import getopt,sys, warnings, imp, os
+
+tmp=imp.find_module('robotviewer')
+path=tmp[1]
+sys.path.append(path)
+
+
+
 
 # Import the CORBA module
 from omniORB import CORBA
 
-# Import the stubs for the CosNaming and RoboViewer modules
-import CosNaming, RoboViewer
+# Import the stubs for the CosNaming and RobotViewer modules
+import CosNaming, RobotViewer
 
 # Initialise the ORB
 orb = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
@@ -30,8 +40,8 @@ except CosNaming.NamingContext.NotFound, ex:
     print "Name not found"
     sys.exit(1)
 
-# Narrow the object to an RoboViewer::Request
-eo = obj._narrow(RoboViewer.Request)
+# Narrow the object to an RobotViewer::Request
+eo = obj._narrow(RobotViewer.Request)
 
 if eo is None:
     print "Object reference is not an Example::Echo"

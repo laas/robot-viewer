@@ -32,11 +32,12 @@ setup(name='robot-viewer',
                     'robotviewer.pyglet.font',\
                     'robotviewer.simplui'],
       package_dir={'robotviewer':'src'},
-      package_data={'robotviewer':['themes/macos/theme.json',\
-                                      'themes/macos/theme.png',\
-                                      'themes/pywidget/theme.json',\
-                                      'themes/pywidget/theme.png']},
-#      data_files=[('bin',['src/robot-viewer','src/robot-viewer-cli'])]
-      data_files=[('bin',['src/robot-viewer'])],
+      package_data={'robotviewer':['themes/macos/*',\
+                                      'themes/pywidget/*',\
+                                       'RobotViewer/*',\
+                                       'RobotViewer__POA/*',\
+                                       ]},
+      data_files=[('bin',['src/robot-viewer','src/robot-viewer-cli'])],
+#      data_files=[('bin',['src/robot-viewer'])],
       requires=['simpleparse']
      )

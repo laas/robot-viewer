@@ -1,4 +1,4 @@
-module RoboViewer {
+module RobotViewer {
   interface Request {
     string req(in string mesg);
   };

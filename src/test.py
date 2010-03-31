@@ -1,12 +1,18 @@
 #! /usr/bin/env python
 
-# Copyright LAAS/CNRS 2009-2012
+# Copyright LAAS/CNRS 2009-2010
 # Authors Duong Dang
 
 
-import getopt,sys, warnings
+import getopt,sys, warnings, imp
 from getopt import getopt
+
+tmp=imp.find_module('robotviewer')
+path=tmp[1]
+sys.path.append(path)
+
 from application import Application
+
 
 #########################################################
 ################   MAIN PROGRAM    ######################
@@ -75,6 +81,7 @@ def main():
             
     
     app=Application()
+    app.verbose=True
     if sequenceFile:
         app.basename=sequenceFile    
     app.RobotKinematicsFile=RobotKinematics
@@ -90,14 +97,14 @@ def main():
             ##################################
             from omniORB import CORBA, PortableServer
 
-            # Import the stubs for the Naming service
+            # Import the stubys for the Naming service
             import CosNaming
 
             # Import the stubs and skeletons
-            import RoboViewer, RoboViewer__POA
+            import RobotViewer, RobotViewer__POA
 
             # Define an implementation of the Echo interface
-            class Request_i (RoboViewer__POA.Request):
+            class Request_i (RobotViewer__POA.Request):
                 def req(self, mesg):
                     print "request %s:", mesg
                     return app.execute(mesg)

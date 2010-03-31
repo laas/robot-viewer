@@ -28,7 +28,7 @@ class Camera(object):
         self.position=np.array(position)
         self.lookat=np.array(lookat)
         self.up=np.array(up)
-        self.baseSpeed=0.3 # m/s
+        self.baseSpeed=1 # m/s
         self.goalPosition=np.array(position)
         self.goalLookat=np.array(lookat)
         self.distance=2.0
