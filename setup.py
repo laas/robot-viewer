@@ -3,7 +3,7 @@ import sys
 from distutils.core import setup
 
 setup(name='robot-viewer',
-      version='0.1',
+      version='0.1.1',
       license='BSD',
       platforms='Linux/MacOSX',
       description='A viewer tool for robots',
@@ -36,6 +36,7 @@ setup(name='robot-viewer',
                                       'themes/macos/theme.png',\
                                       'themes/pywidget/theme.json',\
                                       'themes/pywidget/theme.png']},
-      data_files=[('bin',['src/robot-viewer','src/robot-viewer-cli'])],
+#      data_files=[('bin',['src/robot-viewer','src/robot-viewer-cli'])]
+      data_files=[('bin',['src/robot-viewer'])],
       requires=['simpleparse']
      )

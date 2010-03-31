@@ -9,3 +9,4 @@ hrpmodel/*
 *build*
 MANIFEST
 dist/*
+robot_viewer.egg-info

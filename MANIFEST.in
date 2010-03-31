@@ -1,1 +1,3 @@
 recursive-include src/themes/ *
+include Makefile
+include src/robot-viewer
