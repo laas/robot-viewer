@@ -1,6 +1,6 @@
 recursive-include src/themes/ *
 recursive-include src/RobotViewer *
-recursive-include src/RobotViewer_POA *
+recursive-include src/RobotViewer__POA *
 include Makefile
 include src/robot-viewer
 include src/robot-viewer-cli
