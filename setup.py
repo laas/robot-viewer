@@ -3,7 +3,7 @@ import sys
 from distutils.core import setup
 
 setup(name='robot-viewer',
-      version='0.1.1',
+      version='0.2.1',
       license='BSD',
       platforms='Linux/MacOSX',
       description='A viewer tool for robots',
