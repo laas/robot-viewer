@@ -13,7 +13,7 @@ ERROR:   On Fedora: sudo yum install python-setuptools
 ERROR: ==========================================================""")
 else:
     setup(name='robot-viewer',
-          version='0.2.1',
+          version='0.2.2',
           license='BSD',
           platforms='Linux/MacOSX',
           description='A viewer tool for robots',
