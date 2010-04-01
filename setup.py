@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys
-from distutils.core import setup
+#from distutils.core import setup
+from setuptools import setup
 
 setup(name='robot-viewer',
       version='0.2.1',
@@ -39,5 +40,6 @@ setup(name='robot-viewer',
                                        ]},
       data_files=[('bin',['src/robot-viewer','src/robot-viewer-cli'])],
 #      data_files=[('bin',['src/robot-viewer'])],
-      requires=['simpleparse']
+#      requires=['simpleparse'],
+      install_requires=['simpleparse'],
      )
