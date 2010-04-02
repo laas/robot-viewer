@@ -8,8 +8,8 @@ import getopt,sys, warnings, imp
 from getopt import getopt
 
 tmp=imp.find_module('robotviewer')
-path=tmp[1]
-sys.path.append(path)
+robot_viewer_pythonpath=tmp[1]
+sys.path.append(robot_viewer_pythonpath)
 
 from robotviewer import Application
 

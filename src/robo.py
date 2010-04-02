@@ -69,14 +69,16 @@ class GenericObject():
     def setParent(self,parent):
         self.parent=parent
 
-    # More on transform        
-    #http://www.web3d.org/x3d/specifications/vrml/ISO-IEC-14772-VRML97/part1/nodesRef.html#Transform
+    # More on VRML transform:
+    # http://www.web3d.org/x3d/specifications/vrml/
+    # ISO-IEC-14772-VRML97/part1/nodesRef.html#Transform
     def updateLocalTransformation(self):
         if self.type in ["joint","BaseNode"]:
             if self.jointType=="free":                
                 self.localR=euleur2rotation(self.rpy)        
                 self.localTransformation[0:3,0:3]=self.localR    
-                self.localTransformation[0:3,3]=self.translation
+                self.localTransformation[0:3,3]=np.array(self.translation)+\
+                    np.dot(np.eye(3)-self.localR,np.array(self.center))
             elif self.type=="joint" and self.jointType=="rotate"\
                     and self.id and self.id > 0:
                 self.localR2=rot2(self.axis,self.angle)        
@@ -93,7 +95,8 @@ class GenericObject():
         else:
             self.localR=rot1(self.rotation)
         self.localTransformation[0:3,0:3]=self.localR
-        self.localTransformation[0:3,3]=self.translation
+        self.localTransformation[0:3,3]=np.array(self.translation)+\
+            np.dot(np.eye(3)-self.localR,np.array(self.center))
         self.localTransformation[3,0:4]=[0,0,0,1]
 
 

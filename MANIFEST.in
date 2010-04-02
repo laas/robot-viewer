@@ -5,3 +5,4 @@ include Makefile
 include src/robot-viewer
 include src/robot-viewer-cli
 include dep.py
+recursive-include data/ *

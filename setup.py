@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 import sys
 #from distutils.core import setup
@@ -13,7 +14,7 @@ ERROR:   On Fedora: sudo yum install python-setuptools
 ERROR: ==========================================================""")
 else:
     setup(name='robot-viewer',
-          version='0.2.2',
+          version='0.3',
           license='BSD',
           platforms='Linux/MacOSX',
           description='A viewer tool for robots',
@@ -46,6 +47,7 @@ else:
                                           'themes/pywidget/*',\
                                            'RobotViewer/*',\
                                            'RobotViewer__POA/*',\
+                                           '../data/*'\
                                            ]},
           data_files=[('bin',['src/robot-viewer','src/robot-viewer-cli'])],
     #      data_files=[('bin',['src/robot-viewer'])],

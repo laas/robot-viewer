@@ -398,11 +398,22 @@ M       : toggle robot mesh
             if not os.path.exists('lastRobot.pickle'):
                 warnings.warn("""No robot found. If this is your first time, 
                                  use -w RobotKinematics_File.wrl to load a robot.""")
+                
+                tmp=imp.find_module('robotviewer')
+                path=tmp[1]
+                path.replace("/robotviewer","/")
+                if os.path.exists(path+'/data/nancy.pickle'):
+                     print ("Loading default model (Nancy) in %s"\
+                                 %(path+'/data/nancy.pickle') )
+                     self.robot=pickle.load(open(path+\
+                                                      '/data/nancy.pickle','r'))
+                     del path
                 self.state=None
                 self.stopwatch.toc("lr")
                 return
             print "loading the last loaded robot \n"
             self.robot=pickle.load(open('lastRobot.pickle','r'))
+
             print "loaded ",self.robot.name
         foo=self.stopwatch.toc("lr")
         if self.measureTime:
