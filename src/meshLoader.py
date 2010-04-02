@@ -160,13 +160,20 @@ class Shape():
                 for idxLeaf in idxLeaves:
                     self.geo.idx.append(int(idxLeaf.value))
                                                                   
+        if self.app.specularColor==None and self.app.diffuseColor!=None:
+            self.app.specularColor==self.app.diffuseColor
+
+        if self.app.emissiveColor==None and self.app.diffuseColor!=None:
+            self.app.emissiveColor==self.app.diffuseColor
+
 class Mesh(GenericObject):
-    def __init__(self,translation=[0,0,0],rotation=[1,0,0,0]):
+    def __init__(self):
         self.type="mesh"
         self.name=None
         self.jointType=""
-        self.translation=translation
-        self.rotation=rotation
+        self.translation=[0,0,0]
+        self.center=[0,0,0]
+        self.rotation=[1,0,0,0]
         self.parent=None
         self.children=[]
         self.rpy=[0,0,0]

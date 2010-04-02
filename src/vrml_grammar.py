@@ -22,13 +22,14 @@ ExternProto    := 'EXTERNPROTO',ts,nodegi,ts,'[',ts,(extFieldDecl/eventDecl)*,']
 extFieldDecl   := fieldExposure,ts,dataType,ts,name,ts
 ExtProtoURL    := '['?,(ts,SFString)*, ts, ']'?, ts  # just an MFString by another name :)
 ROUTE          := 'ROUTE',ts, name,'.',name, ts, 'TO', ts, name,'.',name, ts
-Node           := ('DEF',ts,name,ts)?,nodegi,ts,'{',ts,(Proto/ExternProto/ROUTE/Attr)*,ts,'}', ts
-Script         := ('DEF',ts,name,ts)?,'Script',ts,'{',ts,(ScriptFieldDecl/ScriptEventDecl/Proto/ExternProto/ROUTE/Attr)*,ts,'}', ts
+Node           := (def)?,nodegi,ts,'{',ts,(Proto/ExternProto/ROUTE/Attr)*,ts,'}', ts
+Script         := (def)?,'Script',ts,'{',ts,(ScriptFieldDecl/ScriptEventDecl/Proto/ExternProto/ROUTE/Attr)*,ts,'}', ts
 ScriptEventDecl := eventDirection, ts, dataType, ts, name, ts, ('IS', ts, IS,ts)?
 ScriptFieldDecl := fieldExposure,ts,dataType,ts,name,ts,(('IS', ts,IS,ts)/Field),ts
 SFNull         := 'NULL', ts
 
 # should really have an optimised way of declaring a different reporting name for the same production...
+def            :='DEF',ts,name,ts
 USE            := name
 IS             := name
 nodegi         := name 

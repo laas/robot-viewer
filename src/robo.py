@@ -9,12 +9,13 @@ from nutshell import *
 from collections import deque
 
 class GenericObject():
-    def __init__(self,translation=[0,0,0],rotation=[1,0,0,0]):
+    def __init__(self):
         self.type="GenericObject"
         self.name=None
         self.jointType=""
-        self.translation=translation
-        self.rotation=rotation
+        self.translation=[0,0,0]
+        self.rotation=[1,0,0,0]
+        self.center=[0,0,0]
         self.parent=None
         self.children=[]
         self.rpy=[0,0,0]
@@ -68,6 +69,8 @@ class GenericObject():
     def setParent(self,parent):
         self.parent=parent
 
+    # More on transform        
+    #http://www.web3d.org/x3d/specifications/vrml/ISO-IEC-14772-VRML97/part1/nodesRef.html#Transform
     def updateLocalTransformation(self):
         if self.type in ["joint","BaseNode"]:
             if self.jointType=="free":                
@@ -150,19 +153,20 @@ class GenericObject():
 #*****************************#
 
 class Joint(GenericObject):
-    def __init__(self,id=None,translation=[0,0,0],rotation=[1,0,0,0],axis= ""):
+    def __init__(self):
         self.type= "joint"
-        self.jointType=""
+        self.jointType="rotate"
         self.name=None
-        self.id=id
+        self.id=None
         self.isBaseNode=False
-        self.translation=translation
-        self.rotation=rotation
+        self.translation=[0,0,0]
+        self.center=[0,0,0]
+        self.rotation=[1,0,0,0]
         self.rpy=[0,0,0]
         self.parent=None
         self.children=[]
         self.angle=0
-        self.axis=axis
+        self.axis=""
         self.localTransformation=np.zeros([4,4])
         self.globalTransformation=np.zeros([4,4])
         self.localR=np.eye(3)   # local rotation
@@ -182,6 +186,7 @@ class BaseNode(Joint):
         self.name=None
         self.id=-999
         self.translation=[0,0,0]
+        self.center=[0,0,0]
         self.rotation=[1,0,0,0]
         self.children=[]
         self.parent=None

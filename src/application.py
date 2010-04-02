@@ -192,18 +192,12 @@ def prepareMesh(app):
             return None
     if app.specularColor:
         glMaterialfv(GL_FRONT, GL_SPECULAR,cl(app.specularColor ))
+    if app.emissiveColor:
         glMaterialfv(GL_FRONT, GL_EMISSION,cl(app.emissiveColor ))
+    if app.diffuseColor:
         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE,cl(app.diffuseColor ))
+    if app.shininess:
         glMaterialfv(GL_FRONT, GL_SHININESS,vec(app.shininess))
-    else:
-        return
-        glMaterialfv(GL_FRONT, GL_SPECULAR,vec(1,1,1,1))
-        glMaterialfv(GL_FRONT, GL_EMISSION,vec(1,1,1,1))
-        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE,vec(1,1,1,1))
-        glMaterialfv(GL_FRONT, GL_SHININESS,vec(1.0))
-
-#    if app.shininess:
-#        glMaterialfv(GL_FRONT, GL_TRANSPARENCY,vec(app.transparency))
 
 
 class StopWatch():
@@ -454,9 +448,10 @@ M       : toggle robot mesh
                                               %len(polyline))
                         else:
                             if ashape.geo.norm==[]:                                
-                                # update the normals
-                                # using G. Thurmer, C. A. Wuthrich, "Computing vertex normals from polygonal facets"
-                                # Journal of Graphics Tools, 3 1998
+                                # update the normals using G. Thurmer,
+                                # C. A. Wuthrich, "Computing vertex normals
+                                # from polygonal facets" Journal of Graphics
+                                # Tools, 3 1998
                                 id0=polyline[0];id1=polyline[1];id2=polyline[2]
                                 p10=normalized(points[id1]-points[id0])                            
                                 p21=normalized(points[id2]-points[id1])
