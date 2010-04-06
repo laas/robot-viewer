@@ -23,34 +23,16 @@ else:
           author_email='nddang@laas.fr',
           url='www.laas.fr/~nddang',
           packages=['robotviewer',\
-                        'robotviewer.pyglet',\
-                        'robotviewer.pyglet.text',\
-                        'robotviewer.pyglet.text.formats',\
-                        'robotviewer.pyglet.image',\
-                        'robotviewer.pyglet.image.codecs',\
-                        'robotviewer.pyglet.app',\
-                        'robotviewer.pyglet.graphics',\
-                        'robotviewer.pyglet.media',\
-                        'robotviewer.pyglet.media.drivers',\
-                        'robotviewer.pyglet.media.drivers.openal',\
-                        'robotviewer.pyglet.media.drivers.directsound',\
-                        'robotviewer.pyglet.media.drivers.alsa',\
-                        'robotviewer.pyglet.window',\
-                        'robotviewer.pyglet.window.carbon',\
-                        'robotviewer.pyglet.window.xlib',\
-                        'robotviewer.pyglet.window.win32',\
-                        'robotviewer.pyglet.gl',\
-                        'robotviewer.pyglet.font',\
-                        'robotviewer.simplui'],
+                        'robotviewer.simplui',\
+                        'robotviewer.RobotViewer',\
+                        'robotviewer.RobotViewer__POA'],
           package_dir={'robotviewer':'src'},
           package_data={'robotviewer':['themes/macos/*',\
                                           'themes/pywidget/*',\
-                                           'RobotViewer/*',\
-                                           'RobotViewer__POA/*',\
                                            '../data/*'\
                                            ]},
           data_files=[('bin',['src/robot-viewer','src/robot-viewer-cli'])],
     #      data_files=[('bin',['src/robot-viewer'])],
     #      requires=['simpleparse'],
-          install_requires=['simpleparse','sphinx'],
+          install_requires=['simpleparse >=2.1','sphinx >=0.6','pyglet >=1.1.4'],
          )

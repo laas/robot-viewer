@@ -49,3 +49,5 @@ __email__ = 'nddang@laas.fr'
 __version__=  '0.1'
 
 from application import Application
+from robo import GenericObject, Joint, BaseNode
+from meshLoader import Mesh

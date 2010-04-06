@@ -21,6 +21,7 @@ Contents:
 
    install
    quickstart
+   modules
    copy
    
 Indices and tables
