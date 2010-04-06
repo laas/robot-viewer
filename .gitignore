@@ -1,8 +1,7 @@
 *.pyc
 *#*
 *~
-data/*
-*.pickle
+*lastRobot.pickle
 hrpmodel/*
 *build*
 MANIFEST
