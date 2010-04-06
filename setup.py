@@ -52,5 +52,5 @@ else:
           data_files=[('bin',['src/robot-viewer','src/robot-viewer-cli'])],
     #      data_files=[('bin',['src/robot-viewer'])],
     #      requires=['simpleparse'],
-          install_requires=['simpleparse'],
+          install_requires=['simpleparse','sphinx'],
          )

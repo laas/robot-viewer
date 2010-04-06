@@ -6,3 +6,7 @@ include src/robot-viewer
 include src/robot-viewer-cli
 include dep.py
 recursive-include data/ *
+recursive-include docs/ *.rst *.py Makefile make.bat
+prune docs/build/
+
+
