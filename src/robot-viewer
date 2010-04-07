@@ -6,8 +6,8 @@
 
 import getopt,sys, warnings, imp
 from getopt import getopt
-g
-from robotviewer import Application
+
+from robotviewer.application import Application
 
 
 #########################################################

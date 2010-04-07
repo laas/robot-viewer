@@ -1,7 +1,8 @@
-Application
-===========
-                                       
-.. autoclass:: application.Application
+Application class
+=================
+.. module:: application
+
+.. autoclass:: Application   
    :members:
    :undoc-members:
 .. toctree::

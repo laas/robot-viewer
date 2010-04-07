@@ -200,7 +200,7 @@ def prepareMesh(app):
         glMaterialfv(GL_FRONT, GL_SHININESS,vec(app.shininess))
 
 
-class StopWatch():
+class StopWatch(object):
     def __init__(self):
         self.chronos=dict()
     def tic(self,events=[]):
@@ -233,9 +233,9 @@ defaultBasename="data/seq-cleo0.3x-wbm"
 
 
 
-class Application:
-     """Main class of robot-viewer, contains OpenGL window, robot's kinematics structures,
-     GUI, corbaserver server
+class Application(object):
+     """Main class of robot-viewer, contains OpenGL window, robot's kinematics
+     structures, GUI, corbaserver server
      """
      def __init__(self):
          self.robot=None
@@ -291,6 +291,17 @@ class Application:
          self.timeFactor=1.0
          self.maxSimTime=0.0
          self.fps_display = pyglet.clock.ClockDisplay()
+
+
+     def getRobot(self):
+          """
+          Getter function for robot attribute 
+
+          :returns: The robot to be rendered in the scene
+          :rtype: :class:`robo.BaseNode`.
+          """
+          return self.robot
+
 
      def init(self):
           '''

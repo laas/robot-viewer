@@ -6,5 +6,6 @@ Modules
    :maxdepth: 3
 
    modules/app
+   modules/robo
 
 

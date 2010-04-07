@@ -21,6 +21,7 @@ Contents:
 
    install
    quickstart
+   mainscript
    modules
    copy
    

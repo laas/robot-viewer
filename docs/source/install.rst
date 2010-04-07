@@ -7,7 +7,7 @@ Installation
 Linux/Unix
 ==========
 
-Get the latest the tar ball from http://laas.fr/~nddang/robot-viewer. You
+Get the latest the tar ball from http://www.laas.fr/~nddang/robot-viewer. You
 should be able to install the package by the usual way::
   
   tar xvf robot-viewer.tar.gz
