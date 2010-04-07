@@ -1,4 +1,4 @@
-Kinematics chain
+Kinematic chain
 ================
 
 GenericObject class

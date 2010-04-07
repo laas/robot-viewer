@@ -10,6 +10,9 @@ from meshLoader import *
 from vrml_grammar import VRMLPARSERDEF,buildVRMLParser
 
 class Leaf():
+    '''
+    Presentation of an element in a VRML tree
+    '''
     def __init__(self):
         self.children=[]
         self.parent=None
@@ -310,7 +313,7 @@ def getObject(nodeLeaf,isRoot=True):
     return object
 
 
-def VRML_read_string(filename,loadMesh,verbose):
+def VRML_read_string(filename,loadMesh,verbose,defSupport):
     vrmlFilePath=re.sub(r"[\w_\d]+\.wrl","",filename)
 
     data = open(filename).read()
@@ -325,42 +328,43 @@ def VRML_read_string(filename,loadMesh,verbose):
             tmp = open(vrmlFilePath+"/"+url).read()
             data=data.replace(directive,tmp)
 
-    # process DEF, USE, IS etc. macro
-    parser = buildVRMLParser()
-    success, tags, next = parser.parse( data)
-    if success!=1:
-        raise Exception("Invalid vrml file")
+    if defSupport:
+        # process DEF, USE, IS etc. macro
+        parser = buildVRMLParser()
+        success, tags, next = parser.parse( data)
+        if success!=1:
+            raise Exception("Invalid vrml file")
 
-    replace_list=[]
+        replace_list=[]
 
-    for tag in tags:
-        VRMLtree=parseVRML(tag,data)        
-        defLeaves=VRMLtree.getLeavesWithDistro("def")
-        for a_leaf in defLeaves:
-            def_name=a_leaf.children[0].value
-            def_type=a_leaf.nextSibling().fullString()
-            parent_node=a_leaf.parent
-            def_part=re.compile(r"\s*DEF\s+%s\s*"%def_name)
-            # strip this part from parent_string
-            body_string=def_part.sub("",parent_node.fullString())            
-            replace_list.append((def_name,body_string))
+        for tag in tags:
+            VRMLtree=parseVRML(tag,data)        
+            defLeaves=VRMLtree.getLeavesWithDistro("def")
+            for a_leaf in defLeaves:
+                def_name=a_leaf.children[0].value
+                def_type=a_leaf.nextSibling().fullString()
+                parent_node=a_leaf.parent
+                def_part=re.compile(r"\s*DEF\s+%s\s*"%def_name)
+                # strip this part from parent_string
+                body_string=def_part.sub("",parent_node.fullString())            
+                replace_list.append((def_name,body_string))
 
-    for a_pair in replace_list:
-        def_name=a_pair[0]
-        substi_string=a_pair[1]
-        
-        # cleanup this!!  replace DEF somthing to DEF__something to
-        # differentiate with other instance of somthing, than replace something
-        # by the substitute string, replace DEF__something back to original
-        data=re.sub(r"DEF\s*%s"%def_name,"DEF___%s"%def_name,data)
-        data=data.replace(" %s "%def_name," %s "%substi_string)
-        data=data.replace("DEF___%s"%def_name,"DEF %s"%def_name)
+        for a_pair in replace_list:
+            def_name=a_pair[0]
+            substi_string=a_pair[1]
+
+            # cleanup this!!  replace DEF somthing to DEF__something to
+            # differentiate with other instance of somthing, than replace something
+            # by the substitute string, replace DEF__something back to original
+            data=re.sub(r"DEF\s*%s"%def_name,"DEF___%s"%def_name,data)
+            data=data.replace(" %s "%def_name," %s "%substi_string)
+            data=data.replace("DEF___%s"%def_name,"DEF %s"%def_name)
 
     return data
 
 
 def VRMLloader(filename,loadMesh=True,verbose=False):
-    data = VRML_read_string(filename,loadMesh,verbose)
+    data = VRML_read_string(filename,loadMesh,verbose,False)
 
     parser = buildVRMLParser()
     success, tags, next = parser.parse( data)

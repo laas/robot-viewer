@@ -97,6 +97,9 @@ def main():
             import CosNaming
 
             # Import the stubs and skeletons
+            import imp
+            path = imp.find_module('robotviewer')[1]
+            sys.path.append(path)
             import RobotViewer, RobotViewer__POA
 
             # Define an implementation of the Echo interface

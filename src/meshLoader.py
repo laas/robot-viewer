@@ -20,6 +20,34 @@ Geometry
 }
 '''
 
+class Mesh(GenericObject):
+    def __init__(self):
+        self.type="mesh"
+        self.name=None
+        self.translation=[0,0,0]
+        self.center=[0,0,0]
+        self.rotation=[1,0,0,0]
+        self.parent=None
+        self.children=[]
+        self.rpy=[0,0,0]
+        self.localTransformation=np.zeros([4,4])
+        self.globalTransformation=np.zeros([4,4])
+        self.localR=np.eye(3)   # local rotation
+        self.localR1=np.eye(3)  # due to offset of coordonee
+        self.shapes=[]
+        self.id=None
+
+    def __str__(self):
+        s=""
+        s+="\nrotation="+str(self.rotation)
+        s+="\ntranslation="+str(self.translation)
+        for shape in self.shapes:
+            s+=shape.__str__()
+            s+="\n"
+        return s
+
+
+
 class Appearance():
     def __init__(self):
         self.diffuseColor   =None
@@ -166,33 +194,6 @@ class Shape():
         if self.app.emissiveColor==None and self.app.diffuseColor!=None:
             self.app.emissiveColor==self.app.diffuseColor
 
-class Mesh(GenericObject):
-    def __init__(self):
-        self.type="mesh"
-        self.name=None
-        self.jointType=""
-        self.translation=[0,0,0]
-        self.center=[0,0,0]
-        self.rotation=[1,0,0,0]
-        self.parent=None
-        self.children=[]
-        self.rpy=[0,0,0]
-        self.localTransformation=np.zeros([4,4])
-        self.globalTransformation=np.zeros([4,4])
-        self.localR=np.eye(3)   # local rotation
-        self.localR1=np.eye(3)  # due to offset of coordonee
-        self.localR2=np.eye(3)  # due to self rotation (revolute joint)
-        self.shapes=[]
-        self.id=None
-
-    def __str__(self):
-        s=""
-        s+="\nrotation="+str(self.rotation)
-        s+="\ntranslation="+str(self.translation)
-        for shape in self.shapes:
-            s+=shape.__str__()
-            s+="\n"
-        return s
  
 def OBJmeshLoader(filename):
     amesh=Mesh()

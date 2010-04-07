@@ -9,7 +9,10 @@ import getopt,sys, warnings, imp, os
 from omniORB import CORBA
 
 # Import the stubs for the CosNaming and RobotViewer modules
-from robotviewer import RobotViewer
+import imp
+path = imp.find_module('robotviewer')[1]
+sys.path.append(path)
+import RobotViewer
 import CosNaming
 
 # Initialise the ORB

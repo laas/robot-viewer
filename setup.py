@@ -38,4 +38,4 @@ else:
          )
 
 
-print sys.prefix
+

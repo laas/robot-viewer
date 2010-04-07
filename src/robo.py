@@ -151,7 +151,7 @@ class Joint(GenericObject):
     '''
     Joint class
 
-    .. toto:: merge this with generic object or offload stuff from generic object to this
+    .. todo:: merge this with generic object or offload stuff from generic object to this
     '''
     def __init__(self):
         self.type= "joint"
