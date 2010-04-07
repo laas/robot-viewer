@@ -146,6 +146,15 @@ class Leaf():
             
 
 def parseVRML(struct,data):
+    ''' Parse the resulting structure from simpleparse (using grammar in
+    src/vrml_grammar.py) to the Tree
+
+    :param struct: hash from simple parse
+    :param data: full structure
+    :type data: string
+    :returns: resulting VRML tree
+    :rtype: :class:`VRMLloader.Leaf`
+    '''
     l=Leaf()
     l.parse(struct,data)
     l.updateValue()
@@ -173,6 +182,14 @@ def parseVRML(struct,data):
 
 
 def getObjectList(rootItemNode):
+    '''
+    Parse a VRML tree to a list of object
+
+    :param rootItemNode: root item of a VRMLtree
+    :type rootItemNode: :class:`VRMLloader.Leaf`
+    :rtype: list
+    :returns: list of :class:`robo.GenericObject`  objects
+    '''
     objectList=list()
     object=None
     if rootItemNode.distro=="rootItem":
@@ -210,6 +227,14 @@ def getObjectList(rootItemNode):
     
 
 def getObject(nodeLeaf,isRoot=True):
+    '''
+    Return an object from a leaf of distro 'Node'
+
+    :param nodeLeaf: a leaf of distro 'Node'
+    :type nodeLeaf: :class:`VRMLloader.Leaf`
+    :rtype: :class:`robo.GenericObject`
+    :returns: resulting object or None if nodeLeaf is not a Node
+    '''
     leaf=nodeLeaf
     childLeaves=leaf.children[:]
 
@@ -364,6 +389,17 @@ def VRML_read_string(filename,loadMesh,verbose,defSupport):
 
 
 def VRMLloader(filename,loadMesh=True,verbose=False):
+    '''
+    Get the robot from a VRML file
+
+    :param filename: input file
+    :param loadMesh: flag indicating if the meshes will be loaded
+    :type loadMesh: bool
+    :param verbose: verbose flag
+    :type verbose: bool
+    :return: the robot if any, raise Error otherwise
+    :rtype: :class:`robo.BaseNode`
+    '''
     data = VRML_read_string(filename,loadMesh,verbose,False)
 
     parser = buildVRMLParser()

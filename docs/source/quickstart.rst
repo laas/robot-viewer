@@ -1,8 +1,8 @@
 Quickstart
 **********
 
-Write your own script
-=====================
+Writing your own script
+=======================
 
 
 The following snippet should load your HRP robot with a segment contained in

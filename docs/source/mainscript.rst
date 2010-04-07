@@ -1,11 +1,9 @@
-Tutorial
-********
-Example script
-==============
+Script
+******
 
-An example that uses robot-viewer library is copied to your ``bin``
-folder at installation time. (typically ``$ROBOTPKG_BASE/bin/robot-viewer`` if
-installed with robotpkg-wip)
+An implementation of the module that provides a server-client is copied to your
+``bin`` folder at installation time. (typically
+``$ROBOTPKG_BASE/bin/robot-viewer`` if installed with robotpkg-wip)
 
 Let's have a quicklook at this script::
 
