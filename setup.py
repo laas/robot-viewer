@@ -29,7 +29,7 @@ else:
           package_dir={'robotviewer':'src'},
           package_data={'robotviewer':['themes/macos/*',\
                                           'themes/pywidget/*',\
-                                           '../data/*'\
+                                           '../data/nancy.wrl'\
                                            ]},
           data_files=[('bin',['src/robot-viewer','src/robot-viewer-cli'])],
     #      data_files=[('bin',['src/robot-viewer'])],

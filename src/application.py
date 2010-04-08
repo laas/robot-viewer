@@ -253,7 +253,8 @@ class Application(object):
 
          ## redering stuff
          self.RobotKinematicsFile=None
-         self.meshes=[]
+         self.numMeshes=0
+         self.meshes=[]         
          self.meshBatches=[]
          self.shapeBatches=[]
          self.meshId2glListId=dict()
@@ -427,26 +428,27 @@ class Application(object):
 
                  tmp=imp.find_module('robotviewer')
                  path=tmp[1]
-                 path.replace("/robotviewer","/")
-                 if os.path.exists(path+'/data/nancy.pickle'):
+                 path=re.sub(r"/robotviewer$","/",path)
+                 if os.path.exists(path+'/data/nancy.wrl'):
                       print ("Loading default model (Nancy) in %s"\
-                                  %(path+'/data/nancy.pickle') )
-                      self.robot=pickle.load(open(path+\
-                                                       '/data/nancy.pickle','r'))
-                      del path
-                 self.state=None
-                 self.stopwatch.toc("lr")
-                 return
-             print "loading the last loaded robot \n"
-             self.robot=pickle.load(open('lastRobot.pickle','r'))
-
+                                  %(path+'/data/nancy.wrl') )
+                      self.robot=robotLoader.robotLoader(\
+                                                        path+'/data/nancy.wrl',True)
+                 
+                 else:
+                      self.state="STOP"
+                      return
+             else:
+                  print "loading the last loaded robot \n"
+                  self.robot=pickle.load(open('lastRobot.pickle','r'))
              print "loaded ",self.robot.name
+
+
          foo=self.stopwatch.toc("lr")
          if self.measureTime:
              print "RobotKinematicsLoader\t: %3.2fs"%foo
 
          self.state="STOP"
-
          self.stopwatch.tic(["vl"])
          self.meshes=self.robot.mesh_list 
          self.numMeshes=len(self.meshes)
