@@ -1,7 +1,7 @@
 recursive-include src/themes/ *
 recursive-include src/RobotViewer *
 recursive-include src/RobotViewer__POA *
-include Makefile
+include Makefile LICENSE.txt CHANGELOG.txt AUTHORS.txt INSTALL.txt
 include src/robot-viewer
 include src/robot-viewer-cli
 include dep.py
