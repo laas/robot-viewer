@@ -11,9 +11,6 @@ import re
 from math import sin,cos,sqrt,acos,pi
 
 
-from pyglet.gl import *
-import pyglet
-
 def rot2AngleAxis(M):
     v=np.array( [M[2][1]-M[1][2], M[0][2]-M[2][0], M[1][0]-M[0][1] ])
     normv=sqrt(np.dot(v,v))

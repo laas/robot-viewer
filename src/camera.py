@@ -1,17 +1,7 @@
 from __future__ import division
 from math import sin, cos
 
-from pyglet.gl import (
-    glLoadIdentity, glMatrixMode, gluLookAt, gluOrtho2D,
-    GL_MODELVIEW, GL_PROJECTION,
-)
-'''
-Special configuration for camera, adapted for viewing HRP
-  * always straight up (position and lookat have the same height)
-  * always look at robot (x_w, y_w) at a distance d
-  * if two close or two far away from the robot (2/3d, 1.5d):
-       automatically adjust (set goal pos,update)
-'''
+
 import robo
 from math import sqrt,sin,cos,atan2
 import numpy as np

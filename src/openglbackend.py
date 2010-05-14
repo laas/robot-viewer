@@ -432,7 +432,7 @@ def main():
     glutSpecialFunc(keyPressed)
     InitGL(640, 480)
 
-    robot=robotLoader.robotLoader('/home/nddang/licenses/'+\
+    robot=robotLoader.robotLoader(os.environ['HOME']+'/licenses/'+\
                                       'HRP2JRL/model/HRP2JRLmain.wrl',True)    
     i=1
     for mesh in robot.mesh_list:
