@@ -159,14 +159,17 @@ def DrawGLScene():
         agax=rot2AngleAxis(R)        
 
         glPushMatrix()
+        glTranslatef(0.2,0,0)
         glTranslatef(p[0],p[1],p[2])
         glRotated(agax[0],agax[1],agax[2],agax[3])
         glCallList(avbo.glList_idx)
+  
         glEnableClientState(GL_NORMAL_ARRAY);
         glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_INDEX_ARRAY);
-        print avbo.ver_vboId,avbo.nor_vboId,avbo.idx_vboId
+        # print avbo.ver_vboId,avbo.nor_vboId,avbo.idx_vboId
         # before draw, specify vertex and index arrays with their offsets
+
+        # Use VBO
         glBindBufferARB(GL_ARRAY_BUFFER_ARB, avbo.ver_vboId);
         glVertexPointer( 3, GL_FLOAT, 0, None );
 
@@ -174,13 +177,13 @@ def DrawGLScene():
         glNormalPointer(GL_FLOAT, 0,None);
 
         glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, avbo.idx_vboId);
-        glColorPointer(3,GL_FLOAT, 0, None);
+
         
         glDrawElements(GL_TRIANGLES, avbo.count, GL_UNSIGNED_SHORT, None);
         glDisableClientState(GL_VERTEX_ARRAY);  # disable vertex arrays
         glDisableClientState(GL_NORMAL_ARRAY);
-        glDisableClientState(GL_INDEX_ARRAY);
         glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
+
         glPopMatrix()
 
     # end drawing the bot
@@ -397,6 +400,14 @@ class ShapeVBO(object):
             glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE,app.diffuseColor )
         if app.shininess:
             glMaterialfv(GL_FRONT, GL_SHININESS,app.shininess)
+        
+        # hack for walker
+        # glBegin(GL_TRIANGLES)
+        # for i in self._idxs:
+        #     glVertex(self._verts[3*i],self._verts[3*i+1],self._verts[3*i+2])
+        #     continue
+        # glEnd()
+
         glEndList();
 
     def __str__(self):
@@ -412,7 +423,52 @@ class ShapeVBO(object):
         s+="len (_idxs)\t=%d\n"%(len(self._idxs))
         s+="]"
         return s
-                            
+
+
+mouseButton = None
+ 
+oldMousePos = [ 0, 0 ]
+def mouseButton( button, mode, x, y ):
+	"""Callback function (mouse button pressed or released).
+
+	The current and old mouse positions are stored in
+	a	global renderParam and a global list respectively"""
+
+	global mouseButton, oldMousePos
+	if mode == GLUT_DOWN:
+		mouseButton = button
+	else:
+		mouseButton = None
+	oldMousePos[0], oldMousePos[1] = x, y
+	glutPostRedisplay( )
+
+def mouseMotion( x, y ):
+	"""Callback function (mouse moved while button is pressed).
+
+	The current and old mouse positions are stored in
+	a	global renderParam and a global list respectively.
+	The global translation vector is updated according to
+	the movement of the mouse pointer."""
+        
+	global mouseButton, camera, oldMousePos
+	deltaX = x - oldMousePos[ 0 ]
+	deltaY = y - oldMousePos[ 1 ]
+
+        cam_ray   = camera.position - camera.lookat
+        cam_distance = norm(cam_ray)
+        cam_right = normalized(numpy.cross(cam_ray,camera.up))
+        cam_up    = normalized(numpy.cross(cam_right,cam_ray))
+
+	if mouseButton == GLUT_LEFT_BUTTON:
+		factor = 0.01
+                dup    = deltaY*cam_distance*factor
+                dright = deltaX*cam_distance*factor
+                
+                camera.position += dup*cam_up + dright*cam_right
+		oldMousePos[0], oldMousePos[1] = x, y
+
+	glutPostRedisplay( )
+                           
 def main():
     """Main function
     """
@@ -430,6 +486,11 @@ def main():
     glutReshapeFunc(ReSizeGLScene)
     glutKeyboardFunc(keyPressed)
     glutSpecialFunc(keyPressed)
+    """Initialise glut settings concerning functions"""
+
+    glutMouseFunc( mouseButton )
+    glutMotionFunc( mouseMotion )
+
     InitGL(640, 480)
 
     robot=robotLoader.robotLoader(os.environ['HOME']+'/licenses/'+\
