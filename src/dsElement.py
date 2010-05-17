@@ -81,7 +81,6 @@ class DsRobot(DsElement):
         self._robot = robot
         self._shapeVBOlist=[]
 
-
         for amesh in robot.mesh_list:
             for ashape in amesh.shapes:            
                 shapeVBO=ShapeVBO(ashape)
@@ -97,7 +96,9 @@ class DsRobot(DsElement):
         
         Arguments:
         - `self`:
-        """        
+        """
+        if not self._enabled:
+            return
         glEnableClientState(GL_NORMAL_ARRAY);
         glEnableClientState(GL_VERTEX_ARRAY);    
         for avbo in self._shapeVBOlist:
@@ -108,7 +109,6 @@ class DsRobot(DsElement):
             agax=rot2AngleAxis(R) 
 
             glPushMatrix()
-
             glTranslatef(p[0],p[1],p[2])
             glRotated(agax[0],agax[1],agax[2],agax[3])
             glCallList(avbo.glList_idx)
@@ -134,6 +134,43 @@ class DsRobot(DsElement):
         glDisableClientState(GL_NORMAL_ARRAY);
 
 
+class DsScript(DsElement):
+    """
+    """        
+    def __init__(self, script = "" , xyz = [0,0,0], rpy = [0,0,0], enabled= False):
+        """        
+        Arguments:
+        - `xyz`: Position in space
+        - `rpy`: rpy in space
+        """
+        self._xyz = xyz
+        self._rpy = rpy
+        self._enabled = enabled
+        self._q = []
+        self._script = script
+        self._glList_idx = -1
+        print self._script
+        glNewList(self._glList_idx, GL_COMPILE);
+        exec(self._script)
+        glEndList();
+
+    def updateConfig(self,xyz,rpy):
+        self._xyz = xyz
+        self._rpy = rpy
+    
+    def render(self):
+        """
+        
+        Arguments:
+        - `self`:
+        """
+#        glPushMatrix()
+        glTranslatef(self._xyz[0],self._xyz[1],self._xyz[2])
+        agax = euleur2AngleAxis(self._rpy)
+        glRotated(agax[0],agax[1],agax[2],agax[3])
+        glCallList(self._glList_idx)
+#        glPopMatrix()
+        
         
 class ShapeVBO(object):
     """

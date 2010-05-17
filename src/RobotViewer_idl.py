@@ -15,6 +15,18 @@ _0_RobotViewer = omniORB.openModule("RobotViewer", r"RobotViewer.idl")
 _0_RobotViewer__POA = omniORB.openModule("RobotViewer__POA", r"RobotViewer.idl")
 
 
+# typedef ... Config
+class Config:
+    _NP_RepositoryId = "IDL:RobotViewer/Config:1.0"
+    def __init__(self, *args, **kw):
+        raise RuntimeError("Cannot construct objects of this type.")
+_0_RobotViewer.Config = Config
+_0_RobotViewer._d_Config  = (omniORB.tcInternal.tv_sequence, omniORB.tcInternal.tv_float, 100)
+_0_RobotViewer._ad_Config = (omniORB.tcInternal.tv_alias, Config._NP_RepositoryId, "Config", (omniORB.tcInternal.tv_sequence, omniORB.tcInternal.tv_float, 100))
+_0_RobotViewer._tc_Config = omniORB.tcInternal.createTypeCode(_0_RobotViewer._ad_Config)
+omniORB.registerType(Config._NP_RepositoryId, _0_RobotViewer._ad_Config, _0_RobotViewer._tc_Config)
+del Config
+
 # interface Request
 _0_RobotViewer._d_Request = (omniORB.tcInternal.tv_objref, "IDL:RobotViewer/Request:1.0", "Request")
 omniORB.typeMapping["IDL:RobotViewer/Request:1.0"] = _0_RobotViewer._d_Request
@@ -33,7 +45,7 @@ _0_RobotViewer._tc_Request = omniORB.tcInternal.createTypeCode(_0_RobotViewer._d
 omniORB.registerType(Request._NP_RepositoryId, _0_RobotViewer._d_Request, _0_RobotViewer._tc_Request)
 
 # Request operations and attributes
-Request._d_req = (((omniORB.tcInternal.tv_string,0), ), ((omniORB.tcInternal.tv_string,0), ), None)
+Request._d_req = (((omniORB.tcInternal.tv_string,0), (omniORB.tcInternal.tv_string,0), omniORB.typeMapping["IDL:RobotViewer/Config:1.0"]), ((omniORB.tcInternal.tv_string,0), ), None)
 
 # Request object reference
 class _objref_Request (CORBA.Object):

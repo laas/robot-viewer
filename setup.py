@@ -37,18 +37,17 @@ else:
           author_email='nddang@laas.fr',
           url='www.laas.fr/~nddang',
           packages=['robotviewer',\
-                        'robotviewer.simplui',\
                         'robotviewer.RobotViewer',\
                         'robotviewer.RobotViewer__POA'],
           package_dir={'robotviewer':'src'},
-          package_data={'robotviewer':['themes/macos/*',\
-                                          'themes/pywidget/*',\
-                                           '../data/nancy.wrl'\
-                                           ]},
+#          package_data={'robotviewer':['themes/macos/*',\
+#                                          'themes/pywidget/*',\
+#                                           '../data/nancy.wrl'\
+#                                           ]},
           data_files=[('bin',['src/robot-viewer','src/robot-viewer-cli'])],
     #      data_files=[('bin',['src/robot-viewer'])],
     #      requires=['simpleparse'],
-          install_requires=['sphinx >=0.6','pyglet >=1.1.4'],
+          install_requires=['sphinx >=0.6','pyopengl'],
          )
 
 

@@ -179,11 +179,12 @@ class GlWindow(object):
 
     def bindEvents(self):
 
-        def keyPressed(*args):
+        def keyPressedFunc(*args):
             # If escape is pressed, kill everything.
             if args[0] == ESCAPE : # exit when ESCAPE is pressed
                 sys.exit ()
             return
+
         def mouseButtonFunc( button, mode, x, y ):
             """Callback function (mouse button pressed or released).
 
@@ -204,6 +205,7 @@ class GlWindow(object):
             a	global renderParam and a global list respectively.
             The global translation vector is updated according to
             the movement of the mouse pointer."""
+            factor = 0.01
 
             deltaX = x - self._oldMousePos[ 0 ]
             deltaY = y - self._oldMousePos[ 1 ]
@@ -212,23 +214,38 @@ class GlWindow(object):
             cam_distance = norm(cam_ray)
             cam_right = normalized(numpy.cross(cam_ray,self.camera.up))
             cam_up    = normalized(numpy.cross(cam_right,cam_ray))
+            
+            if ( glutGetModifiers() == GLUT_ACTIVE_SHIFT and\
+                   self._mouseButton == GLUT_LEFT_BUTTON  ):
+                self.camera.position += deltaY*factor*cam_ray*0.1
+                self.camera.lookat   += deltaY*factor*cam_ray*0.1
+                
 
-            if self._mouseButton == GLUT_LEFT_BUTTON:
-                    factor = 0.01
-                    dup    = deltaY*factor
-                    dright = deltaX*factor
 
-                    cam_ray += dup*cam_up + dright*cam_right
-                    cam_ray = normalized(cam_ray)
-                    self.camera.position = self.camera.lookat + cam_ray*cam_distance
-                    self._oldMousePos[0], self._oldMousePos[1] = x, y
+            elif self._mouseButton == GLUT_LEFT_BUTTON:
+                dup    = deltaY*factor
+                dright = deltaX*factor
+                
+                cam_ray += dup*cam_up + dright*cam_right
+                cam_ray = normalized(cam_ray)
+                self.camera.position = self.camera.lookat + cam_ray*cam_distance
+                self._oldMousePos[0], self._oldMousePos[1] = x, y
+
+            elif self._mouseButton == GLUT_RIGHT_BUTTON:
+                dup    = deltaY*factor
+                dright = deltaX*factor
+
+                cam_ray -= dup*cam_up + dright*cam_right
+                cam_ray = normalized(cam_ray)
+                self.camera.lookat = self.camera.position - cam_ray*cam_distance
+                self._oldMousePos[0], self._oldMousePos[1] = x, y
 
             glutPostRedisplay( )
         
         glutMouseFunc( mouseButtonFunc )
         glutMotionFunc( mouseMotionFunc )
-        glutSpecialFunc(keyPressed)
-        glutKeyboardFunc(keyPressed)
+        glutSpecialFunc(keyPressedFunc)
+        glutKeyboardFunc(keyPressedFunc)
 
         
     def updateFPS(self):

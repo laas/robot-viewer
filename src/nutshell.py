@@ -26,7 +26,10 @@ def rot2AngleAxis(M):
     angle=acos( min ( (M[0][0]+M[1][1]+M[2][2]-1)/2 ,1) )*180/pi
     return [angle,v[0],v[1],v[2]]
 
-
+def euleur2AngleAxis(rpy):
+    R = euleur2rotation(rpy)
+    return rot2AngleAxis(R)
+    
 
 def draw_link(p1,p2,size=0.01):
     p=p2-p1
