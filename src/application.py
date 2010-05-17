@@ -426,7 +426,7 @@ class Application(object):
                  warnings.warn("""No robot found. If this is your first time, 
                                   use -w RobotKinematics_File.wrl to load a robot.""")
 
-                 tmp=imp.find_module('robotviewer')
+                 tmp=imp.find_modue('robotviewer')
                  path=tmp[1]
                  path=re.sub(r"/robotviewer$","/",path)
                  if os.path.exists(path+'/data/nancy.wrl'):
