@@ -9,6 +9,7 @@ import robo,robotLoader
 import pickle
 from openglaux import IsExtensionSupported,ReSizeGLScene, GlWindow
 from dsElement import *
+import re
 
 class DisplayServer(object):
     """OpenGL server
@@ -45,9 +46,10 @@ class DisplayServer(object):
             raise KeyError,"Element with that name exists already"
         
         if etype == 'robot':
-            new_robot = robotLoader.robotLoader(description,True)
+            new_robot = robotLoader.robotLoader(description,True) 
             new_element = DsRobot(new_robot)
             self._element_dict[name] = new_element
+
         elif etype == 'script':
             new_element = DsScript(description)
             self._element_dict[name] = new_element
@@ -99,7 +101,7 @@ class DisplayServer(object):
         if not self._element_dict.has_key(name):
             raise KeyError,"Element with that name does not exist"
 
-        self._element_dict[name].UpdateConfig()
+        self._element_dict[name].updateConfig(config)
 
     def run(self):
         glutMainLoop()
@@ -158,6 +160,7 @@ listElements         ""                                   []
         # Define an implementation of the Echo interface
         class Request_i (RobotViewer__POA.Request):
             def req(self, cmd, str_args, conf):
+#                print "receive", cmd, str_args, conf
                 if cmd == "createElement":
                     words=str_args.split()
                     if len(words) < 3:
@@ -168,7 +171,7 @@ listElements         ""                                   []
                     try:
                         ds.createElement(etype,name,desc)
                     except Exception,error:
-                        return error
+                        return str(error)
                 elif cmd == "destroyElement":
                     words=str_args.split()
                     if len(words) !=1:
@@ -177,7 +180,7 @@ listElements         ""                                   []
                     try:
                         ds.destroyElement(name)
                     except Exception,error:
-                        return error     
+                        return str(error)     
                 elif cmd == "enableElement":
                     words=str_args.split()
                     if len(words) !=1:
@@ -186,7 +189,7 @@ listElements         ""                                   []
                     try:
                         ds.enableElement(name)
                     except Exception,error:
-                        return error                 
+                        return str(error)                 
                 elif cmd == "disableElement":
                     words=str_args.split()
                     if len(words) !=1:
@@ -195,7 +198,7 @@ listElements         ""                                   []
                     try:
                         ds.disableElement(name)
                     except Exception,error:
-                        return error 
+                        return str(error) 
                 elif cmd == "updateElementConfig":
                     config = conf
                     words=str_args.split()
@@ -205,7 +208,7 @@ listElements         ""                                   []
                     try:
                         ds.updateElementConfig(name,config)
                     except Exception,error:
-                        return error 
+                        return str(error) 
                 elif cmd == "list":
                     return str(edict)
                 else:
@@ -297,8 +300,37 @@ def main():
     ds.createElement('script','floor',script)
     ds.enableElement('floor')       
 
+
+
+    # create Hrp
+    pattern=re.compile(r"\s*<Link>\s*(\w+)\s*(\d+)\s*<\/Link>\s*")
+    lines = open(os.environ['HOME']+'/src/hpp-losdemo/data/HRP2LinkJointRank.xml').readlines()
+    correct_joint_dict = dict()
+    for line in lines:
+        m = pattern.match(line)
+        if m:
+            correct_joint_dict[m.group(1)] = int(m.group(2)) -6 
+            print m.group(1), "\t",m.group(2)
+#    print correct_joint_dict
+
     ds.createElement('robot','hrp',(os.environ['HOME']+'/licenses/'+\
                                       'HRP2JRL/model/HRP2JRLmain.wrl'))
+    for i in range(40):
+        print i, ds._element_dict['hrp']._robot.joint_dict[i].name
+    # fix joint order
+    # print "before fix: %s"% ds._element_dict['hrp']._robot.name
+    # for item in ds._element_dict['hrp']._robot.joint_dict.items():
+    #     print item[0], item[1].name
+
+    for joint in ds._element_dict['hrp']._robot.joint_list:
+        if correct_joint_dict.has_key(joint.name):
+             joint.id = correct_joint_dict[joint.name]
+
+    ds._element_dict['hrp']._robot.update_joint_dict()    
+    # print "after fix: %s"% ds._element_dict['hrp']._robot.name
+    # for item in ds._element_dict['hrp']._robot.joint_dict.items():
+    #     print item[0], item[1].name
+        
     ds.enableElement('hrp')
     
     ds.run()

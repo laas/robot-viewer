@@ -172,7 +172,7 @@ class GlWindow(object):
 
         glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.0)
         glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 0.0)
-        glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.08)
+        glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.03)
 
         glEnable(GL_LIGHT0)        
         self.bindEvents()
@@ -217,11 +217,9 @@ class GlWindow(object):
             
             if ( glutGetModifiers() == GLUT_ACTIVE_SHIFT and\
                    self._mouseButton == GLUT_LEFT_BUTTON  ):
-                self.camera.position += deltaY*factor*cam_ray*0.1
-                self.camera.lookat   += deltaY*factor*cam_ray*0.1
-                
-
-
+                if cam_distance > 0.1 or deltaY > 0:
+                    self.camera.position += deltaY*factor*cam_ray*0.02
+                                    
             elif self._mouseButton == GLUT_LEFT_BUTTON:
                 dup    = deltaY*factor
                 dright = deltaX*factor

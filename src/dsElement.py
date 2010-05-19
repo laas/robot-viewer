@@ -2,10 +2,9 @@ import OpenGL
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
-import numpy
 from OpenGL.GL.ARB.vertex_buffer_object import *
+import numpy, time
 import robo,robotLoader
-import numpy
 from nutshell import *
 
 class DsElement(object):
@@ -32,7 +31,7 @@ class DsElement(object):
         raise NotImplementedError, "Implement me"
 
 
-    def updateConfig(self,xyz,rpy):
+    def updateConfig(self,conf):
         """Update element configuration
         
         Arguments:
@@ -40,8 +39,8 @@ class DsElement(object):
         - `xyz`:
         - `rpy`:
         """
-        self._xyz=xyz
-        self._rpy=rpy
+        self._xyz=conf[0:3]
+        self._rpy=conf[3:6]
 
 
     def enable(self):
@@ -80,17 +79,27 @@ class DsRobot(DsElement):
         self._q = []
         self._robot = robot
         self._shapeVBOlist=[]
-
+        self._kinematics_update_t = 0
+        self._config_update_t = 0
         for amesh in robot.mesh_list:
             for ashape in amesh.shapes:            
                 shapeVBO=ShapeVBO(ashape)
                 shapeVBO._mesh=amesh
                 self._shapeVBOlist.append(shapeVBO)
+ 
+    def updateConfig(self,conf):
+        """Update element configuration
+        
+        Arguments:
+        - `self`:
+        - `xyz`:
+        - `rpy`:
+        """
+        self._config_update_t = time.time()
+        self._xyz = conf[0:3]
+        self._rpy = conf[3:6]
+        self._q   = conf[6:]
 
-
-    def updateConfig(self):
-        pass
-    
     def render(self):
         """
         
@@ -99,6 +108,20 @@ class DsRobot(DsElement):
         """
         if not self._enabled:
             return
+        
+        if self._kinematics_update_t < self._config_update_t:
+            self._kinematics_update_t = time.time()
+            self._robot.waistPos(self._xyz)
+            self._robot.waistRpy(self._rpy)
+            self._robot.jointAngles(self._q)
+            self._robot.update()
+            print "Waist: \n", self._robot.waist.globalTransformation, "\n\n"
+            for i in range(18):                
+                # print "R(%d): \n"%i, self._robot.joint_dict[i], "\n"
+                # print "R(%d): \n"%i, self._robot.joint_dict[i].globalTransformation, "\n\n"
+                # print "L(%d): \n"%i, self._robot.joint_dict[i+6], "\n"
+                # print "L(%d): \n"%i, self._robot.joint_dict[i+6].globalTransformation, "\n\n"
+                print "%d %f"%(i,self._robot.joint_dict[i].angle)
         glEnableClientState(GL_NORMAL_ARRAY);
         glEnableClientState(GL_VERTEX_ARRAY);    
         for avbo in self._shapeVBOlist:
@@ -148,8 +171,7 @@ class DsScript(DsElement):
         self._enabled = enabled
         self._q = []
         self._script = script
-        self._glList_idx = -1
-        print self._script
+        self._glList_idx = -1        
         glNewList(self._glList_idx, GL_COMPILE);
         exec(self._script)
         glEndList();
@@ -165,6 +187,8 @@ class DsScript(DsElement):
         - `self`:
         """
 #        glPushMatrix()
+        if not self._enabled:
+            return
         glTranslatef(self._xyz[0],self._xyz[1],self._xyz[2])
         agax = euleur2AngleAxis(self._rpy)
         glRotated(agax[0],agax[1],agax[2],agax[3])

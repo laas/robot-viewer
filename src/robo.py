@@ -40,11 +40,11 @@ class GenericObject():
         s+= "\nPARENT\t\t= "
         if self.parent:
             parent=self.parent
-            s+= "%s "%(parent.type) + str(self.name) +" id="+str(parent.id)+";  "
+            s+= "%s "%(parent.type) + str(parent.name) +" id="+str(parent.id)+";  "
 
         s+= "\nCHILDREN (%d)\t= "%len(self.children)
         for child in self.children:
-            s+= "%s "%(child.type) + str(self.name) +" id="+str(child.id)+";  "
+            s+= "%s "%(child.type) + str(child.name) +" id="+str(child.id)+";  "
 
         s+= "\nT=\n"+str(self.globalTransformation)
         s+= "\nlocalT=\n"+str(self.localTransformation)        
@@ -88,10 +88,13 @@ class GenericObject():
         '''
         compute local transformation w.r.t for the first time (compute everything)
         '''
+        # rotation part
         self.localR = rot1(self.rotation)
         self.localTransformation[0:3,0:3]=self.localR
+        # last column
         self.localTransformation[0:3,3]=np.array(self.translation)+\
             np.dot(np.eye(3)-self.localR,np.array(self.center))
+        # last line
         self.localTransformation[3,0:4]=[0,0,0,1]
 
 
@@ -103,7 +106,7 @@ class GenericObject():
             self.globalTransformation=self.localTransformation
         else:
             self.globalTransformation=np.dot\
-                (self.parent.globalTransformation,self.localTransformation)
+                (self.localTransformation,self.parent.globalTransformation)
 
     def init(self):
         ''' Do the following initializations in order:
@@ -187,7 +190,7 @@ class Joint(GenericObject):
         elif self.type=="joint" and self.jointType=="rotate"\
                 and self.id and self.id > 0:
             self.localR2=rot2(self.axis,self.angle)        
-            self.localR=np.dot(self.localR1,self.localR2)
+            self.localR=np.dot(self.localR2, self.localR1)
             self.localTransformation[0:3,0:3]=self.localR
 
     def initLocalTransformation(self):
@@ -196,8 +199,10 @@ class Joint(GenericObject):
         '''
         if self.jointType=="free":                
             self.localR=euleur2rotation(self.rpy)            
-        elif self.jointType=="rotate":                
-            self.localR1=rot1(self.rotation)            
+        elif self.jointType=="rotate":
+            # localR1: rotation due to axis offset
+            self.localR1=rot1(self.rotation)      
+            # localR2: rotation due to joint self rotation
             self.localR2=rot2(self.axis,self.angle)        
             self.localR=np.dot(self.localR1,self.localR2)
         else:
@@ -233,6 +238,7 @@ class BaseNode(Joint):
         self.rpy=[0,0,0]
         self.waist=None
         self.mesh_list=[]
+
     def jointAngles(self,angles):
         '''
         Set joint angles
@@ -240,12 +246,13 @@ class BaseNode(Joint):
         :param angles: input joint angles
         :type angles: list of double
         '''
-        if len(angles)<40:
-            raise Exception("wrong angles size need 39 but have %d"%len(angles))
+        if len(angles) != 40:
+            raise Exception("wrong angles size need 40 but have %d"%len(angles))
         for i in range(len(angles)):
             angle=angles[i]
             (self.joint_dict[i]).angle=angle
-    
+#            print "update joint id =%d, angle=%f"%(i,angle)
+
     def printJoints(self):
         '''
         Print all joints
@@ -271,7 +278,10 @@ class BaseNode(Joint):
         '''
         self.waist.rpy=ori
 
-
+    def update_joint_dict(self):
+        self.joint_dict = dict()
+        for joint in self.joint_list:
+            self.joint_dict[joint.id] = joint
     
     def init(self):
         ''' Do the following initializations in order:
@@ -295,12 +305,12 @@ class BaseNode(Joint):
                 self.mesh_list.append(an_element)
             for child in reversed(an_element.children):
                 pile.append(child)
-                if child.id!=None:
-                    self.joint_dict[child.id]=child
-
+                
         for joint in self.joint_list:
             if joint.jointType=="free":
                 joint.getBaseNode().waist=joint
+
+        self.update_joint_dict()
 
         self.initLocalTransformation()
         self.updateGlobalTransformation()    
