@@ -5,7 +5,7 @@ from OpenGL.GLU import *
 from OpenGL.GL.ARB.vertex_buffer_object import *
 import numpy, time
 import robo,robotLoader
-from nutshell import *
+from mathaux import *
 
 class DsElement(object):
     """
@@ -115,13 +115,13 @@ class DsRobot(DsElement):
             self._robot.waistRpy(self._rpy)
             self._robot.jointAngles(self._q)
             self._robot.update()
-            print "Waist: \n", self._robot.waist.globalTransformation, "\n\n"
-            for i in range(18):                
+            # print "Waist: \n", self._robot.waist.globalTransformation, "\n\n"
+            # for i in range(6):                
                 # print "R(%d): \n"%i, self._robot.joint_dict[i], "\n"
-                # print "R(%d): \n"%i, self._robot.joint_dict[i].globalTransformation, "\n\n"
+                # print "J(%d): \n"%i, self._robot.joint_dict[i].globalTransformation, "\n"
                 # print "L(%d): \n"%i, self._robot.joint_dict[i+6], "\n"
                 # print "L(%d): \n"%i, self._robot.joint_dict[i+6].globalTransformation, "\n\n"
-                print "%d %f"%(i,self._robot.joint_dict[i].angle)
+                # print "%d %f"%(i,self._robot.joint_dict[i].angle)
         glEnableClientState(GL_NORMAL_ARRAY);
         glEnableClientState(GL_VERTEX_ARRAY);    
         for avbo in self._shapeVBOlist:
@@ -160,7 +160,7 @@ class DsRobot(DsElement):
 class DsScript(DsElement):
     """
     """        
-    def __init__(self, script = "" , xyz = [0,0,0], rpy = [0,0,0], enabled= False):
+    def __init__(self, script = "" , xyz = [0,0,0], rpy = [0,0,0], enabled = False):
         """        
         Arguments:
         - `xyz`: Position in space
@@ -171,14 +171,12 @@ class DsScript(DsElement):
         self._enabled = enabled
         self._q = []
         self._script = script
-        self._glList_idx = -1        
+        self._glList_idx = -1
+        self._glList_idx = glGenLists(1)
         glNewList(self._glList_idx, GL_COMPILE);
         exec(self._script)
         glEndList();
 
-    def updateConfig(self,xyz,rpy):
-        self._xyz = xyz
-        self._rpy = rpy
     
     def render(self):
         """
@@ -186,14 +184,14 @@ class DsScript(DsElement):
         Arguments:
         - `self`:
         """
-#        glPushMatrix()
         if not self._enabled:
             return
+        glPushMatrix()
         glTranslatef(self._xyz[0],self._xyz[1],self._xyz[2])
         agax = euleur2AngleAxis(self._rpy)
         glRotated(agax[0],agax[1],agax[2],agax[3])
         glCallList(self._glList_idx)
-#        glPopMatrix()
+        glPopMatrix()
         
         
 class ShapeVBO(object):

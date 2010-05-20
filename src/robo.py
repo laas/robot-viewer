@@ -48,6 +48,8 @@ class GenericObject():
 
         s+= "\nT=\n"+str(self.globalTransformation)
         s+= "\nlocalT=\n"+str(self.localTransformation)        
+        s+= "\nlocalR1=\n"+str(self.localR1)        
+        s+= "\nlocalR2=\n"+str(self.localR2)        
 
         # count the size of the tree
         count = 0
@@ -91,9 +93,11 @@ class GenericObject():
         # rotation part
         self.localR = rot1(self.rotation)
         self.localTransformation[0:3,0:3]=self.localR
+
         # last column
         self.localTransformation[0:3,3]=np.array(self.translation)+\
             np.dot(np.eye(3)-self.localR,np.array(self.center))
+
         # last line
         self.localTransformation[3,0:4]=[0,0,0,1]
 
@@ -106,7 +110,7 @@ class GenericObject():
             self.globalTransformation=self.localTransformation
         else:
             self.globalTransformation=np.dot\
-                (self.localTransformation,self.parent.globalTransformation)
+                (self.parent.globalTransformation,self.localTransformation)
 
     def init(self):
         ''' Do the following initializations in order:
@@ -173,7 +177,7 @@ class Joint(GenericObject):
         self.localTransformation=np.zeros([4,4])
         self.globalTransformation=np.zeros([4,4])
         self.localR=np.eye(3)   # local rotation
-        self.localR1=np.eye(3)  # due to offset of coordonee
+        self.localR1=np.eye(3)  # due to cordinate offset
         self.localR2=np.eye(3)  # due to self rotation (revolute joint)
 
     def updateLocalTransformation(self):
@@ -187,30 +191,22 @@ class Joint(GenericObject):
             self.localTransformation[0:3,0:3]=self.localR    
             self.localTransformation[0:3,3]=np.array(self.translation)+\
                 np.dot(np.eye(3)-self.localR,np.array(self.center))
-        elif self.type=="joint" and self.jointType=="rotate"\
-                and self.id and self.id > 0:
+        elif self.type=="joint" and self.jointType=="rotate" and self.id >= 0:
             self.localR2=rot2(self.axis,self.angle)        
-            self.localR=np.dot(self.localR2, self.localR1)
+            self.localR=np.dot(self.localR1, self.localR2)
             self.localTransformation[0:3,0:3]=self.localR
 
     def initLocalTransformation(self):
         '''
         compute local transformation w.r.t for the first time (compute everything)
-        '''
-        if self.jointType=="free":                
-            self.localR=euleur2rotation(self.rpy)            
-        elif self.jointType=="rotate":
-            # localR1: rotation due to axis offset
-            self.localR1=rot1(self.rotation)      
-            # localR2: rotation due to joint self rotation
-            self.localR2=rot2(self.axis,self.angle)        
-            self.localR=np.dot(self.localR1,self.localR2)
-        else:
-            self.localR=rot1(self.rotation)
+        '''  
+        self.localR1=rot1(self.rotation)
+        self.localR = self.localR1
         self.localTransformation[0:3,0:3]=self.localR
+        self.updateLocalTransformation()
         self.localTransformation[0:3,3]=np.array(self.translation)+\
             np.dot(np.eye(3)-self.localR,np.array(self.center))
-        self.localTransformation[3,0:4]=[0,0,0,1]
+        self.localTransformation[3,3]=1
 
 #*****************************#
 #         BASE NODE           #

@@ -6,7 +6,7 @@ from OpenGL.GL.ARB.vertex_buffer_object import *
 import time
 import sys				
 from camera import Camera
-from nutshell import *
+from mathaux import *
 import numpy
 import traceback
 

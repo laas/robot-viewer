@@ -1,7 +1,4 @@
 from __future__ import division
-from math import sin, cos
-
-
 import robo
 from math import sqrt,sin,cos,atan2
 import numpy as np

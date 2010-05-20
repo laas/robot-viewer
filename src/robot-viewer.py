@@ -33,8 +33,10 @@ class DisplayServer(object):
         glutReshapeFunc(ReSizeGLScene)
         self._glwin=GlWindow(640, 480, "Display Server")
         self._initCorba()
+        self.pendingObjects=[]
 
-    def createElement(self,etype,name,description):
+
+    def createElement(self,etype,ename,edescription):
         """        
         Arguments:
         - `self`:
@@ -42,20 +44,21 @@ class DisplayServer(object):
         - `name`:         string, element name
         - `description`:  string, description  (e.g. wrl path)
         """
-        if self._element_dict.has_key(name):
+        if self._element_dict.has_key(ename):
             raise KeyError,"Element with that name exists already"
         
         if etype == 'robot':
-            new_robot = robotLoader.robotLoader(description,True) 
+            new_robot = robotLoader.robotLoader(edescription,True) 
             new_element = DsRobot(new_robot)
-            self._element_dict[name] = new_element
+            self._element_dict[ename] = new_element
 
         elif etype == 'script':
-            new_element = DsScript(description)
-            self._element_dict[name] = new_element
+            new_element = None
+            new_element = DsScript(edescription)
+            self._element_dict[ename] = new_element
         else:
             raise TypeError,"Unknown element type"
-
+        print "new element list:", self._element_dict
     def destroyElement(self,name):
         """        
         Arguments:
@@ -107,6 +110,10 @@ class DisplayServer(object):
         glutMainLoop()
 
     def DrawGLScene(self):
+        if len(self.pendingObjects) > 0:
+            obj = self.pendingObjects.pop()
+            print "creating", obj[0], obj[1], obj[2]
+            self.createElement(obj[0],obj[1],obj[2])
         # Clear Screen And Depth Buffer
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
         glLoadIdentity ();
@@ -122,6 +129,7 @@ class DisplayServer(object):
 
         for item in self._element_dict.items():
             ele = item[1]
+#            print item[0], item[1]._enabled
             ele.render()
 
         glutSwapBuffers()
@@ -167,11 +175,9 @@ listElements         ""                                   []
                         return corbaUsage
                     etype = words[0]
                     name  = words[1]
-                    desc  = words[2:]
-                    try:
-                        ds.createElement(etype,name,desc)
-                    except Exception,error:
-                        return str(error)
+                    desc  = re.sub(r"^\s*\w+\s*\w+\s*",'',str_args)
+                    ds.pendingObjects.append((etype,name,desc))
+
                 elif cmd == "destroyElement":
                     words=str_args.split()
                     if len(words) !=1:
@@ -280,29 +286,6 @@ def main():
     
     ds=DisplayServer()
 
-    lp=[]
-    N=5
-    L=0.5*N
-
-    for i in range(-N,N+1):   
-        lp.append([i*0.5,L,0.005])
-        lp.append([i*0.5,-L,0.005])
-        lp.append([L,i*0.5,0.005])
-        lp.append([-L,i*0.5,0.005] )
-
-    script = "glMaterialfv(GL_FRONT_AND_BACK,  GL_AMBIENT_AND_DIFFUSE, [1,1,1,1])\n"
-    script+= "glMaterialfv(GL_FRONT_AND_BACK,  GL_SPECULAR           , [1,1,1,1])\n"
-    script+= "glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 0)\n"
-    script+= "glBegin(GL_LINES)\n"    
-    for point in lp:
-        script+= "glVertex3f(%f, %f, %f)\n"%(point[0],point[1],point[2])
-    script+= "glEnd()"
-    ds.createElement('script','floor',script)
-    ds.enableElement('floor')       
-
-
-
-    # create Hrp
     pattern=re.compile(r"\s*<Link>\s*(\w+)\s*(\d+)\s*<\/Link>\s*")
     lines = open(os.environ['HOME']+'/src/hpp-losdemo/data/HRP2LinkJointRank.xml').readlines()
     correct_joint_dict = dict()
