@@ -238,22 +238,23 @@ listElements         ""                                   []
         rootContext = obj._narrow(CosNaming.NamingContext)
 
         if rootContext is None:
-            print "Failed to narrow the root naming context"
+            print "Failed to narrow the root naming context.\n"+\
+                "Is omniNames running?"
             sys.exit(1)
 
         # Bind a context named "test.my_context" to the root context
-        name = [CosNaming.NameComponent("test", "my_context")]
+        name = [CosNaming.NameComponent("robotviewer", "context")]
 
         try:
             testContext = rootContext.bind_new_context(name)
-            print "New test context bound"
+            print "New robotviewer context bound"
 
         except CosNaming.NamingContext.AlreadyBound, ex:
-            print "Test context already exists"
+            print "robotviewer context already exists"
             obj = rootContext.resolve(name)
             testContext = obj._narrow(CosNaming.NamingContext)
             if testContext is None:
-                print "test.mycontext exists but is not a NamingContext"
+                print "robotviewer.context exists but is not a NamingContext"
                 sys.exit(1)
 
         # Bind the Echo object to the test context

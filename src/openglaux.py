@@ -13,7 +13,7 @@ import traceback
 # Some api in the chain is translating the keystrokes to this octal string
 # so instead of saying: ESCAPE = 27, we use the following.
 ESCAPE = '\033'
-
+old_cam_up = None;
     
 def IsExtensionSupported (TargetExtension):
     """ Accesses the rendering context to see if it supports an extension.
@@ -197,8 +197,8 @@ class GlWindow(object):
                     self._mouseButton = None
             self._oldMousePos[0], self._oldMousePos[1] = x, y
             glutPostRedisplay( )
-
-        def mouseMotionFunc( x, y ):
+        
+        def mouseMotionFunc( x, y ):            
             """Callback function (mouse moved while button is pressed).
 
             The current and old mouse positions are stored in
@@ -206,7 +206,7 @@ class GlWindow(object):
             The global translation vector is updated according to
             the movement of the mouse pointer."""
             factor = 0.01
-
+            global old_cam_up
             deltaX = x - self._oldMousePos[ 0 ]
             deltaY = y - self._oldMousePos[ 1 ]
 
@@ -214,7 +214,15 @@ class GlWindow(object):
             cam_distance = norm(cam_ray)
             cam_right = normalized(numpy.cross(cam_ray,self.camera.up))
             cam_up    = normalized(numpy.cross(cam_right,cam_ray))
-            
+
+            if old_cam_up != None:
+                dot_prod = numpy.dot(cam_up,old_cam_up)
+                if dot_prod < 0:
+                    self.camera.up *= -1
+                    cam_right = normalized(numpy.cross(cam_ray,self.camera.up))
+                    cam_up    = normalized(numpy.cross(cam_right,cam_ray))
+            old_cam_up = cam_up
+
             if ( glutGetModifiers() == GLUT_ACTIVE_SHIFT and\
                    self._mouseButton == GLUT_LEFT_BUTTON  ):
                 if cam_distance > 0.1 or deltaY > 0:
@@ -228,6 +236,7 @@ class GlWindow(object):
                 cam_ray = normalized(cam_ray)
                 self.camera.position = self.camera.lookat + cam_ray*cam_distance
                 self._oldMousePos[0], self._oldMousePos[1] = x, y
+
 
             elif self._mouseButton == GLUT_RIGHT_BUTTON:
                 dup    = deltaY*factor
