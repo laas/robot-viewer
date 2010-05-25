@@ -12,7 +12,8 @@ else
 	make doc	
 	test -d ${ROBOTPKG_BASE}/share/doc/robot-viewer || mkdir ${ROBOTPKG_BASE}/share/doc/robot-viewer
 	cp -r docs/build/html ${ROBOTPKG_BASE}/share/doc/robot-viewer
-	cp src/robotviewer ${ROBOTPKG_BASE}/bin
+	rm -f ${ROBOTPKG_BASE}/bin/robotviewer
+	cp ln -s src/server.py ${ROBOTPKG_BASE}/bin/robotviewer
 endif
 
 doc:
