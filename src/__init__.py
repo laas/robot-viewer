@@ -46,7 +46,8 @@ See 'demo.py' in the enclosing directory for a brief tutorial.
 
 __author__ =  'Duong Dang'
 __email__ = 'nddang@laas.fr'
-__version__=  '0.1'
+__version__=  '0.9.5'
 
-import application
+import client
+import robo,robotLoader,dsElement,openglaux
 
