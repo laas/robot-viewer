@@ -1,3 +1,0 @@
-#! /usr/bin/env sh
-pgrep omniNames || omniNames &
-python robot-viewer.py

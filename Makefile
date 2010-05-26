@@ -13,7 +13,8 @@ else
 	test -d ${ROBOTPKG_BASE}/share/doc/robot-viewer || mkdir ${ROBOTPKG_BASE}/share/doc/robot-viewer
 	cp -r docs/build/html ${ROBOTPKG_BASE}/share/doc/robot-viewer
 	rm -f ${ROBOTPKG_BASE}/bin/robotviewer
-	ln -s src/server.py ${ROBOTPKG_BASE}/bin/robotviewer
+	cp tests/robotviewer ${ROBOTPKG_BASE}/bin/robotviewer
+	cp tests/centipede_player.py ${ROBOTPKG_BASE}/bin/rv-centipede-player
 endif
 
 doc:

@@ -9,7 +9,13 @@ import robo,robotLoader
 import pickle
 from openglaux import IsExtensionSupported,ReSizeGLScene, GlWindow
 from dsElement import *
-import re
+import re,imp
+
+
+path = imp.find_module('robotviewer')[1]
+sys.path.append(path+'/corba')
+import RobotViewer, RobotViewer__POA
+del path
 
 class DisplayServer(object):
     """OpenGL server
@@ -58,7 +64,7 @@ class DisplayServer(object):
             self._element_dict[ename] = new_element
         else:
             raise TypeError,"Unknown element type"
-        print "new element list:", self._element_dict
+
     def destroyElement(self,name):
         """        
         Arguments:
@@ -288,35 +294,35 @@ def main():
     ds=DisplayServer()
 
     pattern=re.compile(r"\s*<Link>\s*(\w+)\s*(\d+)\s*<\/Link>\s*")
-    lines = open(os.environ['HOME']+'/src/hpp-losdemo/data/HRP2LinkJointRank.xml').readlines()
-    correct_joint_dict = dict()
-    for line in lines:
-        m = pattern.match(line)
-        if m:
-            correct_joint_dict[m.group(1)] = int(m.group(2)) -6 
-            print m.group(1), "\t",m.group(2)
-#    print correct_joint_dict
-
-    ds.createElement('robot','hrp',(os.environ['HOME']+'/licenses/'+\
-                                      'HRP2JRL/model/HRP2JRLmain.wrl'))
-    for i in range(40):
-        print i, ds._element_dict['hrp']._robot.joint_dict[i].name
-    # fix joint order
-    # print "before fix: %s"% ds._element_dict['hrp']._robot.name
-    # for item in ds._element_dict['hrp']._robot.joint_dict.items():
-    #     print item[0], item[1].name
-
-    for joint in ds._element_dict['hrp']._robot.joint_list:
-        if correct_joint_dict.has_key(joint.name):
-             joint.id = correct_joint_dict[joint.name]
-
-    ds._element_dict['hrp']._robot.update_joint_dict()    
-    # print "after fix: %s"% ds._element_dict['hrp']._robot.name
-    # for item in ds._element_dict['hrp']._robot.joint_dict.items():
-    #     print item[0], item[1].name
-        
-    ds.enableElement('hrp')
     
+    joint_rank_xml=os.environ['ROBOTPKG_BASE']+'/share/hrp2_14/HRP2LinkJointRank.xml'
+    if os.path.isfile(joint_rank_xml):
+        lines = open(joint_rank_xml).readlines()
+        correct_joint_dict = dict()
+
+        for line in lines:
+            m = pattern.match(line)
+            if m:
+                correct_joint_dict[m.group(1)] = int(m.group(2)) -6 
+                print m.group(1), "\t",m.group(2)
+
+    hrp_wrl=os.environ['ROBOTPKG_BASE']+\
+                 '/OpenHRP/Controller/IOserver/robot/HRP2JRL/model/HRP2JRLmain.wrl'
+    if os.path.isfile(hrp_wrl):   
+        ds.createElement('robot','hrp',hrp_wrl)
+        for i in range(40):
+            print i, ds._element_dict['hrp']._robot.joint_dict[i].name
+
+        for joint in ds._element_dict['hrp']._robot.joint_list:
+            if correct_joint_dict.has_key(joint.name):
+                joint.id = correct_joint_dict[joint.name]
+
+        ds._element_dict['hrp']._robot.update_joint_dict()    
+        
+        ds.enableElement('hrp')
+    else:
+        print """Couldn't find %s. You might need to load some robots yourself. 
+See documentation"""%hrp_wrl
     ds.run()
 
 if __name__ == '__main__':

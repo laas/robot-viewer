@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 # ----------------------------------------------------------------------
 
-"""robotviwer - simple robot visualisation tool
+"""robotviewer - simple robot visualisation tool
 
 Intended purely as a tool for developers, to quickly display a robot in a
 (or a sequence of) configuration(s).
@@ -48,6 +48,8 @@ __author__ =  'Duong Dang'
 __email__ = 'nddang@laas.fr'
 __version__=  '0.9.5'
 
-import client
-import robo,robotLoader,dsElement,openglaux
+#import RobotViewer
+#import RobotViewer__POA
+#import client
+#import robo,robotLoader,dsElement,openglaux
 
