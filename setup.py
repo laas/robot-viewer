@@ -39,10 +39,11 @@ else:
           packages=['robotviewer',\
                         'robotviewer.corba',\
                         'robotviewer.corba.RobotViewer',\
-                        'robotviewer.corba.RobotViewer__POA'],
+                        'robotviewer.corba.RobotViewer__POA',\
+                        'robotviewer.corba.hppCorbaServer',\
+                        'robotviewer.corba.hppCorbaServer__POA'],
           package_dir={'robotviewer':'src'},
           install_requires=['sphinx >=0.6','pyopengl'],
          )
-
 
 

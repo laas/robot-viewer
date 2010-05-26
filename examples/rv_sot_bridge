@@ -7,17 +7,13 @@ import getopt,sys, warnings, imp, os, imp
 
 path = imp.find_module('robotviewer')[1]
 sys.path.append(path+'/corba')
-import RobotViewer, RobotViewer__POA
 del path
 
 # Import the CORBA module
 from omniORB import CORBA
 
-# Import the stubs for the CosNaming and RobotViewer modules
-import imp
-path = imp.find_module('robotviewer')[1]
-sys.path.append(path)
-import RobotViewer
+# Import the stubs for the CosNaming and hppCorbaServer modules
+import hppCorbaServer
 import CosNaming
 
 # Initialise the ORB
@@ -32,8 +28,8 @@ if rootContext is None:
     sys.exit(1)
 
 # Resolve the name "test.my_context/ExampleEcho.Object"
-name = [CosNaming.NameComponent("robotviewer", "context"),
-        CosNaming.NameComponent("Request", "Object")]
+name = [CosNaming.NameComponent("sot", "context"),
+        CosNaming.NameComponent("coshell", "servant")]
 
 try:
     obj = rootContext.resolve(name)
@@ -42,30 +38,29 @@ except CosNaming.NamingContext.NotFound, ex:
     print "Name not found"
     sys.exit(1)
 
-# Narrow the object to an RobotViewer::Request
-eo = obj._narrow(RobotViewer.Request)
+# Narrow the object to an hppCorbaServer::SOT_Server_Command
+req_obj = obj._narrow(hppCorbaServer.SOT_Server_Command)
 
-if eo is None:
+if req_obj is None:
     print "Object reference is not an Example::Echo"
     sys.exit(1)
 
 # Invoke the echoString operation
 
-def execute(cmd,str_args,conf):
+def get_HRP_pos():
     """
     """
-    print eo.req(cmd, str_args,conf)
+    return req_obj.readVector("OpenHRP.state")
 
-def updateConfig(element_name,conf):
-    execute('updateElementConfig',element_name,conf)
+import robotviewer.client as rvcli
+from time import sleep
+def main():
+    """
+    """
+    while True:
+        pos = get_HRP_pos()
+        rvcli.updateConfig('hrp',pos)
+        sleep(0.02)
 
-
-def enable(element_name):
-    execute('enableElement',element_name,[])
-
-def disable(element_name):
-    execute('disableElement',element_name,[])
-
-def create(element_name,description):
-    execute('createElement',' '.join(element_name,description),[])
-
+if __name__ == '__main__':
+    main()
