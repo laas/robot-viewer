@@ -46,7 +46,7 @@ else:
 #                                           '../data/nancy.wrl'\
 #                                           ]},
 #          data_files=[('bin',['src/robot-viewer','src/robot-viewer-cli'])],
-    #      data_files=[('bin',['src/robot-viewer'])],
+          data_files=[('bin',['src/robotviewer'])],
     #      requires=['simpleparse'],
           install_requires=['sphinx >=0.6','pyopengl'],
          )
