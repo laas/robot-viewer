@@ -41,13 +41,6 @@ else:
                         'robotviewer.corba.RobotViewer',\
                         'robotviewer.corba.RobotViewer__POA'],
           package_dir={'robotviewer':'src'},
-#          package_data={'robotviewer':['themes/macos/*',\
-#                                          'themes/pywidget/*',\
-#                                           '../data/nancy.wrl'\
-#                                           ]},
-#          data_files=[('bin',['src/robot-viewer','src/robot-viewer-cli'])],
-#          data_files=[('bin',['tests/robotviewer'])],
-    #      requires=['simpleparse'],
           install_requires=['sphinx >=0.6','pyopengl'],
          )
 
