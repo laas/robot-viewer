@@ -45,9 +45,9 @@ if eo is None:
     sys.exit(1)
 
 # Invoke the echoString operation
-message = " ".join(sys.argv[1:])
-path=os.getcwd()+"/ "
-result  = eo.req(path+message)
 
-if result!="":
-    print result
+def execute(cmd,str_args,conf):
+    """
+    """
+    print eo.req(cmd, str_args,conf)
+

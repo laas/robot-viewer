@@ -1,6 +1,6 @@
 from Tkinter import *
 import sys,time
-from client import *
+from robotviewer.client import *
 
 footscript="""glMaterialfv(GL_FRONT_AND_BACK,  GL_AMBIENT_AND_DIFFUSE, [1,1,1,1])
 glMaterialfv(GL_FRONT_AND_BACK,  GL_SPECULAR           , [1,1,1,1])
