@@ -3,7 +3,12 @@
 # Copyright LAAS/CNRS 2009-2010
 # Authors Duong Dang
 
-import getopt,sys, warnings, imp, os
+import getopt,sys, warnings, imp, os, imp
+
+path = imp.find_module('robotviewer')[1]
+sys.path.append(path+'/corba')
+import RobotViewer, RobotViewer__POA
+del path
 
 # Import the CORBA module
 from omniORB import CORBA
