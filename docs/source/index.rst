@@ -9,10 +9,10 @@ robot-viewer's documentation
 robot-viewer is a tool to display robots' motions, originally written for HRP2
 robot at CNRS-LAAS [#f1]_ laboratory.
 
-robot-viewer is written entirely in Python, using the pyglet [#f2]_, a thin wrapper
+robot-viewer is written entirely in Python, using the PyOpenGL [#f2]_, a thin wrapper
 over OpenGL.
 
-robot-viewer is hosted at http://www.laas.fr/~nddang/robot-viewer
+robot-viewer is hosted at [fix-me]
 
 Contents:
 
@@ -21,8 +21,8 @@ Contents:
 
    install
    quickstart
-   mainscript
    modules
+   example
    copy
    
 Indices and tables
@@ -33,4 +33,4 @@ Indices and tables
 * :ref:`search`
 
 .. [#f1] http://www.laas.fr
-.. [#f2] http://www.pyglet.org
+.. [#f2] http://pyopengl.sourceforge.net/

@@ -1,54 +1,68 @@
 Quickstart
 **********
 
-Writing your own script
-=======================
+1. Make sure you have omniORB up and running
+
+2. Start the name server if needed::
+
+   $ pgrep omniNames || omniNames &
+
+3. Start robot-viewer server::
+
+   $ robotviewer
+
+   Hopefully, after a few seconds, everything described in the config file
+   shows up.
+
+   .. image:: ../images/qstart3.png
+
+   You can now use the mouse to move around, zoom in, zoom out...
+
+4. Fire up the client. On another terminal, start a python intepreter::
+   
+     $ python
+     >>> import robotviewer.client as rvcli
+     >>> rvcli.help()
+
+     Avalable commands
+     help()                              print this message
+     list()                              list all objects on server
+     disable(name)                       make something invisible
+     enable(name)                        make somethin visible
+     create(type,name,description)       create a new element 
+                                            e.g. create('robot','hrp','/path/to/HRP2.wrl'
+     updateConfig(name,config)           move an element around  
+
+     >>> rvcli.list()
+     hrp
+         type	: Robot
+         config	: [0.0, 0.0, 0.70499999999999996, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+     floor    
+         type	: script
+         config	: [0, 0, 0, 0, 0, 0
 
 
-The following snippet should load your HRP robot with a segment contained in
-``demo.pos, demo.wst, demo.rpy`` and play the loaded motion segment::
-
-    #! /usr/bin/env python
-    from robotviewer.application import Application
-
-    app=Application()
-    app.init()
-    app.loadRobot('./hrpmodel/HRP2JRL/model/HRP2JRLmain.wrl')
-    app.loadBaseName('demo')
-    app.state="PLAY"
-    app.run()
+     >>> angles = [ 0.0, 0.0, -26.0, 50.0, -24.0, 0.0, 0.0, 0.0, -26.0, 50.0,-24.0, 0.0, 0.0, 0.0, 0.0, 0.0, 15.0, -10.0, 0.0, -30.0, 0.0, 0.0, 10.0, 15.0,  10.0, 0.0, -30.0, 0.0, 0.0, 10.0,-10.0, 10.0, -10.0, 10.0, -10.0, -10.0, 10.0, -10.0, 10.0, -10.0 ]
+     >>> from math import pi
+     >>> angles = [ angles[i]*pi/180 for i in range(len(angles))]
+     >>> waist_pos = [ 0, 0, 0.6487 ]
+     >>> waist_rpy = [ 0, 0, 0      ]
+     >>> conf = waist_pos + waist_rpy + angles
+     >>> rvcli.updateConfig('hrp',conf)
+     OK
 
 
-Using provided robot-viewer script
-==================================
+   Hopefully, after the last command, you can get HRP2 to "half-sitting"
+   position.
 
-Standalone mode
----------------
+   .. image:: ../images/qstart4.png
 
- * Fire up ``robot-viewer`` and use the GUI to load robot and motion
+   Now that you are familiar with ``robotviewer.client``, write your own
+   client. 
 
-Client-Server mode
-------------------
-
- * Fire up (in seperate terminals) ``omniNames`` and ``robot-viewer``
- * In a third terminal, use robot-viewer-cli to interact with the
-   display. Use a robot-viewer-cli (with out argument) to get help::
-
-     $ robot-viewer-cli 
-
-        Available commands:  
-        list                          : list loaded segments
-        play [id]                     : play a segment in the list
-        stop                          :
-        pause                         :
-        next                          :
-        prev                          :
-        speed <s>                     : set playing speed
-        load <segment.pos>            : load a segment
-        getConfig                     : print robot config (x y z r p y q)
-        setConfig <0 0.6 etc.>        : set robot to a config (x y z r p y q)
-
-You need omniORB up and running to use this feature
+   Some examples, including rv_sot_bridge, are explained 
+   :doc:`../example` section of
+   this documentation
 
 .. toctree::
    :maxdepth: 3

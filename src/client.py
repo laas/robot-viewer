@@ -52,26 +52,38 @@ if eo is None:
 # Invoke the echoString operation
 
 def execute(cmd,str_args,conf):
-    """
+    """Send raw command using format described in idl
     """
     print eo.req(cmd, str_args,conf)
 
 def updateConfig(element_name,conf):
+    """Update configuration of an element (robot, object, etc.)
+    """
     execute('updateElementConfig',element_name,conf)
 
 def enable(element_name):
+    """Make an element visible    
+    """
     execute('enableElement',element_name,[])
 
 def disable(element_name):
+    """Make an element invisible    
+    """
     execute('disableElement',element_name,[])
 
 def create(etype,element_name,description):
+    """Create a new element
+    """
     execute('createElement',' '.join(etype,element_name,description),[])
 
 def list():
+    """List all elements present in the server
+    """
     execute('list','',[])
 
 def help():
+    """Print help message
+    """
     print '''
 Avalable commands
 help()                              print this message

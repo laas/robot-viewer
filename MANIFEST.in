@@ -1,4 +1,4 @@
-include Makefile LICENSE.txt CHANGELOG.txt AUTHORS.txt INSTALL.txt
+include Makefile LICENSE.txt CHANGELOG.txt AUTHORS.txt INSTALL.txt makeaux.sh
 recursive-include data/ *
 recursive-include docs/ *.rst *.py Makefile make.bat
 prune docs/build/

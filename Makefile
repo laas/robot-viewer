@@ -9,6 +9,7 @@ ifndef ROBOTPKG_BASE
 	echo "environement varaible ROBOTPKG_BASE not defined"
 else
 	python setup.py install --prefix ${ROBOTPKG_BASE}
+	make doc
 	sh makeaux.sh
 endif
 

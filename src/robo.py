@@ -5,7 +5,7 @@
 import numpy as np
 import re
 from math import sin,cos
-from nutshell import *
+from mathaux import *
 from collections import deque
 
 class GenericObject():

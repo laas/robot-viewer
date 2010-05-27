@@ -1,10 +1,10 @@
 #! /bin/sh
-make doc
 test -d ${ROBOTPKG_BASE}/share/doc/robot-viewer || mkdir ${ROBOTPKG_BASE}/share/doc/robot-viewer
 cp -r docs/build/html ${ROBOTPKG_BASE}/share/doc/robot-viewer
 rm -f ${ROBOTPKG_BASE}/bin/robotviewer
 cp examples/robotviewer.py ${ROBOTPKG_BASE}/bin/robotviewer
 cp examples/centipede_player.py ${ROBOTPKG_BASE}/bin/rv-centipede-player
+cp examples/rv-sot-bridge.py ${ROBOTPKG_BASE}/bin/rv-sot-bridge
 mkdir -p $HOME/.robotviewer
 cp data/floor.py $HOME/.robotviewer
 cat > $HOME/.robotviewer/config <<heredoc
