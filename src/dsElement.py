@@ -22,6 +22,9 @@ class DsElement(object):
         self._rpy = rpy
         self._enabled = enabled
 
+    def __str__(self):
+        return "FIX-ME"
+
     def render(self):
         """Render element and its children in the scene
         
@@ -86,7 +89,13 @@ class DsRobot(DsElement):
                 shapeVBO=ShapeVBO(ashape)
                 shapeVBO._mesh=amesh
                 self._shapeVBOlist.append(shapeVBO)
- 
+
+
+    def __str__(self):
+        s = "  type\t: Robot\n"
+        s += "  config\t: %s\n"%str(self._robot.getConfig())
+        return s
+
     def updateConfig(self,conf):
         """Update element configuration
         
@@ -169,7 +178,6 @@ class DsScript(DsElement):
         self._xyz = xyz
         self._rpy = rpy
         self._enabled = enabled
-        self._q = []
         self._script = script
         self._glList_idx = -1
         self._glList_idx = glGenLists(1)
@@ -177,6 +185,10 @@ class DsScript(DsElement):
         exec(self._script)
         glEndList();
 
+    def __str__(self):
+        s = "  type\t: script\n"
+        s += "  config\t: %s\n"%str(self._xyz+self._rpy)
+        return s
     
     def render(self):
         """

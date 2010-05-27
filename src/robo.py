@@ -235,6 +235,7 @@ class BaseNode(Joint):
         self.waist=None
         self.mesh_list=[]
 
+
     def jointAngles(self,angles):
         '''
         Set joint angles
@@ -255,6 +256,15 @@ class BaseNode(Joint):
         '''
         for joint in self.joint_list:
             print "\n====\n",joint
+
+    def getConfig(self):
+        vec = self.waist.translation
+        vec += self.waist.rpy
+        for i in range(len(self.joint_list)):
+            if self.joint_dict.has_key(i):
+                vec += [self.joint_dict[i].angle]
+
+        return vec
 
     def waistPos(self,p):
         '''

@@ -222,7 +222,12 @@ listElements         ""                                   []
                     except Exception,error:
                         return str(error) 
                 elif cmd == "list":
-                    return str(edict)
+                    s=""
+                    for (name,element) in edict.items():
+                        s += name
+                        s += "\n" + str(element)
+                    
+                    return s
                 else:
                     return corbaUsage
                 return "OK"

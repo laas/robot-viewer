@@ -59,13 +59,26 @@ def execute(cmd,str_args,conf):
 def updateConfig(element_name,conf):
     execute('updateElementConfig',element_name,conf)
 
-
 def enable(element_name):
     execute('enableElement',element_name,[])
 
 def disable(element_name):
     execute('disableElement',element_name,[])
 
-def create(element_name,description):
-    execute('createElement',' '.join(element_name,description),[])
+def create(etype,element_name,description):
+    execute('createElement',' '.join(etype,element_name,description),[])
 
+def list():
+    execute('list','',[])
+
+def help():
+    print '''
+Avalable commands
+help()                              print this message
+list()                              list all objects on server
+disable(name)                       make something invisible
+enable(name)                        make somethin visible
+create(type,name,description)       create a new element 
+                                      e.g. create('robot','hrp','/path/to/HRP2.wrl'
+updateConfig(name,config)           move an element around
+'''
