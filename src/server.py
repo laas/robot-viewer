@@ -10,7 +10,7 @@ import pickle
 from openglaux import IsExtensionSupported,ReSizeGLScene, GlWindow
 from dsElement import *
 import re,imp
-
+from configparser import parseConfig
 
 path = imp.find_module('robotviewer')[1]
 sys.path.append(path+'/corba')
@@ -225,7 +225,7 @@ listElements         ""                                   []
                     return str(edict)
                 else:
                     return corbaUsage
-                return "Done!"
+                return "OK"
 
         # Initialise the ORB
         orb = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
@@ -287,42 +287,70 @@ listElements         ""                                   []
         # of the file, the process will exit. orb.run() just blocks until the
         # ORB is shut down
 
+
+def update_hrp_joint_link(robot_name, joint_rank_xml):
+    """
+    """
+    if not os.path.isfile(joint_rank_xml):
+        return 
+
+    pattern=re.compile(r"\s*<Link>\s*(\w+)\s*(\d+)\s*<\/Link>\s*")
+    lines = open(joint_rank_xml).readlines()
+    correct_joint_dict = dict()
+        
+    for line in lines:
+        m = pattern.match(line)
+        if m:
+            correct_joint_dict[m.group(1)] = int(m.group(2)) -6 
+            print m.group(1), "\t",m.group(2)
+
+    for joint in ds._element_dict[robot_name]._robot.joint_list:
+        if correct_joint_dict.has_key(joint.name):
+            joint.id = correct_joint_dict[joint.name]
+
+    ds._element_dict[robot_name]._robot.update_joint_dict() 
+
 def main():
     """Main function
     """
-    
-    ds=DisplayServer()
-
-    pattern=re.compile(r"\s*<Link>\s*(\w+)\s*(\d+)\s*<\/Link>\s*")
-    
-    joint_rank_xml=os.environ['ROBOTPKG_BASE']+'/share/hrp2_14/HRP2LinkJointRank.xml'
-    if os.path.isfile(joint_rank_xml):
-        lines = open(joint_rank_xml).readlines()
-        correct_joint_dict = dict()
-
-        for line in lines:
-            m = pattern.match(line)
-            if m:
-                correct_joint_dict[m.group(1)] = int(m.group(2)) -6 
-                print m.group(1), "\t",m.group(2)
-
-    hrp_wrl=os.environ['ROBOTPKG_BASE']+\
-                 '/OpenHRP/Controller/IOserver/robot/HRP2JRL/model/HRP2JRLmain.wrl'
-    if os.path.isfile(hrp_wrl):   
-        ds.createElement('robot','hrp',hrp_wrl)
-        for i in range(40):
-            print i, ds._element_dict['hrp']._robot.joint_dict[i].name
-
-        for joint in ds._element_dict['hrp']._robot.joint_list:
-            if correct_joint_dict.has_key(joint.name):
-                joint.id = correct_joint_dict[joint.name]
-
-        ds._element_dict['hrp']._robot.update_joint_dict()    
-        
-        ds.enableElement('hrp')
+    config_dir = os.environ['HOME']+'/.robotviewer/'
+    config_file = config_dir + 'config'
+    configs = dict()
+    configs = parseConfig(config_file)
+    print "parsed config:",configs
+    ds=DisplayServer()          
+    if configs.has_key('robots'):
+        robots = configs['robots']
+        for (robot_name,robot_config) in robots.items():
+            if not os.path.isfile(robot_config):
+                continue
+            ds.createElement('robot',robot_name,robot_config)
+            ds.enableElement(robot_name)        
     else:
-        print """Couldn't find %s. You might need to load some robots yourself. 
-See documentation"""%hrp_wrl
+        print """Couldn't any default robots. Loading an empty scene
+You might need to load some robots yourself. 
+See documentation"""
+
+    if configs.has_key('joint_ranks'):
+        jranks = configs['joint_ranks']
+        for (robot_name, joint_rank_config) in robots.items():
+            if not ds._element_dict.has_key(robot_name):
+                continue
+            if not os.path.isfile(joint_rank_config):
+                continue
+            update_hrp_joint_link(robot_name,joint_rank_config)
+
+    if configs.has_key('scripts'):
+        scripts = configs['scripts']
+        for (name, script_file) in scripts.items():
+            if not os.path.isfile(script_file):
+                warnings.warn('Could not find %s'%script_file)                
+                continue
+            description = open(script_file).read()
+            ds.createElement('script',name,description)
+            ds.enableElement(name)
+    
+
     ds.run()
 
 if __name__ == '__main__':

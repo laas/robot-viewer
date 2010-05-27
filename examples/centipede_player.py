@@ -35,16 +35,7 @@ for i in range(-N,N+1):
     lp.append([L,i*0.5,0.005])
     lp.append([-L,i*0.5,0.005] )
     
-script = "glMaterialfv(GL_FRONT_AND_BACK,  GL_AMBIENT_AND_DIFFUSE, [1,1,1,1])\n"
-script+= "glMaterialfv(GL_FRONT_AND_BACK,  GL_SPECULAR           , [1,1,1,1])\n"
-script+= "glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 0)\n"
-script+= "glBegin(GL_LINES)\n"    
-for point in lp:
-    script+= "glVertex3f(%f, %f, %f)\n"%(point[0],point[1],point[2])
-script+= "glEnd()"
-execute('createElement','script floor %s'%(script),[])
-time.sleep(1)
-execute('enableElement','floor',[])
+
 
 for i in range(100):
     execute('createElement','script fp%d %s'%(i,footscript),[])

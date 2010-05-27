@@ -1,0 +1,29 @@
+// OMG IDL
+module hppCorbaServer
+{
+  typedef sequence<double> DoubleSeq;
+  typedef sequence<char> StringStreamer;
+
+  interface NotifyCallback{
+    //oneway
+    void notifyClient();
+  };
+
+  interface SOT_Server_Command
+  {
+    void run( in string cmd );
+    void runAndRead( in string cmd, out StringStreamer os );
+    void readVector( in string signalName, out DoubleSeq value );
+
+    long createOutputVectorSignal( in string signalNameCorba );
+    long createInputVectorSignal( in string signalNameCorba );
+    void readInputVectorSignal( in long signalRank, out DoubleSeq value );
+    void writeOutputVectorSignal( in long signalRank, in DoubleSeq value );
+
+    // RegisterCallback
+    void registerClient(in NotifyCallback client, in string clientName );
+    void unregisterClient(in string clientName);
+  };
+
+};
+
