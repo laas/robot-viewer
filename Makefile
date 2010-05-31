@@ -5,10 +5,10 @@ build:
 	python setup.py build
 
 install: 
-ifndef ROBOTPKG_BASE
-	echo "environement varaible ROBOTPKG_BASE not defined"
+ifndef LOCALBASE
+	echo "LOCALBASE not defined"
 else
-	python setup.py install --prefix ${ROBOTPKG_BASE}
+	python setup.py install --prefix ${LOCALBASE}
 	make doc
 	sh makeaux.sh
 endif
