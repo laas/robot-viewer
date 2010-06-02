@@ -11,12 +11,13 @@ from openglaux import IsExtensionSupported,ReSizeGLScene, GlWindow
 from dsElement import *
 import re,imp
 from configparser import parseConfig
+import pickle
+corba_path = os.path.dirname(os.path.abspath(__file__)) + '/corba'
+sys.path = [corba_path] + sys.path
 
-path = imp.find_module('robotviewer')[1]
-sys.path.append(path+'/corba')
 import RobotViewer, RobotViewer__POA
-del path
-
+config_dir = os.environ['HOME']+'/.robotviewer/'
+config_file = config_dir + 'config'
 class DisplayServer(object):
     """OpenGL server
     """
@@ -54,7 +55,16 @@ class DisplayServer(object):
             raise KeyError,"Element with that name exists already"
         
         if etype == 'robot':
-            new_robot = robotLoader.robotLoader(edescription,True) 
+            edes = edescription.replace("/","_")
+            cached_file = config_dir+"/%s.cache"%edes
+            if os.path.isfile(cached_file):
+                print "Using cached file %s.\n Remove it to reparse the wrl/xml file"%cached_file
+                new_robot = pickle.load(open(cached_file))
+            else:                    
+                new_robot = robotLoader.robotLoader(edescription,True) 
+                f = open(cached_file,'w')
+                pickle.dump(new_robot,f)
+                f.close()
             new_element = DsRobot(new_robot)
             self._element_dict[ename] = new_element
 
@@ -318,16 +328,15 @@ def update_hrp_joint_link(robot_name, joint_rank_xml):
 def main():
     """Main function
     """
-    config_dir = os.environ['HOME']+'/.robotviewer/'
-    config_file = config_dir + 'config'
     configs = dict()
     configs = parseConfig(config_file)
-    print "parsed config:",configs
     ds=DisplayServer()          
     if configs.has_key('robots'):
         robots = configs['robots']
         for (robot_name,robot_config) in robots.items():
             if not os.path.isfile(robot_config):
+                print "WARNING: Couldn't load %s. Are you sure %s exists?"\
+                    %(robot_name,robot_config)
                 continue
             ds.createElement('robot',robot_name,robot_config)
             ds.enableElement(robot_name)        

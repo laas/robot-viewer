@@ -8,7 +8,6 @@ import getopt,sys, warnings, imp, os, imp
 path = imp.find_module('robotviewer')[1]
 sys.path.append(path+'/corba')
 del path
-
 # Import the CORBA module
 from omniORB import CORBA
 
@@ -52,15 +51,26 @@ def get_HRP_pos():
     """
     return req_obj.readVector("OpenHRP.state")
 
+def get_wst():
+    return req_obj.readVector("dyn.ffposition")
+
+
 import robotviewer.client as rvcli
 from time import sleep
 def main():
     """
     """
     while True:
-        pos = get_HRP_pos()
-        rvcli.updateConfig('hrp',pos)
         sleep(0.02)
-
+        pos = get_HRP_pos()
+        wst = get_wst()
+        
+        if len(wst) < 6:
+            print "Couldn't get waist position and/or orientation. Do nothin!"
+        for i in range(len(wst)):
+            pos[i] = wst[i]
+                
+        pos[2] += 0.105
+        rvcli.updateConfig('hrp',pos)
 if __name__ == '__main__':
     main()
