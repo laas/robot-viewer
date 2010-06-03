@@ -8,9 +8,9 @@ Examples
 StackOfTasks display client
 ===========================
 
-0. Install robot-viewr, prefer preferably with ``robotpkg``
+0. Install robot-viewer, preferably with ``robotpkg``
 
-1. Make sure you have omniORB up and running. Start omniNames if necessary::
+1. Make sure you have omniORB up and running. Start omniNames if needed::
 
      $ pgrep omniNames || omniNames
 
@@ -61,12 +61,17 @@ Internally, these two scripts create the following structure in sot. Don't worry
 
        > for i=1:1000 OpenHRP.inc 0.01
 
+   
+   .. note:: Optionally, you can use `sot-gui <http://www.laas.fr/~nddang/documentation/sot-gui/>`_ to run a periodic command. e.g: run OpenHRP.inc 0.01 every 0.01s and achieve this 'virtual'    experiment
+   
    The simu robot should move to achieve that task you've just gave it
    
 
    .. image:: ../images/ex1d.png
     :width: 600px
     :align: center
+
+
 
 Local-stepper client
 ====================

@@ -275,8 +275,8 @@ class GlWindow(object):
 
         if ( self._VBOSupported ):	
             # # Include A Notice About VBOs
-            szTitle = szTitle + ", Using VBOs";
+            szTitle = szTitle;
         else:
-            szTitle = szTitle + ", Not Using VBOs";
+            szTitle = szTitle;
 
         glutSetWindowTitle ( szTitle );
