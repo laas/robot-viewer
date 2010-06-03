@@ -11,16 +11,15 @@ def normalized(v):
 
 
 class Camera(object):
-    def __init__(self, position=[3.5,0,1.0],lookat=[0,0,0.7], up=[0,0,1]):
-        self.position=np.array(position)
-        self.lookat=np.array(lookat)
-        self.up=np.array(up)
+    def __init__(self, p=[3.5,0,1.0],l=[0,0,0.7], u=[0,0,1]):
+        self.position=np.array(p)
+        self.lookat=np.array(l)
+        self.up=np.array(u)
         self.baseSpeed=1 # m/s
-        self.goalPosition=np.array(position)
-        self.goalLookat=np.array(lookat)
+        self.goalPosition=np.array(p)
+        self.goalLookat=np.array(l)
         self.distance=3.5
 
-    
     def adjust(self,robot,dt):
         if not robot.waist:
             return

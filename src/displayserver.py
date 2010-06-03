@@ -15,21 +15,34 @@ import pickle
 config_dir = os.environ['HOME']+'/.robotviewer/'
 config_file = config_dir + 'config'
 
+def updateView(camera):
+    """
+    
+    Arguments:
+    - `camera`:
+    """
+    p=camera.position
+    f=camera.lookat
+    u=camera.up
+    glLoadIdentity()
+    gluLookAt(p[0],p[1],p[2],f[0],f[1],f[2],u[0],u[1],u[2])
+
+
 class DisplayServer(object):
     """OpenGL server
     """
     
-    def __init__(self, element_dict = dict()):
+    def __init__(self):
         """
         
         Arguments:
-        - `element_dict`: dictionary containing all elements to be rendered
         """
-        self._element_dict = element_dict   
+        self._element_dict = dict()
         self.initGL()
         self.pendingObjects=[]
         self.parseConfig()
-
+        
+        
     def initGL(self):
         glutInit(sys.argv)
         glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
@@ -194,12 +207,12 @@ class DisplayServer(object):
         # # Reset The Modelview Matrix        
         # # Get FPS
         # milliseconds = win32api.GetTickCount() 
-        self._glwin.updateFPS()
-        self._glwin._g_nFrames += 1 
-        p=self._glwin.camera.position
-        f=self._glwin.camera.lookat
-        u=self._glwin.camera.up
-        gluLookAt(p[0],p[1],p[2],f[0],f[1],f[2],u[0],u[1],u[2])
+
+        if hasattr(self, '_glwin'):
+            self._glwin.updateFPS()
+            self._glwin._g_nFrames += 1 
+
+            updateView(self._glwin.camera)
 
         for item in self._element_dict.items():
             ele = item[1]

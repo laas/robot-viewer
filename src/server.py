@@ -13,13 +13,13 @@ class DisplayServerCorba(DisplayServer):
     """Corba implement of OpenGL server
     """
     
-    def __init__(self, element_dict = dict()):
+    def __init__(self):
         """
         
         Arguments:
         - `element_dict`: dictionary containing all elements to be rendered
         """
-        DisplayServer.__init__(self,element_dict)
+        DisplayServer.__init__(self)
         self._initCorba()
 
     def _initCorba(self):
