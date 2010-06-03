@@ -1,9 +1,8 @@
 #! /usr/bin/env python
 
 import sys,os
-from configparser import parseConfig
 
-from displayserver import *
+from displayserver import DisplayServer
 
 corba_path = os.path.dirname(os.path.abspath(__file__)) + '/corba'
 sys.path = [corba_path] + sys.path
@@ -173,69 +172,10 @@ listElements         ""                                   []
         # of the file, the process will exit. orb.run() just blocks until the
         # ORB is shut down
 
-
-def update_hrp_joint_link(robot_name, joint_rank_xml):
-    """
-    """
-    if not os.path.isfile(joint_rank_xml):
-        return 
-
-    pattern=re.compile(r"\s*<Link>\s*(\w+)\s*(\d+)\s*<\/Link>\s*")
-    lines = open(joint_rank_xml).readlines()
-    correct_joint_dict = dict()
-        
-    for line in lines:
-        m = pattern.match(line)
-        if m:
-            correct_joint_dict[m.group(1)] = int(m.group(2)) -6 
-            print m.group(1), "\t",m.group(2)
-
-    for joint in ds._element_dict[robot_name]._robot.joint_list:
-        if correct_joint_dict.has_key(joint.name):
-            joint.id = correct_joint_dict[joint.name]
-
-    ds._element_dict[robot_name]._robot.update_joint_dict() 
-
 def main():
     """Main function
     """
-    configs = dict()
-    configs = parseConfig(config_file)
     ds=DisplayServerCorba()          
-    if configs.has_key('robots'):
-        robots = configs['robots']
-        for (robot_name,robot_config) in robots.items():
-            if not os.path.isfile(robot_config):
-                print "WARNING: Couldn't load %s. Are you sure %s exists?"\
-                    %(robot_name,robot_config)
-                continue
-            ds.createElement('robot',robot_name,robot_config)
-            ds.enableElement(robot_name)        
-    else:
-        print """Couldn't any default robots. Loading an empty scene
-You might need to load some robots yourself. 
-See documentation"""
-
-    if configs.has_key('joint_ranks'):
-        jranks = configs['joint_ranks']
-        for (robot_name, joint_rank_config) in robots.items():
-            if not ds._element_dict.has_key(robot_name):
-                continue
-            if not os.path.isfile(joint_rank_config):
-                continue
-            update_hrp_joint_link(robot_name,joint_rank_config)
-
-    if configs.has_key('scripts'):
-        scripts = configs['scripts']
-        for (name, script_file) in scripts.items():
-            if not os.path.isfile(script_file):
-                warnings.warn('Could not find %s'%script_file)                
-                continue
-            description = open(script_file).read()
-            ds.createElement('script',name,description)
-            ds.enableElement(name)
-    
-
     ds.run()
 
 if __name__ == '__main__':
