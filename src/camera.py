@@ -1,95 +1,93 @@
 from __future__ import division
 import robo
 from math import sqrt,sin,cos,atan2
-import numpy as np
+import numpy 
 
 def norm(a):
-    return sqrt(np.dot(a,a))
+    return sqrt(numpy.dot(a,a))
 
 def normalized(v):
     return v/norm(v)
 
 
 class Camera(object):
-    def __init__(self, p=[3.5,0,1.0],l=[0,0,0.7], u=[0,0,1]):
-        self.position=np.array(p)
-        self.lookat=np.array(l)
-        self.up=np.array(u)
-        self.baseSpeed=1 # m/s
-        self.goalPosition=np.array(p)
-        self.goalLookat=np.array(l)
-        self.distance=3.5
-
-    def adjust(self,robot,dt):
-        if not robot.waist:
-            return
-        robotpos=robot.waist.translation
-        self.lookat[2]=self.position[2]
-
-        self.goalLookat[2]=self.position[2]
-
-        vec=(self.position-robotpos)[0:2]
-        realDistance=norm(vec)
-
-        pos2goal=(self.goalPosition-self.position)
-        ddd=norm(pos2goal)
-        if ddd > 0.2:
-            pos2goalDir=pos2goal/ddd
-            self.position+=pos2goalDir*self.baseSpeed*dt
-            # print "Camera: adjusting position to",self.position
-
-
-        lookat2goal=(self.goalLookat-self.lookat)
-        ddd=norm(lookat2goal)
-        if ddd > 0.2:
-            lookat2goalDir=lookat2goal/ddd
-            self.lookat+=lookat2goalDir*self.baseSpeed*0.1*dt
-            # print "Camera: ddd=%f  adjusting lookat position to"\
-            #    %ddd,self.lookat,self.goalLookat
-
-
-        vec=(self.position-robotpos)
-        realDistance=norm(vec)
-        if realDistance > 1.5*self.distance \
-                or realDistance < 0.66 * self.distance:
-            goalVec=vec*self.distance/realDistance
-            self.goalPosition=robotpos+goalVec
-            # print "Camera: adjusting goalPosition=",\
-            #    self.goalPosition
-
-        lookatDiff=norm((self.goalLookat-robotpos)[0:2])
-        if lookatDiff > 0.2:
-            self.goalLookat[0]=robotpos[0]
-            self.goalLookat[1]=robotpos[1]
-                        
-    def moveZ(self,dz):
-        self.position[2]+=dz
-        self.lookat[2]+=dz
-        self.goalPosition=self.position
-
-                        
-    def moveR(self,dr):
-        pos2look=(self.position-self.lookat)
-        ddd=norm(pos2look)
-        if ddd > 0:
-            pos2lookDir=pos2look/ddd
-            self.position+=pos2lookDir*dr
-            self.goalPosition=self.position
-            self.distance=norm(self.position-self.lookat)
-            # print "Camera: adjusting position to",self.position
-
     
-    def rotateZ(self,d_al):
-        x=self.position[0]-self.lookat[0]
-        y=self.position[1]-self.lookat[1]
-        r=sqrt(x*x+y*y)
-        alpha=atan2(x,y)
-        newalpha=alpha+d_al
-        self.position[0]=self.lookat[0]+r*sin(newalpha)
-        self.position[1]=self.lookat[1]+r*cos(newalpha)
 
-        self.goalPosition=self.position
+    def __init__(self, p=[3.5,0,1.0],l=[0,0,0.7], u=[0,0,1]):
+        self.position=numpy.array(p)
+        self.lookat=numpy.array(l)
+        self.up=numpy.array(u)
+        self._old_cam_up = None;
+        self._cam_ray = None
+        self._cam_distance = None
+        self._cam_right = None
+        self._cam_up = None
+
+
+    def computeUnitVectors(self):
+ 
+        self._cam_ray   = self.position - self.lookat
+        self._cam_distance = norm(self._cam_ray)
+        self._cam_right = normalized(numpy.cross(self._cam_ray,self.up))
+        self._cam_up    = normalized(numpy.cross(self._cam_right,self._cam_ray)) 
+       
+         
+
+    def rotate(self,dx,dy):
+        """Move camera but keep orientation
         
+        Arguments:
+        - `self`:
+        - `dx`:
+        - `dy`:
+        """ 
+        factor = 0.01
+        dup    = dy*factor
+        dright = dx*factor   
+        self.computeUnitVectors()
+        if self._old_cam_up != None:
+            dot_prod = numpy.dot(self._cam_up,self._old_cam_up)
+            if dot_prod < 0:
+                self.up *= -1
+                self._cam_right = normalized(numpy.cross(self._cam_ray,self.up))
+                self._cam_up    = normalized(numpy.cross(self._cam_right,self._cam_ray))
+            self._old_cam_up = self._cam_up
 
+                                
+        self._cam_ray += dup*self._cam_up + dright*self._cam_right
+        self._cam_ray = normalized(self._cam_ray)
+        self.position = self.lookat + self._cam_ray*self._cam_distance
 
+        return
+
+    def moveSideway(self,dx,dy):
+        """Move camera but keep orientation
         
+        Arguments:
+        - `self`:
+        - `dx`:
+        - `dy`:
+        """ 
+        factor = 0.01
+        dup    = dy*factor
+        dright = dx*factor 
+        self.computeUnitVectors()
+
+        self._cam_ray -= dup*self._cam_up + dright*self._cam_right
+        self._cam_ray = normalized(self._cam_ray)
+        self.lookat = self.position - self._cam_ray*self._cam_distance
+
+
+    def moveBackForth(self,dx,dy):
+        """Move camera but keep orientation
+        
+        Arguments:
+        - `self`:
+        - `dx`:
+        - `dy`:
+        """ 
+        self.computeUnitVectors()
+        factor = 0.02*0.1
+        cam_distance = norm(self.position - self.lookat)
+        if cam_distance > 0.1 or dy > 0:
+            self.position += dy*factor*self._cam_ray

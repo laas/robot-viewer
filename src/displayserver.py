@@ -10,7 +10,7 @@ from configparser import parseConfig
 from openglaux import IsExtensionSupported,ReSizeGLScene, GlWindow
 from dsElement import *
 import re,imp
-
+from camera import Camera
 import pickle
 config_dir = os.environ['HOME']+'/.robotviewer/'
 config_file = config_dir + 'config'
@@ -41,8 +41,10 @@ class DisplayServer(object):
         self.initGL()
         self.pendingObjects=[]
         self.parseConfig()
-        
-        
+        self.camera = Camera()       
+        self._mouseButton = None
+        self._oldMousePos = [ 0, 0 ]
+
     def initGL(self):
         glutInit(sys.argv)
         glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
@@ -53,6 +55,7 @@ class DisplayServer(object):
         glutIdleFunc(self.DrawGLScene)
         glutReshapeFunc(ReSizeGLScene)
         self._glwin=GlWindow(640, 480, "Robotviewer Server")
+        self.bindEvents()
 
     def update_hrp_joint_link(self,robot_name, joint_rank_xml):
         """
@@ -212,7 +215,7 @@ class DisplayServer(object):
             self._glwin.updateFPS()
             self._glwin._g_nFrames += 1 
 
-            updateView(self._glwin.camera)
+            updateView(self.camera)
 
         for item in self._element_dict.items():
             ele = item[1]
@@ -222,4 +225,53 @@ class DisplayServer(object):
         glutSwapBuffers()
 
         return True
+    
+    def bindEvents(self):
 
+        def keyPressedFunc(*args):
+            # If escape is pressed, kill everything.
+            if args[0] == ESCAPE : # exit when ESCAPE is pressed
+                sys.exit ()
+            return
+
+        def mouseButtonFunc( button, mode, x, y ):
+            """Callback function (mouse button pressed or released).
+
+            The current and old mouse positions are stored in
+            a	global renderParam and a global list respectively"""
+
+            if mode == GLUT_DOWN:
+                    self._mouseButton = button
+            else:
+                    self._mouseButton = None
+            self._oldMousePos[0], self._oldMousePos[1] = x, y
+            glutPostRedisplay( )
+        
+        def mouseMotionFunc( x, y ):            
+            """Callback function (mouse moved while button is pressed).
+
+            The current and old mouse positions are stored in
+            a	global renderParam and a global list respectively.
+            The global translation vector is updated according to
+            the movement of the mouse pointer."""
+            dx = x - self._oldMousePos[ 0 ]
+            dy = y - self._oldMousePos[ 1 ]
+
+            if ( glutGetModifiers() == GLUT_ACTIVE_SHIFT and\
+                   self._mouseButton == GLUT_LEFT_BUTTON  ):
+                self.camera.moveBackForth(dx,dy)
+
+            elif self._mouseButton == GLUT_LEFT_BUTTON:
+                self.camera.rotate(dx,dy)
+
+            elif self._mouseButton == GLUT_RIGHT_BUTTON:
+                self.camera.moveSideway(dx,dy)
+            
+            self._oldMousePos[0], self._oldMousePos[1] = x, y
+
+            glutPostRedisplay( )
+        
+        glutMouseFunc( mouseButtonFunc )
+        glutMotionFunc( mouseMotionFunc )
+        glutSpecialFunc(keyPressedFunc)
+        glutKeyboardFunc(keyPressedFunc)
