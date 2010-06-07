@@ -18,7 +18,7 @@ setup(name='robot-viewer',
                     'robotviewer.corba.hppCorbaServer',\
                     'robotviewer.corba.hppCorbaServer__POA'],
       package_dir={'robotviewer':'src'},
-      requires=['sphinx >=0.6','pyopengl'],
+      requires=['sphinx (>=0.6)','pyopengl'],
       )
 
 
