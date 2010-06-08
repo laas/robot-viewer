@@ -8,6 +8,9 @@ Examples
 StackOfTasks display client
 ===========================
 
+.. note:: Since a simplified version of robot-viewer is now embeded in `sot-gui <http://www.laas.fr/~nddang/documentation/sot-gui/>`_, this example is now obselete.
+
+
 0. Install robot-viewer, preferably with ``robotpkg``
 
 1. Make sure you have omniORB up and running. Start omniNames if needed::

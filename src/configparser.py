@@ -16,7 +16,7 @@ nullline       :=  ts,'\n'
 comment        :=  -'\n'*
 equality       :=  ts, identifier,ts,('=')?,ts,identified,ts,'\n'
 identifier     :=  [a-zA-Z], [a-zA-Z0-9_]*
-filename       :=  [a-zA-Z/.], [a-zA-Z0-9_/.]*
+filename       :=  [$a-zA-Z/.], [$a-zA-Z0-9_/.]*
 identified     :=  filename/('"',string,'"')/number/identifier
 ts             :=  [ \t]*
 char           :=  -[\134"]+

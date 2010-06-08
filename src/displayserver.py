@@ -81,11 +81,23 @@ class DisplayServer(object):
         return
 
     def parseConfig(self):
+        def replace_env_var(s):
+            matches = re.findall(r'\$(\w+)',s)
+            for m in matches:
+                var = m
+                val = os.environ[var]
+                s = s.replace(var,val)
+            s = s.replace('$','')
+            return s
+
         configs = dict()
         configs = parseConfig(config_file)
+        print 'parsed_config',configs
         if configs.has_key('robots'):
             robots = configs['robots']
             for (robot_name,robot_config) in robots.items():
+                robot_config = replace_env_var(robot_config)
+                print 'robot_config=',robot_config
                 if not os.path.isfile(robot_config):
                     print "WARNING: Couldn't load %s. Are you sure %s exists?"\
                         %(robot_name,robot_config)
@@ -100,6 +112,7 @@ class DisplayServer(object):
         if configs.has_key('joint_ranks'):
             jranks = configs['joint_ranks']
             for (robot_name, joint_rank_config) in robots.items():
+                joint_rank_config = replace_env_var(joint_rank_config)
                 if not self._element_dict.has_key(robot_name):
                     continue
                 if not os.path.isfile(joint_rank_config):
@@ -109,8 +122,9 @@ class DisplayServer(object):
         if configs.has_key('scripts'):
             scripts = configs['scripts']
             for (name, script_file) in scripts.items():
+                script_file = replace_env_var(script_file)
                 if not os.path.isfile(script_file):
-                    warnings.warn('Could not find %s'%script_file)                
+                    warnings.warn('Could not find %s'%script_file)
                     continue
                 description = open(script_file).read()
                 self.createElement('script',name,description)
@@ -259,7 +273,7 @@ class DisplayServer(object):
 
             if ( glutGetModifiers() == GLUT_ACTIVE_SHIFT and\
                    self._mouseButton == GLUT_LEFT_BUTTON  ):
-                self.camera.moveBackForth(dx,dy)
+                self.camera.moveBackForth(dy)
 
             elif self._mouseButton == GLUT_LEFT_BUTTON:
                 self.camera.rotate(dx,dy)

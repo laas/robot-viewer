@@ -78,7 +78,7 @@ class Camera(object):
         self.lookat = self.position - self._cam_ray*self._cam_distance
 
 
-    def moveBackForth(self,dx,dy):
+    def moveBackForth(self,dy):
         """Move camera but keep orientation
         
         Arguments:
