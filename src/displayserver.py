@@ -14,6 +14,7 @@ from camera import Camera
 import pickle
 config_dir = os.environ['HOME']+'/.robotviewer/'
 config_file = config_dir + 'config'
+import logging
 
 def updateView(camera):
     """
@@ -32,11 +33,25 @@ class DisplayServer(object):
     """OpenGL server
     """
 
-    def __init__(self):
+    def __init__(self,options = None, args = None):
         """
 
         Arguments:
         """
+        if options and options.verbose:
+            self.log_level = logging.DEBUG
+        else:
+            self.log_level = logging.INFO
+        self.logger = logging.getLogger("RobotViewer")
+        self.logger.setLevel(logging.DEBUG)
+        # create console handler and set level to debug
+        self.ch = logging.StreamHandler()
+        self.ch.setLevel(self.log_level)
+        formatter = logging.Formatter("%(asctime)s:%(name)s:%(levelname)s - %(message)s")
+        self.ch.setFormatter(formatter)
+        self.logger.addHandler(self.ch)
+
+
         self._element_dict = dict()
         self.initGL()
         self.pendingObjects=[]
@@ -71,7 +86,7 @@ class DisplayServer(object):
             m = pattern.match(line)
             if m:
                 correct_joint_dict[m.group(1)] = int(m.group(2)) -6
-                print m.group(1), "\t",m.group(2)
+                self.logger.info( m.group(1)+ "\t" + m.group(2))
 
         for joint in self._element_dict[robot_name]._robot.joint_list:
             if correct_joint_dict.has_key(joint.name):
@@ -92,22 +107,22 @@ class DisplayServer(object):
 
         configs = dict()
         configs = parseConfig(config_file)
-        print 'parsed_config',configs
+        self.logger.info( 'parsed_config %s'%configs)
         if configs.has_key('robots'):
             robots = configs['robots']
             for (robot_name,robot_config) in robots.items():
                 robot_config = replace_env_var(robot_config)
-                print 'robot_config=',robot_config
+                self.logger.info( 'robot_config=%s'%robot_config)
                 if not os.path.isfile(robot_config):
-                    print "WARNING: Couldn't load %s. Are you sure %s exists?"\
-                        %(robot_name,robot_config)
+                    self.logger.info( "WARNING: Couldn't load %s. Are you sure %s exists?"\
+                        %(robot_name,robot_config))
                     continue
                 self.createElement('robot',robot_name,robot_config)
                 self.enableElement(robot_name)
         else:
-            print """Couldn't any default robots. Loading an empty scene
+            self.logger.info( """Couldn't any default robots. Loading an empty scene
     You might need to load some robots yourself.
-    See documentation"""
+    See documentation""")
 
         if configs.has_key('joint_ranks'):
             jranks = configs['joint_ranks']
@@ -146,7 +161,7 @@ class DisplayServer(object):
             edes = edescription.replace("/","_")
             cached_file = config_dir+"/%s.cache"%edes
             if os.path.isfile(cached_file):
-                print "Using cached file %s.\n Remove it to reparse the wrl/xml file"%cached_file
+                self.logger.info( "Using cached file %s.\n Remove it to reparse the wrl/xml file"%cached_file)
                 new_robot = pickle.load(open(cached_file))
             else:
                 new_robot = robotLoader.robotLoader(edescription,True)
@@ -208,13 +223,30 @@ class DisplayServer(object):
 
         self._element_dict[name].updateConfig(config)
 
+    def getElementConfig(self,name):
+        """
+        Arguments:
+        - `self`:
+        - `name`:         string, element name
+        """
+        if not self._element_dict.has_key(name):
+            raise KeyError,"Element with that name does not exist"
+
+        return self._element_dict[name].getConfig()
+
+    def listElement(self):
+        return [name for name in self._element_dict.keys() ]
+
     def run(self):
         glutMainLoop()
+
+    def Ping(self):
+        return "pong"
 
     def DrawGLScene(self):
         if len(self.pendingObjects) > 0:
             obj = self.pendingObjects.pop()
-            print "creating", obj[0], obj[1], obj[2]
+            self.logger.info( "creating %s %s %s"%( obj[0], obj[1], obj[2]))
             self.createElement(obj[0],obj[1],obj[2])
         # Clear Screen And Depth Buffer
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -231,7 +263,7 @@ class DisplayServer(object):
 
         for item in self._element_dict.items():
             ele = item[1]
-#            print item[0], item[1]._enabled
+#            self.logger.info( item[0], item[1]._enabled)
             ele.render()
 
         glutSwapBuffers()
@@ -288,75 +320,3 @@ class DisplayServer(object):
         glutSpecialFunc(keyPressedFunc)
         glutKeyboardFunc(keyPressedFunc)
 
-    def run_cmd(self,cmd ="", str_args="", conf=[]):
-        usage=""" Request(cmd,str_args,config)
-
-Example:
-
-cmd                  str_args                             conf
----                  ---                                  ---
-createElement        robot hrp ./HRP.wrl                  []
-destroyElement       hrp                                  []
-enableElement        hrp                                  []
-disableElement       hrp                                  []
-updateElementConfig  hrp                                  [0,0,0,0...] <vector of length 6+40>
-listElements         ""                                   []
-"""
-        # print "receive", cmd, str_args, conf
-        if cmd == "createElement":
-            words=str_args.split()
-            if len(words) < 3:
-                return usage
-            etype = words[0]
-            name  = words[1]
-            desc  = re.sub(r"^\s*\w+\s*\w+\s*",'',str_args)
-            self.pendingObjects.append((etype,name,desc))
-
-        elif cmd == "destroyElement":
-            words=str_args.split()
-            if len(words) !=1:
-                return usage
-            name = words[0]
-            try:
-                self.destroyElement(name)
-            except Exception,error:
-                return str(error)
-        elif cmd == "enableElement":
-            words=str_args.split()
-            if len(words) !=1:
-                return usage
-            name = words[0]
-            try:
-                self.enableElement(name)
-            except Exception,error:
-                return str(error)
-        elif cmd == "disableElement":
-            words=str_args.split()
-            if len(words) !=1:
-                return usage
-            name = words[0]
-            try:
-                self.disableElement(name)
-            except Exception,error:
-                return str(error)
-        elif cmd == "updateElementConfig":
-            config = conf
-            words=str_args.split()
-            if len(words) !=1:
-                return usage
-            name = words[0]
-            try:
-                self.updateElementConfig(name,config)
-            except Exception,error:
-                return str(error)
-        elif cmd == "list":
-            s=""
-            for (name,element) in self._element_dict.items():
-                s += name
-                s += "\n" + str(element)
-
-                return s
-            else:
-                return usage
-            return "OK"
-        return usage

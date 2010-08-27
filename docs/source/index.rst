@@ -21,10 +21,11 @@ Contents:
 
    install
    quickstart
+   idl
    modules
    example
    copy
-   
+
 Indices and tables
 ==================
 

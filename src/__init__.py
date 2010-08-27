@@ -1,14 +1,14 @@
 # ----------------------------------------------------------------------
 # Copyright (c) 2010 Duong Dang
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions 
+# modification, are permitted provided that the following conditions
 # are met:
 #
 #  * Redistributions of source code must retain the above copyright
 #    notice, this list of conditions and the following disclaimer.
-#  * Redistributions in binary form must reproduce the above copyright 
+#  * Redistributions in binary form must reproduce the above copyright
 #    notice, this list of conditions and the following disclaimer in
 #    the documentation and/or other materials provided with the
 #    distribution.
@@ -40,7 +40,7 @@ Intended purely as a tool for developers, to quickly display a robot in a
 See 'demo.py' in the enclosing directory for a brief tutorial.
 
 --------------------
-	
+
 	- Duong Dang
 """
 
@@ -48,8 +48,5 @@ __author__ =  'Duong Dang'
 __email__ = 'nddang@laas.fr'
 __version__=  '0.9.5'
 
-#import RobotViewer
-#import RobotViewer__POA
-#import client
-#import robo,robotLoader,dsElement,openglaux
+from client import client
 

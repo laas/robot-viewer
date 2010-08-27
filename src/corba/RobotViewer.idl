@@ -1,6 +1,0 @@
-module RobotViewer {
-  typedef sequence<float,100> Config;
-  interface Request {
-    string req(in string cmd, in string str_args, in Config conf);
-  };
-};
