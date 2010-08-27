@@ -7,7 +7,6 @@ module hpp {
 
   interface RobotViewer
   {
-    // Write functions
     exception InvalidKey{
       string reason;
     };
