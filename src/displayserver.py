@@ -17,7 +17,7 @@ config_file = config_dir + 'config'
 
 def updateView(camera):
     """
-    
+
     Arguments:
     - `camera`:
     """
@@ -31,17 +31,17 @@ def updateView(camera):
 class DisplayServer(object):
     """OpenGL server
     """
-    
+
     def __init__(self):
         """
-        
+
         Arguments:
         """
         self._element_dict = dict()
         self.initGL()
         self.pendingObjects=[]
         self.parseConfig()
-        self.camera = Camera()       
+        self.camera = Camera()
         self._mouseButton = None
         self._oldMousePos = [ 0, 0 ]
 
@@ -61,7 +61,7 @@ class DisplayServer(object):
         """
         """
         if not os.path.isfile(joint_rank_xml):
-            return 
+            return
 
         pattern=re.compile(r"\s*<Link>\s*(\w+)\s*(\d+)\s*<\/Link>\s*")
         lines = open(joint_rank_xml).readlines()
@@ -70,14 +70,14 @@ class DisplayServer(object):
         for line in lines:
             m = pattern.match(line)
             if m:
-                correct_joint_dict[m.group(1)] = int(m.group(2)) -6 
+                correct_joint_dict[m.group(1)] = int(m.group(2)) -6
                 print m.group(1), "\t",m.group(2)
 
         for joint in self._element_dict[robot_name]._robot.joint_list:
             if correct_joint_dict.has_key(joint.name):
                 joint.id = correct_joint_dict[joint.name]
 
-        self._element_dict[robot_name]._robot.update_joint_dict() 
+        self._element_dict[robot_name]._robot.update_joint_dict()
         return
 
     def parseConfig(self):
@@ -103,10 +103,10 @@ class DisplayServer(object):
                         %(robot_name,robot_config)
                     continue
                 self.createElement('robot',robot_name,robot_config)
-                self.enableElement(robot_name)        
+                self.enableElement(robot_name)
         else:
             print """Couldn't any default robots. Loading an empty scene
-    You might need to load some robots yourself. 
+    You might need to load some robots yourself.
     See documentation"""
 
         if configs.has_key('joint_ranks'):
@@ -132,7 +132,7 @@ class DisplayServer(object):
         return
 
     def createElement(self,etype,ename,edescription):
-        """        
+        """
         Arguments:
         - `self`:
         - `etype`:        string, element type (e.g. robot, GLscript)
@@ -141,15 +141,15 @@ class DisplayServer(object):
         """
         if self._element_dict.has_key(ename):
             raise KeyError,"Element with that name exists already"
-        
+
         if etype == 'robot':
             edes = edescription.replace("/","_")
             cached_file = config_dir+"/%s.cache"%edes
             if os.path.isfile(cached_file):
                 print "Using cached file %s.\n Remove it to reparse the wrl/xml file"%cached_file
                 new_robot = pickle.load(open(cached_file))
-            else:                    
-                new_robot = robotLoader.robotLoader(edescription,True) 
+            else:
+                new_robot = robotLoader.robotLoader(edescription,True)
                 f = open(cached_file,'w')
                 pickle.dump(new_robot,f)
                 f.close()
@@ -164,7 +164,7 @@ class DisplayServer(object):
             raise TypeError,"Unknown element type"
 
     def destroyElement(self,name):
-        """        
+        """
         Arguments:
         - `self`:
         - `name`:         string, element name
@@ -173,12 +173,10 @@ class DisplayServer(object):
             raise KeyError,"Element with that name does not exist"
 
         del self._element_dict[name]
-        self._element_dict.pop(name)
-
 
     def enableElement(self,name):
         """
-        
+
         Arguments:
         - `self`:
         - `name`:
@@ -189,7 +187,7 @@ class DisplayServer(object):
         self._element_dict[name].enable()
 
     def disableElement(self,name):
-        """        
+        """
         Arguments:
         - `self`:
         - `name`:
@@ -200,7 +198,7 @@ class DisplayServer(object):
         self._element_dict[name].disable()
 
     def updateElementConfig(self,name,config):
-        """        
+        """
         Arguments:
         - `self`:
         - `name`:         string, element name
@@ -219,15 +217,15 @@ class DisplayServer(object):
             print "creating", obj[0], obj[1], obj[2]
             self.createElement(obj[0],obj[1],obj[2])
         # Clear Screen And Depth Buffer
-        glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
+        glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glLoadIdentity ();
-        # # Reset The Modelview Matrix        
+        # # Reset The Modelview Matrix
         # # Get FPS
-        # milliseconds = win32api.GetTickCount() 
+        # milliseconds = win32api.GetTickCount()
 
         if hasattr(self, '_glwin'):
             self._glwin.updateFPS()
-            self._glwin._g_nFrames += 1 
+            self._glwin._g_nFrames += 1
 
             updateView(self.camera)
 
@@ -239,7 +237,7 @@ class DisplayServer(object):
         glutSwapBuffers()
 
         return True
-    
+
     def bindEvents(self):
 
         def keyPressedFunc(*args):
@@ -260,8 +258,8 @@ class DisplayServer(object):
                     self._mouseButton = None
             self._oldMousePos[0], self._oldMousePos[1] = x, y
             glutPostRedisplay( )
-        
-        def mouseMotionFunc( x, y ):            
+
+        def mouseMotionFunc( x, y ):
             """Callback function (mouse moved while button is pressed).
 
             The current and old mouse positions are stored in
@@ -280,12 +278,85 @@ class DisplayServer(object):
 
             elif self._mouseButton == GLUT_RIGHT_BUTTON:
                 self.camera.moveSideway(dx,dy)
-            
+
             self._oldMousePos[0], self._oldMousePos[1] = x, y
 
             glutPostRedisplay( )
-        
+
         glutMouseFunc( mouseButtonFunc )
         glutMotionFunc( mouseMotionFunc )
         glutSpecialFunc(keyPressedFunc)
         glutKeyboardFunc(keyPressedFunc)
+
+    def run_cmd(self,cmd ="", str_args="", conf=[]):
+        usage=""" Request(cmd,str_args,config)
+
+Example:
+
+cmd                  str_args                             conf
+---                  ---                                  ---
+createElement        robot hrp ./HRP.wrl                  []
+destroyElement       hrp                                  []
+enableElement        hrp                                  []
+disableElement       hrp                                  []
+updateElementConfig  hrp                                  [0,0,0,0...] <vector of length 6+40>
+listElements         ""                                   []
+"""
+        # print "receive", cmd, str_args, conf
+        if cmd == "createElement":
+            words=str_args.split()
+            if len(words) < 3:
+                return usage
+            etype = words[0]
+            name  = words[1]
+            desc  = re.sub(r"^\s*\w+\s*\w+\s*",'',str_args)
+            self.pendingObjects.append((etype,name,desc))
+
+        elif cmd == "destroyElement":
+            words=str_args.split()
+            if len(words) !=1:
+                return usage
+            name = words[0]
+            try:
+                self.destroyElement(name)
+            except Exception,error:
+                return str(error)
+        elif cmd == "enableElement":
+            words=str_args.split()
+            if len(words) !=1:
+                return usage
+            name = words[0]
+            try:
+                self.enableElement(name)
+            except Exception,error:
+                return str(error)
+        elif cmd == "disableElement":
+            words=str_args.split()
+            if len(words) !=1:
+                return usage
+            name = words[0]
+            try:
+                self.disableElement(name)
+            except Exception,error:
+                return str(error)
+        elif cmd == "updateElementConfig":
+            config = conf
+            words=str_args.split()
+            if len(words) !=1:
+                return usage
+            name = words[0]
+            try:
+                self.updateElementConfig(name,config)
+            except Exception,error:
+                return str(error)
+        elif cmd == "list":
+            s=""
+            for (name,element) in self._element_dict.items():
+                s += name
+                s += "\n" + str(element)
+
+                return s
+            else:
+                return usage
+            return "OK"
+        return usage

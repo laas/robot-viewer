@@ -1,7 +1,7 @@
 from __future__ import division
 import robo
 from math import sqrt,sin,cos,atan2
-import numpy 
+import numpy
 
 def norm(a):
     return sqrt(numpy.dot(a,a))
@@ -11,7 +11,7 @@ def normalized(v):
 
 
 class Camera(object):
-    
+
 
     def __init__(self, p=[3.5,0,1.0],l=[0,0,0.7], u=[0,0,1]):
         self.position=numpy.array(p)
@@ -25,25 +25,25 @@ class Camera(object):
 
 
     def computeUnitVectors(self):
- 
+
         self._cam_ray   = self.position - self.lookat
         self._cam_distance = norm(self._cam_ray)
         self._cam_right = normalized(numpy.cross(self._cam_ray,self.up))
-        self._cam_up    = normalized(numpy.cross(self._cam_right,self._cam_ray)) 
-       
-         
+        self._cam_up    = normalized(numpy.cross(self._cam_right,self._cam_ray))
+
+
 
     def rotate(self,dx,dy):
         """Move camera but keep orientation
-        
+
         Arguments:
         - `self`:
         - `dx`:
         - `dy`:
-        """ 
+        """
         factor = 0.01
         dup    = dy*factor
-        dright = dx*factor   
+        dright = dx*factor
         self.computeUnitVectors()
         if self._old_cam_up != None:
             dot_prod = numpy.dot(self._cam_up,self._old_cam_up)
@@ -53,7 +53,7 @@ class Camera(object):
                 self._cam_up    = normalized(numpy.cross(self._cam_right,self._cam_ray))
             self._old_cam_up = self._cam_up
 
-                                
+
         self._cam_ray += dup*self._cam_up + dright*self._cam_right
         self._cam_ray = normalized(self._cam_ray)
         self.position = self.lookat + self._cam_ray*self._cam_distance
@@ -62,15 +62,15 @@ class Camera(object):
 
     def moveSideway(self,dx,dy):
         """Move camera but keep orientation
-        
+
         Arguments:
         - `self`:
         - `dx`:
         - `dy`:
-        """ 
+        """
         factor = 0.01
         dup    = dy*factor
-        dright = dx*factor 
+        dright = dx*factor
         self.computeUnitVectors()
 
         self._cam_ray -= dup*self._cam_up + dright*self._cam_right
@@ -80,12 +80,12 @@ class Camera(object):
 
     def moveBackForth(self,dy):
         """Move camera but keep orientation
-        
+
         Arguments:
         - `self`:
         - `dx`:
         - `dy`:
-        """ 
+        """
         self.computeUnitVectors()
         factor = 0.02*0.1
         cam_distance = norm(self.position - self.lookat)

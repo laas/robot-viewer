@@ -29,12 +29,12 @@ lp=[]
 N=5
 L=0.5*N
 
-for i in range(-N,N+1):   
+for i in range(-N,N+1):
     lp.append([i*0.5,L,0.005])
     lp.append([i*0.5,-L,0.005])
     lp.append([L,i*0.5,0.005])
     lp.append([-L,i*0.5,0.005] )
-    
+
 
 
 for i in range(100):
@@ -57,14 +57,14 @@ class Application(Frame):
         words = curline.split()
         extra_dof = len(words)-46
         config = [ float(words[i+extra_dof]) for i in range(46)]
-        execute('updateElementConfig','hrp',config)        
+        execute('updateElementConfig','hrp',config)
 
         if self.numsteps < extra_dof/3:
             for i in range(extra_dof/3):
                 execute('enableElement','fp%d'%i,[])
-        for i in range(extra_dof/3,100):    
+        for i in range(extra_dof/3,100):
             execute('disableElement','fp%d'%i,[])
-                        
+
         self.numsteps = extra_dof/3
         x = 0
         y = 0

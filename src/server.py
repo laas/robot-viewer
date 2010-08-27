@@ -12,10 +12,10 @@ import RobotViewer, RobotViewer__POA
 class DisplayServerCorba(DisplayServer):
     """Corba implement of OpenGL server
     """
-    
+
     def __init__(self):
         """
-        
+
         Arguments:
         - `element_dict`: dictionary containing all elements to be rendered
         """
@@ -36,81 +36,12 @@ class DisplayServerCorba(DisplayServer):
         # Import the stubs and skeletonsg
         import imp
         import RobotViewer, RobotViewer__POA
-        corbaUsage=""" Request(cmd,str_args,config)
-
-Example:
-
-cmd                  str_args                             conf
----                  ---                                  ---
-createElement        robot hrp ./HRP.wrl                  []
-destroyElement       hrp                                  []
-enableElement        hrp                                  []
-disableElement       hrp                                  []
-updateElementConfig  hrp                                  [0,0,0,0...] <vector of length 6+40>
-listElements         ""                                   [] 
-"""
 
 
         # Define an implementation of the Echo interface
         class Request_i (RobotViewer__POA.Request):
             def req(self, cmd, str_args, conf):
-#                print "receive", cmd, str_args, conf
-                if cmd == "createElement":
-                    words=str_args.split()
-                    if len(words) < 3:
-                        return corbaUsage
-                    etype = words[0]
-                    name  = words[1]
-                    desc  = re.sub(r"^\s*\w+\s*\w+\s*",'',str_args)
-                    ds.pendingObjects.append((etype,name,desc))
-
-                elif cmd == "destroyElement":
-                    words=str_args.split()
-                    if len(words) !=1:
-                        return corbaUsage
-                    name = words[0]
-                    try:
-                        ds.destroyElement(name)
-                    except Exception,error:
-                        return str(error)     
-                elif cmd == "enableElement":
-                    words=str_args.split()
-                    if len(words) !=1:
-                        return corbaUsage
-                    name = words[0]
-                    try:
-                        ds.enableElement(name)
-                    except Exception,error:
-                        return str(error)                 
-                elif cmd == "disableElement":
-                    words=str_args.split()
-                    if len(words) !=1:
-                        return corbaUsage
-                    name = words[0]
-                    try:
-                        ds.disableElement(name)
-                    except Exception,error:
-                        return str(error) 
-                elif cmd == "updateElementConfig":
-                    config = conf
-                    words=str_args.split()
-                    if len(words) !=1:
-                        return corbaUsage
-                    name = words[0]
-                    try:
-                        ds.updateElementConfig(name,config)
-                    except Exception,error:
-                        return str(error) 
-                elif cmd == "list":
-                    s=""
-                    for (name,element) in edict.items():
-                        s += name
-                        s += "\n" + str(element)
-                    
-                    return s
-                else:
-                    return corbaUsage
-                return "OK"
+                return ds.run_cmd(cmd, str_args, conf)
 
         # Initialise the ORB
         orb = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
@@ -175,7 +106,7 @@ listElements         ""                                   []
 def main():
     """Main function
     """
-    ds=DisplayServerCorba()          
+    ds=DisplayServerCorba()
     ds.run()
 
 if __name__ == '__main__':

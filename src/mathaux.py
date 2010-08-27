@@ -8,7 +8,7 @@
 
 import numpy as np
 import re
-from math import sin,cos,sqrt,acos,pi
+from math import sin,cos,sqrt,acos,pi,atan2
 
 
 def norm(a):
@@ -29,13 +29,13 @@ def rot2AngleAxis(M):
 def euleur2AngleAxis(rpy):
     R = euleur2rotation(rpy)
     return rot2AngleAxis(R)
-    
+
 
 def draw_link(p1,p2,size=0.01):
     p=p2-p1
-    height=np.sqrt(np.dot(p,p)) 
+    height=np.sqrt(np.dot(p,p))
     glPushMatrix()
-    glBegin(GL_LINES)    
+    glBegin(GL_LINES)
     glVertex3f(p1[0],p1[1],p1[2])
     glVertex3f(p2[0],p2[1],p2[2])
     glEnd()
@@ -79,16 +79,21 @@ def euleur2rotation(rpy):
     cz=cos(tz);sz=sin(tz)
     R=np.zeros((3,3))
 
-    R[0][0] =cy*cz                                                     
-    R[1][0] =cy*sz                                                     
-    R[2][0] =-sy  
+    R[0][0] =cy*cz
+    R[1][0] =cy*sz
+    R[2][0] =-sy
 
-    R[0][1] =cz*sx*sy-cx*sz                                            
-    R[1][1] =cx*cz+sx*sy*sz                                            
-    R[2][1] =cy*sx                                                     
-                                                                            
-    R[0][2] =cx*cz*sy+sz*sx                                            
-    R[1][2] =-cz*sx+cx*sy*sz                                           
-    R[2][2] =cx*cy 
+    R[0][1] =cz*sx*sy-cx*sz
+    R[1][1] =cx*cz+sx*sy*sz
+    R[2][1] =cy*sx
+
+    R[0][2] =cx*cz*sy+sz*sx
+    R[1][2] =-cz*sx+cx*sy*sz
+    R[2][2] =cx*cy
     return R
-    
+
+def rot2rpy(R):
+    alpha = atan2(R[1][0],R[0][0])
+    beta = atan2(-R[2][0],sqrt(R[2][1]**2 + R[2][2]**2   ))
+    gamma = atan2(R[2][1],R[2][2])
+    return [alpha, beta, gamma]
