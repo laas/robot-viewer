@@ -358,16 +358,16 @@ def safe_eval(code, context = {}, timeout_secs = 5):
         SafeEvalTimeoutException
     """   
     ctx_errkeys, ctx_errors = [], []
-    for (key, obj) in context.items():
-        if inspect.isbuiltin(obj):
-            ctx_errkeys.append(key)
-            ctx_errors.append("key '%s' : unallowed builtin %s" % (key, obj))
-        if inspect.ismodule(obj):
-            ctx_errkeys.append(key)
-            ctx_errors.append("key '%s' : unallowed module %s" % (key, obj))
+#     for (key, obj) in context.items():
+#         if inspect.isbuiltin(obj):
+#             ctx_errkeys.append(key)
+#             ctx_errors.append("key '%s' : unallowed builtin %s" % (key, obj))
+#         if inspect.ismodule(obj):
+#             ctx_errkeys.append(key)
+#             ctx_errors.append("key '%s' : unallowed module %s" % (key, obj))
 
-    if ctx_errors:
-        raise SafeEvalContextException(ctx_errkeys, ctx_errors)
+#     if ctx_errors:
+#         raise SafeEvalContextException(ctx_errkeys, ctx_errors)
 
     ast = compiler.parse(code)
     checker = SafeEvalVisitor()
