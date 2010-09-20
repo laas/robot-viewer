@@ -6,7 +6,7 @@ from OpenGL.GL.ARB.vertex_buffer_object import *
 import numpy, time
 import robo,robotLoader
 from mathaux import *
-
+from safeeval import safe_eval
 class DsElement(object):
     """
     """
@@ -188,7 +188,7 @@ class DsScript(DsElement):
         self._glList_idx = -1
         self._glList_idx = glGenLists(1)
         glNewList(self._glList_idx, GL_COMPILE);
-        exec(self._script)
+        safe_eval(self._script,globals())
         glEndList();
 
     def __str__(self):
