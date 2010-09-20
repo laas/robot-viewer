@@ -27,7 +27,7 @@ class RvWidget(DisplayServer, gtk.gtkgl.DrawingArea):
         self.oldMousePos = None
         self.logger = logging
         major, minor = gtk.gdkgl.query_version()
-        print "GLX version = %d.%d" % (major, minor)
+        self.logger.info( "GLX version = %d.%d" % (major, minor))
 
         #
         # frame buffer configuration
@@ -54,14 +54,14 @@ class RvWidget(DisplayServer, gtk.gtkgl.DrawingArea):
         #     # try single-buffered
         #     self.glconfig = gtk.gdkgl.Config(attrib_list=(gtk.gdkgl.RGBA,
         #                                              gtk.gdkgl.DEPTH_SIZE, 1))
-        print "self.glconfig.is_rgba() =",            self.glconfig.is_rgba()
-        print "self.glconfig.is_double_buffered() =", self.glconfig.is_double_buffered()
-        print "self.glconfig.has_depth_buffer() =",   self.glconfig.has_depth_buffer()
+        self.logger.info( "self.glconfig.is_rgba() =",            self.glconfig.is_rgba())
+        self.logger.info( "self.glconfig.is_double_buffered() =", self.glconfig.is_double_buffered())
+        self.logger.info( "self.glconfig.has_depth_buffer() =",   self.glconfig.has_depth_buffer())
 
         # get_attrib()
-        print "gtk.gdkgl.RGBA = %d"         % self.glconfig.get_attrib(gtk.gdkgl.RGBA)
-        print "gtk.gdkgl.DOUBLEBUFFER = %d" % self.glconfig.get_attrib(gtk.gdkgl.DOUBLEBUFFER)
-        print "gtk.gdkgl.DEPTH_SIZE = %d"   % self.glconfig.get_attrib(gtk.gdkgl.DEPTH_SIZE)
+        self.logger.info( "gtk.gdkgl.RGBA = %d"         % self.glconfig.get_attrib(gtk.gdkgl.RGBA))
+        self.logger.info( "gtk.gdkgl.DOUBLEBUFFER = %d" % self.glconfig.get_attrib(gtk.gdkgl.DOUBLEBUFFER))
+        self.logger.info( "gtk.gdkgl.DEPTH_SIZE = %d"   % self.glconfig.get_attrib(gtk.gdkgl.DEPTH_SIZE))
         gtk.gtkgl.DrawingArea.__init__(self, self.glconfig)
         self.set_size_request(300, 300)
 
@@ -219,7 +219,6 @@ class RvWidget(DisplayServer, gtk.gtkgl.DrawingArea):
         updateView(self.camera)
         for item in self._element_dict.items():
             ele = item[1]
-#            print item[0], item[1]._enabled
             ele.render()
 
         if gldrawable.is_double_buffered():

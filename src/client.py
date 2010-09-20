@@ -11,3 +11,6 @@ import hpp, hpp__POA
 
 client = corba_util.GetObject('hpp','hpp.RobotViewer',\
                                   [('RobotViewer','context'),('RobotViewer','object')])
+
+# leave sys.path as it was
+sys.path = sys.path[2:]
