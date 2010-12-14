@@ -8,7 +8,7 @@ os.system('mkdir -p $HOME/.robotviewer')
 config_dir = home_dir + '/.robotviewer'
 
 setup(name='robot-viewer',
-      version='1.3',
+      version='1.3.1',
       license='L-GPL',
       platforms='Linux/MacOSX',
       description='A viewer tool for robots',
