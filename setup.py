@@ -23,7 +23,7 @@ setup(name='robot-viewer',
                 ],
       package_dir={'robotviewer':'src'},
       requires=['sphinx (>=0.6)','pyopengl'],
-      data_files=[('bin',['examples/robotviewer','examples/rv-centipede-cli','examples/rv-sot-bridge']),
+      data_files=[('bin',['bin/robotviewer','bin/rv-centipede-cli','bin/rv-sot-bridge']),
                   (config_dir,['data/floor.py','data/config'])
                   ]
       )
