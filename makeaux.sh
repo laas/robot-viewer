@@ -9,11 +9,11 @@ mkdir -p $HOME/.robotviewer
 cp data/floor.py $HOME/.robotviewer
 cat > $HOME/.robotviewer/config <<heredoc
 [robots]
-hrp $LOCALBASE/OpenHRP/Controller/IOserver/robot/HRP2JRL/model/HRP2JRLmain.wrl
+hrp=$LOCALBASE/OpenHRP/Controller/IOserver/robot/HRP2JRL/model/HRP2JRLmain.wrl
 
 [joint_rank]
-hrp $LOCALBASE/share/hrp2_14/HRP2LinkJointRank.xml
+hrp=$LOCALBASE/share/hrp2_14/HRP2LinkJointRank.xml
 
 [scripts]
-floor $HOME/.robotviewer/floor.py
+floor=$HOME/.robotviewer/floor.py
 heredoc

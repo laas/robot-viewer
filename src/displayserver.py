@@ -6,7 +6,6 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 import robo,robotLoader
 import pickle
-from configparser import parseConfig
 from openglaux import IsExtensionSupported,ReSizeGLScene, GlWindow
 from dsElement import *
 import re,imp
@@ -15,6 +14,7 @@ import pickle
 config_dir = os.environ['HOME']+'/.robotviewer/'
 config_file = config_dir + 'config'
 import logging
+import ConfigParser
 
 def updateView(camera):
     """
@@ -105,12 +105,13 @@ class DisplayServer(object):
             s = s.replace('$','')
             return s
 
-        configs = dict()
-        configs = parseConfig(config_file)
-        self.logger.info( 'parsed_config %s'%configs)
-        if configs.has_key('robots'):
-            robots = configs['robots']
-            for (robot_name,robot_config) in robots.items():
+        config = ConfigParser.ConfigParser()
+        config.read(config_file)
+        self.logger.info( 'parsed_config %s'%config)
+        if config.has_section('robots'):
+            robot_names = config.options('robots')
+            for robot_name in robot_names:
+                robot_config = config.get('robots',robot_name)
                 robot_config = replace_env_var(robot_config)
                 self.logger.info( 'robot_config=%s'%robot_config)
                 if not os.path.isfile(robot_config):
@@ -124,9 +125,10 @@ class DisplayServer(object):
     You might need to load some robots yourself.
     See documentation""")
 
-        if configs.has_key('joint_ranks'):
-            jranks = configs['joint_ranks']
-            for (robot_name, joint_rank_config) in robots.items():
+        if config.has_section('joint_ranks'):
+            robot_names = config.options('joint_ranks')
+            for robot_name in robot_names:
+                joint_rank_config = config.get('joint_ranks',robot_name)
                 joint_rank_config = replace_env_var(joint_rank_config)
                 if not self._element_dict.has_key(robot_name):
                     continue
@@ -134,16 +136,17 @@ class DisplayServer(object):
                     continue
                 update_hrp_joint_link(robot_name,joint_rank_config)
 
-        if configs.has_key('scripts'):
-            scripts = configs['scripts']
-            for (name, script_file) in scripts.items():
+        if config.has_section('scripts'):
+            script_names = config.options('scripts')
+            for script_name in script_names:
+                script_file = config.get('scripts',script_name)
                 script_file = replace_env_var(script_file)
                 if not os.path.isfile(script_file):
                     warnings.warn('Could not find %s'%script_file)
                     continue
                 description = open(script_file).read()
-                self.createElement('script',name,description)
-                self.enableElement(name)
+                self.createElement('script',script_name,description)
+                self.enableElement(script_name)
         return
 
     def createElement(self,etype,ename,edescription):
