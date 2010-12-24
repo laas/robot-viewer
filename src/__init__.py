@@ -48,5 +48,5 @@ __author__ =  'Duong Dang'
 __email__ = 'nddang@laas.fr'
 __version__=  '0.9.5'
 
-# from client import client
+from client import client
 

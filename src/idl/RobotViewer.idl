@@ -11,12 +11,12 @@ module hpp {
       string reason;
     };
 
-    void createElement(in string type, in string name, in string description);
+    boolean createElement(in string type, in string name, in string description);
 
-    void destroyElement(in string name) raises(InvalidKey);
-    void enableElement(in string name) raises(InvalidKey) ;
-    void disableElement(in string name) raises(InvalidKey) ;
-    void updateElementConfig(in string name, in DoubleSeq config) raises(InvalidKey);
+    boolean destroyElement(in string name) raises(InvalidKey);
+    boolean enableElement(in string name) raises(InvalidKey) ;
+    boolean disableElement(in string name) raises(InvalidKey) ;
+    boolean updateElementConfig(in string name, in DoubleSeq config) raises(InvalidKey);
     void getElementConfig(in string name, out DoubleSeq config) raises(InvalidKey);
 
     void listElement(out ElementList list);

@@ -1,4 +1,31 @@
 #! /usr/bin/env python
-import sys,imp
-from robotviewer.displayserver_corba import *
-main()
+import sys,imp, os
+
+from optparse import OptionParser
+def main():
+    """
+    """
+    global app
+    os.system("source $ROBOTPKG_BASE/OpenHRP/bin/unix/config.sh")
+    parser = OptionParser()
+    parser.add_option("-v", "--verbose",
+                      action="store_true", dest="verbose", default=False,
+                      help="be verbose")
+
+    parser.add_option("-s","--server", dest="server", default = "CORBA",
+                      help="server type to be used (default: CORBA)")
+
+    (options, args) = parser.parse_args()
+
+    if options.server == "CORBA":
+        import robotviewer.displayserver_corba
+        robotviewer.displayserver_corba.main()
+
+    elif options.server == "XML-RPC":
+        import robotviewer.displayserver_xmlrpc
+        robotviewer.displayserver_xmlrpc.main()
+
+
+
+if __name__ == '__main__':
+    main()

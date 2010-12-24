@@ -52,20 +52,20 @@ class RobotViewer :
     _nil = CORBA.Object._nil
 
     
-    # exception KeyError
-    _0_hpp.RobotViewer.KeyError = omniORB.newEmptyClass()
-    class KeyError (CORBA.UserException):
-        _NP_RepositoryId = "IDL:hpp/RobotViewer/KeyError:1.0"
+    # exception InvalidKey
+    _0_hpp.RobotViewer.InvalidKey = omniORB.newEmptyClass()
+    class InvalidKey (CORBA.UserException):
+        _NP_RepositoryId = "IDL:hpp/RobotViewer/InvalidKey:1.0"
 
-        _NP_ClassName = "hpp.RobotViewer.KeyError"
+        _NP_ClassName = "hpp.RobotViewer.InvalidKey"
 
         def __init__(self, reason):
             CORBA.UserException.__init__(self, reason)
             self.reason = reason
     
-    _d_KeyError  = (omniORB.tcInternal.tv_except, KeyError, KeyError._NP_RepositoryId, "KeyError", "reason", (omniORB.tcInternal.tv_string,0))
-    _tc_KeyError = omniORB.tcInternal.createTypeCode(_d_KeyError)
-    omniORB.registerType(KeyError._NP_RepositoryId, _d_KeyError, _tc_KeyError)
+    _d_InvalidKey  = (omniORB.tcInternal.tv_except, InvalidKey, InvalidKey._NP_RepositoryId, "InvalidKey", "reason", (omniORB.tcInternal.tv_string,0))
+    _tc_InvalidKey = omniORB.tcInternal.createTypeCode(_d_InvalidKey)
+    omniORB.registerType(InvalidKey._NP_RepositoryId, _d_InvalidKey, _tc_InvalidKey)
 
 
 _0_hpp.RobotViewer = RobotViewer
@@ -73,12 +73,12 @@ _0_hpp._tc_RobotViewer = omniORB.tcInternal.createTypeCode(_0_hpp._d_RobotViewer
 omniORB.registerType(RobotViewer._NP_RepositoryId, _0_hpp._d_RobotViewer, _0_hpp._tc_RobotViewer)
 
 # RobotViewer operations and attributes
-RobotViewer._d_createElement = (((omniORB.tcInternal.tv_string,0), (omniORB.tcInternal.tv_string,0), (omniORB.tcInternal.tv_string,0)), (), None)
-RobotViewer._d_destroyElement = (((omniORB.tcInternal.tv_string,0), ), (), {_0_hpp.RobotViewer.KeyError._NP_RepositoryId: _0_hpp.RobotViewer._d_KeyError})
-RobotViewer._d_enableElement = (((omniORB.tcInternal.tv_string,0), ), (), {_0_hpp.RobotViewer.KeyError._NP_RepositoryId: _0_hpp.RobotViewer._d_KeyError})
-RobotViewer._d_disableElement = (((omniORB.tcInternal.tv_string,0), ), (), {_0_hpp.RobotViewer.KeyError._NP_RepositoryId: _0_hpp.RobotViewer._d_KeyError})
-RobotViewer._d_updateElementConfig = (((omniORB.tcInternal.tv_string,0), omniORB.typeMapping["IDL:hpp/DoubleSeq:1.0"]), (), {_0_hpp.RobotViewer.KeyError._NP_RepositoryId: _0_hpp.RobotViewer._d_KeyError})
-RobotViewer._d_getElementConfig = (((omniORB.tcInternal.tv_string,0), ), (omniORB.typeMapping["IDL:hpp/DoubleSeq:1.0"], ), {_0_hpp.RobotViewer.KeyError._NP_RepositoryId: _0_hpp.RobotViewer._d_KeyError})
+RobotViewer._d_createElement = (((omniORB.tcInternal.tv_string,0), (omniORB.tcInternal.tv_string,0), (omniORB.tcInternal.tv_string,0)), (omniORB.tcInternal.tv_boolean, ), None)
+RobotViewer._d_destroyElement = (((omniORB.tcInternal.tv_string,0), ), (omniORB.tcInternal.tv_boolean, ), {_0_hpp.RobotViewer.InvalidKey._NP_RepositoryId: _0_hpp.RobotViewer._d_InvalidKey})
+RobotViewer._d_enableElement = (((omniORB.tcInternal.tv_string,0), ), (omniORB.tcInternal.tv_boolean, ), {_0_hpp.RobotViewer.InvalidKey._NP_RepositoryId: _0_hpp.RobotViewer._d_InvalidKey})
+RobotViewer._d_disableElement = (((omniORB.tcInternal.tv_string,0), ), (omniORB.tcInternal.tv_boolean, ), {_0_hpp.RobotViewer.InvalidKey._NP_RepositoryId: _0_hpp.RobotViewer._d_InvalidKey})
+RobotViewer._d_updateElementConfig = (((omniORB.tcInternal.tv_string,0), omniORB.typeMapping["IDL:hpp/DoubleSeq:1.0"]), (omniORB.tcInternal.tv_boolean, ), {_0_hpp.RobotViewer.InvalidKey._NP_RepositoryId: _0_hpp.RobotViewer._d_InvalidKey})
+RobotViewer._d_getElementConfig = (((omniORB.tcInternal.tv_string,0), ), (omniORB.typeMapping["IDL:hpp/DoubleSeq:1.0"], ), {_0_hpp.RobotViewer.InvalidKey._NP_RepositoryId: _0_hpp.RobotViewer._d_InvalidKey})
 RobotViewer._d_listElement = ((), (omniORB.typeMapping["IDL:hpp/ElementList:1.0"], ), None)
 RobotViewer._d_Ping = ((), ((omniORB.tcInternal.tv_string,0), ), None)
 

@@ -180,6 +180,7 @@ class DisplayServer(object):
             self._element_dict[ename] = new_element
         else:
             raise TypeError,"Unknown element type"
+        return True
 
     def destroyElement(self,name):
         """
@@ -191,6 +192,7 @@ class DisplayServer(object):
             raise KeyError,"Element with that name does not exist"
 
         del self._element_dict[name]
+        return True
 
     def enableElement(self,name):
         """
@@ -203,6 +205,7 @@ class DisplayServer(object):
             raise KeyError,"Element with that name does not exist"
 
         self._element_dict[name].enable()
+        return True
 
     def disableElement(self,name):
         """
@@ -214,6 +217,7 @@ class DisplayServer(object):
             raise KeyError,"Element with that name does not exist"
 
         self._element_dict[name].disable()
+        return True
 
     def updateElementConfig(self,name,config):
         """
@@ -225,6 +229,7 @@ class DisplayServer(object):
             raise KeyError,"Element with that name does not exist"
 
         self._element_dict[name].updateConfig(config)
+        return True
 
     def getElementConfig(self,name):
         """
@@ -234,14 +239,15 @@ class DisplayServer(object):
         """
         if not self._element_dict.has_key(name):
             raise KeyError,"Element with that name does not exist"
-
         return self._element_dict[name].getConfig()
+
 
     def listElement(self):
         return [name for name in self._element_dict.keys() ]
 
     def run(self):
         glutMainLoop()
+
 
     def Ping(self):
         return "pong"
