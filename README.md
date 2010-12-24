@@ -30,10 +30,10 @@ Usage
         import robotviewer
         clt = robotviewer.client(server=SERVER_TYPE)
 
-   where SERVER_TYPE correspond to the kind of server you started in
+   where SERVER_TYPE corresponds to the kind of server you started in
    previous step. (i.e. "CORBA" or "XML-RPC")
 
-  The following functions are available for the cl ient:
+  The following functions are available for the client:
      * createElement(type, name, description)
      * destroyElement(element_name)
      * enableElement(element_name)
