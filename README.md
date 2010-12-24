@@ -21,13 +21,14 @@ Usage
 
  * Edit $HOME/.robotviewer/config to add your robot.
  * Start the server:
-    robotviewer -s SERVER_TYPE
+        robotviewer -s SERVER_TYPE
+
  where SERVER_TYPE is either "CORBA" or "XML-RPC". If no option is
  given, CORBA will be used.
 
  * In a python prompt, start the client:
-    import robotviewer
-    clt = robotviewer.client(server=SERVER_TYPE)
+        import robotviewer
+        clt = robotviewer.client(server=SERVER_TYPE)
 
    where SERVER_TYPE correspond to the kind of server you started in
    previous step. (i.e. "CORBA" or "XML-RPC")
