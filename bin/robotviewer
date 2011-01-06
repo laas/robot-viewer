@@ -6,7 +6,7 @@ def main():
     """
     """
     global app
-    os.system("source $ROBOTPKG_BASE/OpenHRP/bin/unix/config.sh")
+    # os.system("source $ROBOTPKG_BASE/OpenHRP/bin/unix/config.sh")
     parser = OptionParser()
     parser.add_option("-v", "--verbose",
                       action="store_true", dest="verbose", default=False,
