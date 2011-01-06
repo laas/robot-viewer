@@ -8,6 +8,7 @@ from math import sin,cos
 from mathaux import *
 from collections import deque
 
+BASE_NODE_ID = -1
 class GenericObject(object):
     '''
     Base element in the kinematic tree
@@ -210,27 +211,27 @@ class BaseNode(Joint):
     '''
     def __init__(self):
         Joint.__init__(self)
+        self.ndof = 0
         self.type= "BaseNode"
-        self.id=-999
-        self.joint_list=list()
-        self.joint_dict=dict()
+        self.id= BASE_NODE_ID
+        self.joint_list= []
+        self.joint_dict= {}
         self.waist=None
         self.mesh_list=[]
+        self.moving_joint_list = []
 
-
-    def jointAngles(self,angles):
+    def setAngles(self,angles):
         '''
         Set joint angles
 
         :param angles: input joint angles
         :type angles: list of double
         '''
-        if len(angles) != 40:
-            raise Exception("wrong angles size need 40 but have %d"%len(angles))
-        for i in range(len(angles)):
-            angle=angles[i]
-            (self.joint_dict[i]).angle=angle
-#            print "update joint id =%d, angle=%f"%(i,angle)
+        if len(angles) != self.ndof:
+            raise Exception("Wrong dimension. Expected %d dof but got %d dof"%(self.ndof,
+                                                                                  len(angles)) )
+        for i,angle in enumerate(angles):
+            self.moving_joint_list[i].angle = angle
 
     def printJoints(self):
         '''
@@ -271,6 +272,12 @@ class BaseNode(Joint):
         for joint in self.joint_list:
             self.joint_dict[joint.id] = joint
 
+    def update_moving_joint_list(self):
+        self.moving_joint_list = [ j for j in self.joint_list if isinstance(j.id,int)
+                                   and j.id != BASE_NODE_ID ]
+        self.moving_joint_list.sort(key = lambda x: x.id)
+        self.ndof = len(self.moving_joint_list)
+
     def init(self):
         ''' Do the following initializations in order:
 
@@ -307,3 +314,5 @@ class BaseNode(Joint):
                 child.init()
             except Exception, error:
                 print error, "on object %s"%child.name
+
+        self.update_moving_joint_list()

@@ -5,10 +5,17 @@
 import re
 import vrml_loader,xml_loader
 
-def robotLoader(filename,MeshBool):
-    if re.search(r"\.wrl$",filename):
-        return vrml_loader.VRMLloader(filename,MeshBool)
+def robotLoader(filename, load_mesh_bool):
+    re_ext = re.compile(r"\.(?P<EXT>[A-Za-z]+)$")
+    m = re_ext.search(filename)
+    if not m:
+        raise Exception("Couldn't find file extension of %s"%filename)
+    ext = m.group('EXT')
+    if ext in  ["vrml","wrl"]:
+        return vrml_loader.load(filename,load_mesh_bool)
 
-    elif re.search(r"\.xml$",filename):
-        return xml_loader.XMLloader(filename)
-    return None
+    elif ext == "xml":
+        return xml_loader.load(filename)
+
+    else:
+        raise Exception("Unknown extension %s"%ext)

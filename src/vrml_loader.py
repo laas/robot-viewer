@@ -34,10 +34,10 @@ class Leaf():
         for child in self.children:
             s+=child.__str__()
         return s
-    
+
     def addChild(self,a_child):
         self.children.append(a_child)
-        
+
     def setParent(self,a_parent):
         self.parent=a_parent
 
@@ -52,7 +52,7 @@ class Leaf():
         return data_string[self.begin_idx:self.end_idx]
     def updateValue(self):
         data_string=self.getData()
-        if self.distro in ["Node","rootItem","Field","Attr"]: 
+        if self.distro in ["Node","rootItem","Field","Attr"]:
             self.value=list([self.begin_idx,self.end_idx])
         elif self.distro in ["name","def","nodegi","SFString","CHARNODBLQUOTE"]:
             self.value=data_string[self.begin_idx:self.end_idx]
@@ -60,7 +60,7 @@ class Leaf():
             self.value=float(data_string[self.begin_idx:self.end_idx])
         else:
             self.value="Nothing"
-        
+
         for child in self.children:
             child.updateValue()
 
@@ -79,7 +79,7 @@ class Leaf():
                 child_leaf.parse(substruct)
                 child_leaf.setParent(self)
                 self.addChild(child_leaf)
-    
+
     def nextSibling(self):
         found=False
         if self.parent:
@@ -100,50 +100,50 @@ class Leaf():
 
     def getBfList(self):
         """Get breath first list of all decendants
-        
+
         Arguments:
         - `self`:
         """
         alist=[]
         pile = deque()
-        pile.append(self)            
+        pile.append(self)
         while not len(pile) == 0:
             an_element = pile.popleft()
             alist.append(an_element)
             for child in reversed(an_element.children):
-                pile.append(child)                     
+                pile.append(child)
         return alist
 
     def getDfList(self):
         """Get depth first list of all decendants
-        
+
         Arguments:
         - `self`:
         """
         alist=[]
         pile = deque()
-        pile.append(self)            
+        pile.append(self)
         while not len(pile) == 0:
             an_element = pile.pop()
             alist.append(an_element)
             for child in reversed(an_element.children):
-                pile.append(child)                                
+                pile.append(child)
         return alist
-        
 
-    
+
+
     def getLeavesWithDistro(self,a_distro):
         """
         get in a (sub)tree all leaves with given distro
         Arguments:
-        - `a_distro`: 
+        - `a_distro`:
         """
         a_list=[]
         for a_leaf in self.getBfList():
             if a_leaf.distro==a_distro:
                 a_list.append(a_leaf)
         return a_list
-            
+
 
 def parseVRML(struct,data):
     ''' Parse the resulting structure from simpleparse (using grammar in
@@ -153,7 +153,7 @@ def parseVRML(struct,data):
     :param data: full structure
     :type data: string
     :returns: resulting VRML tree
-    :rtype: :class:`VRMLloader.Leaf`
+    :rtype: :class:`load.Leaf`
     '''
     l=Leaf()
     l.parse(struct,data)
@@ -175,7 +175,7 @@ def parseVRML(struct,data):
           children:
              for childNode in childNodes:
                  child_object=nodeparse(childNode)
-                 object.add_child(child_object)                 
+                 object.add_child(child_object)
 
   return object
 '''
@@ -186,23 +186,23 @@ def getObjectList(rootItemNode):
     Parse a VRML tree to a list of object
 
     :param rootItemNode: root item of a VRMLtree
-    :type rootItemNode: :class:`VRMLloader.Leaf`
+    :type rootItemNode: :class:`load.Leaf`
     :rtype: list
     :returns: list of :class:`robo.GenericObject`  objects
     '''
     objectList=list()
     object=None
     if rootItemNode.distro=="rootItem":
-        for leaf in rootItemNode.children:            
+        for leaf in rootItemNode.children:
             if leaf.distro != "Node":
 #                print "getObjectList() not a Node, skipping,"+\
 #                       "distro=%s"%leaf.distro
                 continue
-            
-            childLeaves=leaf.children[:] 
+
+            childLeaves=leaf.children[:]
             # create a copy, donot use list2=list1 as they will point to the
             # same data
-            
+
             if childLeaves[0].distro=="def":
                 nameleaf=childLeaves.pop(0)
             if not childLeaves[0].distro=="nodegi":
@@ -224,14 +224,14 @@ def getObjectList(rootItemNode):
     else:
         raise Exception("expecting a rootNode")
     return objectList
-    
+
 
 def getObject(nodeLeaf,isRoot=True):
     '''
     Return an object from a leaf of distro 'Node'
 
     :param nodeLeaf: a leaf of distro 'Node'
-    :type nodeLeaf: :class:`VRMLloader.Leaf`
+    :type nodeLeaf: :class:`load.Leaf`
     :rtype: :class:`robo.GenericObject`
     :returns: resulting object or None if nodeLeaf is not a Node
     '''
@@ -239,15 +239,15 @@ def getObject(nodeLeaf,isRoot=True):
     childLeaves=leaf.children[:]
 
     if leaf.distro != "Node":
-        raise Exception("Expecting a node")    
+        raise Exception("Expecting a node")
 #           A note must start with either
 #              DEF something something {..
 #     or       something {
- 
+
     objectName=None
     if childLeaves[0].distro=="def":
         nameleaf=childLeaves.pop(0)
-        objectName=nameleaf.children[0].value        
+        objectName=nameleaf.children[0].value
 
     if not childLeaves[0].distro=="nodegi":
         raise Exception("Expecting a nodegi but distro=%s Parsing:\n %s"\
@@ -265,7 +265,7 @@ def getObject(nodeLeaf,isRoot=True):
         object=robo.Joint()
     elif objectType=="Humanoid":
         object=robo.BaseNode()
-    
+
     elif objectType in ["Shape"]:
         object=Mesh()
         shape=Shape()
@@ -284,7 +284,7 @@ def getObject(nodeLeaf,isRoot=True):
 
         fieldName=a_leaf.children[0].value
         fieldLeaf=a_leaf.children[1]
-        
+
         if fieldName in ["children","humanoidBody"]:
             for childNode in fieldLeaf.children:
                 childObject=getObject(childNode,False)
@@ -330,8 +330,8 @@ def getObject(nodeLeaf,isRoot=True):
             object.jointType=fieldLeaf.children[0].children[0].value
 
 
-    object.name= objectName   
-    
+    object.name= objectName
+
     object.init()
     if object.id==-666:
         print object.children[0]
@@ -346,7 +346,7 @@ def VRML_read_string(filename,loadMesh,verbose,defSupport):
     # replace in place Inline { url "" } directives
     if loadMesh:
         matches = re.finditer(r'Inline\s+\{\s+url\s+\"([^\"]+)\"\s+\}'\
-                                  ,data)        
+                                  ,data)
         for match in matches:
             directive = match.group(0)
             url = match.group(1)
@@ -363,7 +363,7 @@ def VRML_read_string(filename,loadMesh,verbose,defSupport):
         replace_list=[]
 
         for tag in tags:
-            VRMLtree=parseVRML(tag,data)        
+            VRMLtree=parseVRML(tag,data)
             defLeaves=VRMLtree.getLeavesWithDistro("def")
             for a_leaf in defLeaves:
                 def_name=a_leaf.children[0].value
@@ -371,7 +371,7 @@ def VRML_read_string(filename,loadMesh,verbose,defSupport):
                 parent_node=a_leaf.parent
                 def_part=re.compile(r"\s*DEF\s+%s\s*"%def_name)
                 # strip this part from parent_string
-                body_string=def_part.sub("",parent_node.fullString())            
+                body_string=def_part.sub("",parent_node.fullString())
                 replace_list.append((def_name,body_string))
 
         for a_pair in replace_list:
@@ -388,7 +388,7 @@ def VRML_read_string(filename,loadMesh,verbose,defSupport):
     return data
 
 
-def VRMLloader(filename,loadMesh=True,verbose=False):
+def load(filename,loadMesh=True,verbose=False):
     '''
     Get the robot from a VRML file
 
@@ -410,9 +410,9 @@ def VRMLloader(filename,loadMesh=True,verbose=False):
     robots=[]
 
     for tag in tags:
-        VRMLtree=parseVRML(tag,data)        
+        VRMLtree=parseVRML(tag,data)
         robots+=getObjectList(VRMLtree)
-    
+
     if len(robots)!=1:
         errorMsg="Only one robot allowed in the scene."+\
             " Your scene has %d robot(s)" %len(robots)
@@ -423,10 +423,11 @@ def VRMLloader(filename,loadMesh=True,verbose=False):
 
 
 def main():
-    robot=VRMLloader(sys.argv[1],True,False)
+    robot=load(sys.argv[1],True,False)
 
     print robot
     print "it has %d meshes"%len(robot.mesh_list)
     for mesh in robot.mesh_list:
         print mesh
+
 if __name__=="__main__":main()

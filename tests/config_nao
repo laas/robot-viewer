@@ -1,0 +1,8 @@
+[robots]
+nao=/home/nddang/licenses/nao/nao-hpp.kxml
+
+[joint_rank]
+
+
+[scripts]
+floor=$HOME/.robotviewer/floor.py

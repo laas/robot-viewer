@@ -128,7 +128,7 @@ class DsRobot(DsElement):
             self._kinematics_update_t = time.time()
             self._robot.waistPos(self._xyz)
             self._robot.waistRpy(self._rpy)
-            self._robot.jointAngles(self._q)
+            self._robot.setAngles(self._q)
             self._robot.update()
             # print "Waist: \n", self._robot.waist.globalTransformation, "\n\n"
             # for i in range(6):
