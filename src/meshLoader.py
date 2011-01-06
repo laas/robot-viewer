@@ -1,13 +1,13 @@
 #! /usr/bin/env python
 
-from VRMLloader import *
+from vrml_loader import *
 from robo import GenericObject
 import numpy as np
 import re,warnings
 from collections import deque
 '''
 Asumption:
-The mesh is of the form 
+The mesh is of the form
 Transform {
 translation
 rotation
@@ -22,20 +22,11 @@ Geometry
 
 class Mesh(GenericObject):
     def __init__(self):
+        GenericObject.__init__(self)
         self.type="mesh"
         self.name=None
-        self.translation=[0,0,0]
-        self.center=[0,0,0]
-        self.rotation=[1,0,0,0]
-        self.parent=None
-        self.children=[]
-        self.rpy=[0,0,0]
-        self.localTransformation=np.zeros([4,4])
-        self.globalTransformation=np.zeros([4,4])
-        self.localR=np.eye(3)   # local rotation
         self.localR1=np.eye(3)  # due to offset of coordonee
         self.shapes=[]
-        self.id=None
 
     def __str__(self):
         s=""
@@ -55,7 +46,7 @@ class Appearance():
         self.emissiveColor  =None
         self.shininess      =None
         self.transparency   =None
-        self.ambientIntensity=0.0 
+        self.ambientIntensity=0.0
     def __str__(self):
         s=""
         s+="\ndiffuseColor="+str(self.diffuseColor)
@@ -75,30 +66,30 @@ class Geometry():
         s="Geometry:"
         s+="%d points and %d faces"%(len(self.coord)/3,len(self.idx)/4)
         return s
-                                     
+
 
 
 # helper function
 def getLeavesNextTo(tree,leafValue):
     pile = deque()
-    pile.append(tree)            
+    pile.append(tree)
     while not len(pile) == 0:
         an_element = pile.pop()
         if an_element.value == leafValue :
             return an_element.nextSiblings()
         for child in reversed(an_element.children):
-            pile.append(child)                                
+            pile.append(child)
     return []
 
 def getLeafNextTo(tree,leafValue):
     pile = deque()
-    pile.append(tree)            
+    pile.append(tree)
     while not len(pile) == 0:
         an_element = pile.pop()
         if an_element.value == leafValue :
             return an_element.nextSibling()
         for child in reversed(an_element.children):
-            pile.append(child)                                
+            pile.append(child)
     return None
 
 
@@ -112,12 +103,12 @@ class Shape():
         s+="\n"
         s+=self.geo.__str__()
         return s
-    
+
 
     ## this function needs a throughout cleanup !!!!
     def loadVRMLleaf(self,aleaf):
         if aleaf.distro != "Node":
-            raise Exception("Expecting a node")    
+            raise Exception("Expecting a node")
         childLeaves=aleaf.children[:]
 
         if not childLeaves[0].distro=="nodegi":
@@ -145,7 +136,7 @@ class Shape():
                 # search the tree for Material leaf
                 matLeaves = getLeavesNextTo(fieldLeaf,"Material")
 
-                for matLeaf in matLeaves:                    
+                for matLeaf in matLeaves:
                     matfieldName=matLeaf.children[0].value
                     matfieldLeaf=matLeaf.children[1]
 
@@ -153,7 +144,7 @@ class Shape():
                         self.app.diffuseColor=[matfieldLeaf.children[0].value,\
                                                    matfieldLeaf.children[1].value, \
                                                    matfieldLeaf.children[2].value]
-                                                
+
                     elif matfieldName=="specularColor":
                         self.app.specularColor=\
                             [matfieldLeaf.children[0].value,\
@@ -179,7 +170,7 @@ class Shape():
                         self.app.ambientIntensity=\
                             matfieldLeaf.children[0].value
 
-            elif fieldName=="geometry":                
+            elif fieldName=="geometry":
                 pointLeaves = getLeafNextTo(fieldLeaf,"point").children
                 for pointLeaf in pointLeaves:
                     self.geo.coord.append(pointLeaf.value)
@@ -187,17 +178,17 @@ class Shape():
                 idxLeaves = getLeafNextTo(fieldLeaf,"coordIndex").children
                 for idxLeaf in idxLeaves:
                     self.geo.idx.append(int(idxLeaf.value))
-                                                                  
+
         if self.app.specularColor==None and self.app.diffuseColor!=None:
             self.app.specularColor==self.app.diffuseColor
 
         if self.app.emissiveColor==None and self.app.diffuseColor!=None:
             self.app.emissiveColor==self.app.diffuseColor
 
- 
+
 def OBJmeshLoader(filename):
     amesh=Mesh()
-    ## doesn't support color, normals ... yet    
+    ## doesn't support color, normals ... yet
     # no group so just one shape
     ashape=Shape()
     ashape.app.diffuseColor=[1,1,1]
@@ -229,16 +220,16 @@ def OBJmeshLoader(filename):
                     if m:
                         idx=int(m.group(1))-1
                         ashape.geo.idx.append(idx)
-                ashape.geo.idx.append(-1)        
+                ashape.geo.idx.append(-1)
 
     amesh.shapes.append(ashape)
     if amesh.shapes!=[]:
         return amesh
     else:
         raise Exception("Invalid mesh")
-    
 
-def meshLoader(filename):    
+
+def meshLoader(filename):
     if re.search(r"\.wrl$",filename):
         return VRMLmeshLoader(filename)
 

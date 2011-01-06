@@ -3,12 +3,12 @@
 # Copyright LAAS/CNRS 2009-2012
 # Authors Duong Dang
 import re
-import VRMLloader,XMLloader
+import vrml_loader,xml_loader
 
 def robotLoader(filename,MeshBool):
     if re.search(r"\.wrl$",filename):
-        return VRMLloader.VRMLloader(filename,MeshBool)
+        return vrml_loader.VRMLloader(filename,MeshBool)
 
     elif re.search(r"\.xml$",filename):
-        return XMLloader.XMLloader(filename)
+        return xml_loader.XMLloader(filename)
     return None

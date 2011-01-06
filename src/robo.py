@@ -8,7 +8,7 @@ from math import sin,cos
 from mathaux import *
 from collections import deque
 
-class GenericObject():
+class GenericObject(object):
     '''
     Base element in the kinematic tree
     '''
@@ -26,12 +26,12 @@ class GenericObject():
         self.localR=np.eye(3)
         self.id=None
 
-    def __str__(self): 
+    def __str__(self):
         s= "%s \t= %s\n"%(self.type,self.name)
         s+="jointType\t= %s\n"%self.jointType
         s+= "id\t\t= "+str(self.id)
         s+= "\ntranslation\t= "+str(self.translation)
-        s+= "\nrotation\t= "+str(self.rotation)        
+        s+= "\nrotation\t= "+str(self.rotation)
         s+= "\nrpy\t\t= "+str(self.rpy)
         if self.type== "joint":
             s+= "\naxis\t\t= "+str(self.axis)
@@ -47,19 +47,19 @@ class GenericObject():
             s+= "%s "%(child.type) + str(child.name) +" id="+str(child.id)+";  "
 
         s+= "\nT=\n"+str(self.globalTransformation)
-        s+= "\nlocalT=\n"+str(self.localTransformation)        
-        s+= "\nlocalR1=\n"+str(self.localR1)        
-        s+= "\nlocalR2=\n"+str(self.localR2)        
+        s+= "\nlocalT=\n"+str(self.localTransformation)
+        s+= "\nlocalR1=\n"+str(self.localR1)
+        s+= "\nlocalR2=\n"+str(self.localR2)
 
         # count the size of the tree
         count = 0
         pile = deque()
-        pile.append(self)            
+        pile.append(self)
         while not len(pile) == 0:
             an_element = pile.pop()
             count +=  1
             for child in reversed(an_element.children):
-                pile.append(child)                                
+                pile.append(child)
         s += "\nThe hierarchy tree has %d elements"%count
         return s
 
@@ -69,20 +69,20 @@ class GenericObject():
         Add a :class:`robo.GenericObject` object to element's children list
         '''
         (self.children).append(a_child)
-    
+
     def setParent(self,parent):
         '''
         Set a :class:`robo.GenericObject` object as element's parent
         '''
         self.parent=parent
 
- 
+
     def updateLocalTransformation(self):
         ''' update local transformation w.r.t element's parent. Nothing to do,
         since nothing varies for a GenericObject
-        
+
         .. seealso:: VRML transform calculation http://www.web3d.org/x3d/specifications/vrml/ISO-IEC-14772-VRML97/part1/nodesRef.html#Transform
-        
+
         '''
         pass
 
@@ -102,11 +102,11 @@ class GenericObject():
         self.localTransformation[3,0:4]=[0,0,0,1]
 
 
-    def updateGlobalTransformation(self):        
+    def updateGlobalTransformation(self):
         ''' update position and orientation in the world coordinates based on
         local transformation and parent's global transformation
         '''
-        if self.parent==None:           
+        if self.parent==None:
             self.globalTransformation=self.localTransformation
         else:
             self.globalTransformation=np.dot\
@@ -119,7 +119,7 @@ class GenericObject():
          * call init() on all children
         '''
         self.initLocalTransformation()
-        self.updateGlobalTransformation()    
+        self.updateGlobalTransformation()
         for child in self.children:
             try:
                 child.init()
@@ -132,9 +132,9 @@ class GenericObject():
          * call :func:`robo.GenericObject.updateLocalTransformation` on itself
          * call :func:`robo.GenericObject.updateGlobalTransformation` on itself
          * call update() on all children
-        '''        
+        '''
         self.updateLocalTransformation()
-        self.updateGlobalTransformation()    
+        self.updateGlobalTransformation()
         for child in self.children:
             child.update()
     def getBaseNode(self):
@@ -161,45 +161,36 @@ class Joint(GenericObject):
     .. todo:: merge this with generic object or offload stuff from generic object to this
     '''
     def __init__(self):
+        GenericObject.__init__(self)
         self.type= "joint"
         self.jointType="rotate"
-        self.name=None
-        self.id=None
         self.isBaseNode=False
-        self.translation=[0,0,0]
-        self.center=[0,0,0]
-        self.rotation=[1,0,0,0]
         self.rpy=[0,0,0]
-        self.parent=None
-        self.children=[]
         self.angle=0
         self.axis=""
-        self.localTransformation=np.zeros([4,4])
-        self.globalTransformation=np.zeros([4,4])
-        self.localR=np.eye(3)   # local rotation
         self.localR1=np.eye(3)  # due to cordinate offset
         self.localR2=np.eye(3)  # due to self rotation (revolute joint)
 
     def updateLocalTransformation(self):
         '''
         update local transformation w.r.t element's parent
-        
+
         .. seealso:: VRML transform calculation http://www.web3d.org/x3d/specifications/vrml/ISO-IEC-14772-VRML97/part1/nodesRef.html#Transform
         '''
-        if self.jointType=="free":                
-            self.localR=euleur2rotation(self.rpy)        
-            self.localTransformation[0:3,0:3]=self.localR    
+        if self.jointType=="free":
+            self.localR=euleur2rotation(self.rpy)
+            self.localTransformation[0:3,0:3]=self.localR
             self.localTransformation[0:3,3]=np.array(self.translation)+\
                 np.dot(np.eye(3)-self.localR,np.array(self.center))
         elif self.type=="joint" and self.jointType=="rotate" and self.id >= 0:
-            self.localR2=rot2(self.axis,self.angle)        
+            self.localR2=rot2(self.axis,self.angle)
             self.localR=np.dot(self.localR1, self.localR2)
             self.localTransformation[0:3,0:3]=self.localR
 
     def initLocalTransformation(self):
         '''
         compute local transformation w.r.t for the first time (compute everything)
-        '''  
+        '''
         self.localR1=rot1(self.rotation)
         self.localR = self.localR1
         self.localTransformation[0:3,0:3]=self.localR
@@ -212,26 +203,17 @@ class Joint(GenericObject):
 #         BASE NODE           #
 #*****************************#
 
-            
+
 class BaseNode(Joint):
     '''
     Typically represent a robot/model. First element in the kinematic chain
     '''
     def __init__(self):
+        Joint.__init__(self)
         self.type= "BaseNode"
-        self.jointType=""
-        self.name=None
         self.id=-999
-        self.translation=[0,0,0]
-        self.center=[0,0,0]
-        self.rotation=[1,0,0,0]
-        self.children=[]
-        self.parent=None
-        self.localTransformation=np.zeros([4,4])
-        self.globalTransformation=np.zeros([4,4])
         self.joint_list=list()
         self.joint_dict=dict()
-        self.rpy=[0,0,0]
         self.waist=None
         self.mesh_list=[]
 
@@ -288,7 +270,7 @@ class BaseNode(Joint):
         self.joint_dict = dict()
         for joint in self.joint_list:
             self.joint_dict[joint.id] = joint
-    
+
     def init(self):
         ''' Do the following initializations in order:
 
@@ -302,7 +284,7 @@ class BaseNode(Joint):
         pile=deque()
         pile.append(self)
 
-        ## loop through the tree to create a list of joints 
+        ## loop through the tree to create a list of joints
         while not len(pile)==0:
             an_element=pile.pop()
             if an_element.type=="joint":
@@ -311,7 +293,7 @@ class BaseNode(Joint):
                 self.mesh_list.append(an_element)
             for child in reversed(an_element.children):
                 pile.append(child)
-                
+
         for joint in self.joint_list:
             if joint.jointType=="free":
                 joint.getBaseNode().waist=joint
@@ -319,7 +301,7 @@ class BaseNode(Joint):
         self.update_joint_dict()
 
         self.initLocalTransformation()
-        self.updateGlobalTransformation()    
+        self.updateGlobalTransformation()
         for child in self.children:
             try:
                 child.init()
