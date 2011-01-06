@@ -69,6 +69,8 @@ class DisplayServer(object):
         self.camera = Camera()
         self._mouseButton = None
         self._oldMousePos = [ 0, 0 ]
+        self.render_mesh_flag = True
+        self.render_skeleton_flag = False
 
     def initGL(self):
         glutInit(sys.argv)
@@ -286,7 +288,10 @@ class DisplayServer(object):
         for item in self._element_dict.items():
             ele = item[1]
 #            self.logger.info( item[0], item[1]._enabled)
-            ele.render()
+            if isinstance(ele, DsRobot):
+                ele.render(self.render_mesh_flag, self.render_skeleton_flag)
+            else:
+                ele.render()
 
         glutSwapBuffers()
 
@@ -298,6 +303,13 @@ class DisplayServer(object):
             # If escape is pressed, kill everything.
             if args[0] == ESCAPE : # exit when ESCAPE is pressed
                 sys.exit ()
+
+            elif args[0] == 'm':
+                self.render_mesh_flag = not self.render_mesh_flag
+
+            elif args[0] == 's':
+                self.render_skeleton_flag = not self.render_skeleton_flag
+
             return
 
         def mouseButtonFunc( button, mode, x, y ):

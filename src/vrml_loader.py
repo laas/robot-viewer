@@ -311,7 +311,7 @@ def getObject(nodeLeaf,isRoot=True):
                              fieldLeaf.children[1].value,\
                              fieldLeaf.children[2].value]
 
-        elif fieldName=="rotation":
+        elif fieldName=="rotate":
             if len(fieldLeaf.children)!=4:
                 raise Exception("Invalid rotation")
             object.rotation=[fieldLeaf.children[0].value,\

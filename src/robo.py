@@ -164,7 +164,7 @@ class Joint(GenericObject):
     def __init__(self):
         GenericObject.__init__(self)
         self.type= "joint"
-        self.jointType="rotate"
+        self.jointType=None
         self.isBaseNode=False
         self.rpy=[0,0,0]
         self.angle=0
@@ -183,7 +183,8 @@ class Joint(GenericObject):
             self.localTransformation[0:3,0:3]=self.localR
             self.localTransformation[0:3,3]=np.array(self.translation)+\
                 np.dot(np.eye(3)-self.localR,np.array(self.center))
-        elif self.type=="joint" and self.jointType=="rotate" and self.id >= 0:
+        elif ( self.type=="joint" and self.jointType in [ "rotate", "rotation", "revolute"]
+               and self.id >= 0):
             self.localR2=rot2(self.axis,self.angle)
             self.localR=np.dot(self.localR1, self.localR2)
             self.localTransformation[0:3,0:3]=self.localR
@@ -302,7 +303,7 @@ class BaseNode(Joint):
                 pile.append(child)
 
         for joint in self.joint_list:
-            if joint.jointType=="free":
+            if joint.jointType in ["free","freeflyer"]:
                 joint.getBaseNode().waist=joint
 
         self.update_joint_dict()

@@ -115,7 +115,16 @@ class DsRobot(DsElement):
     def getConfig(self):
         return self._xyz + self._rpy + self._q
 
-    def render(self):
+    def updateKinematics(self):
+        if self._kinematics_update_t < self._config_update_t:
+            self._kinematics_update_t = time.time()
+            self._robot.waistPos(self._xyz)
+            self._robot.waistRpy(self._rpy)
+            self._robot.setAngles(self._q)
+            self._robot.update()
+
+
+    def render(self, render_mesh_flag = True, render_skeleton_flag = False):
         """
 
         Arguments:
@@ -124,19 +133,40 @@ class DsRobot(DsElement):
         if not self._enabled:
             return
 
-        if self._kinematics_update_t < self._config_update_t:
-            self._kinematics_update_t = time.time()
-            self._robot.waistPos(self._xyz)
-            self._robot.waistRpy(self._rpy)
-            self._robot.setAngles(self._q)
-            self._robot.update()
-            # print "Waist: \n", self._robot.waist.globalTransformation, "\n\n"
-            # for i in range(6):
-                # print "R(%d): \n"%i, self._robot.joint_dict[i], "\n"
-                # print "J(%d): \n"%i, self._robot.joint_dict[i].globalTransformation, "\n"
-                # print "L(%d): \n"%i, self._robot.joint_dict[i+6], "\n"
-                # print "L(%d): \n"%i, self._robot.joint_dict[i+6].globalTransformation, "\n\n"
-                # print "%d %f"%(i,self._robot.joint_dict[i].angle)
+        self.updateKinematics()
+        if render_mesh_flag:
+            self.renderMesh()
+
+        if render_skeleton_flag:
+            self.renderSkeleton()
+
+    def draw_link(self,p1,p2,size=0.01):
+        p=p2-p1
+        height=np.sqrt(np.dot(p,p))
+        glPushMatrix()
+        glBegin(GL_LINES)
+        glVertex3f(p1[0],p1[1],p1[2])
+        glVertex3f(p2[0],p2[1],p2[2])
+        glEnd()
+        glPopMatrix()
+
+    def renderSkeleton(self):
+        # draw_skeleton a sphere at each mobile joint
+        for joint in self._robot.joint_list:
+            pos=joint.globalTransformation[0:3,3]
+            glPushMatrix()
+            glTranslatef(pos[0], pos[1], pos[2])
+            sphere = gluNewQuadric()
+            gluSphere(sphere,0.01,10,10)
+            glPopMatrix()
+
+            if joint.jointType in ["rotate","revolute","prismatic",
+                                   "rotation", "translation"]:
+                parent=joint.parent
+                parent_pos=parent.globalTransformation[0:3,3]
+                self.draw_link(pos,parent_pos)
+
+    def renderMesh(self):
         glEnableClientState(GL_NORMAL_ARRAY);
         glEnableClientState(GL_VERTEX_ARRAY);
         for avbo in self._shapeVBOlist:
