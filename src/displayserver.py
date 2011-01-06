@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-
+import os
 import OpenGL
 from OpenGL.GL import *
 from OpenGL.GLUT import *
@@ -12,9 +12,10 @@ import re,imp
 from camera import Camera
 import pickle
 config_dir = os.environ['HOME']+'/.robotviewer/'
-config_file = config_dir + 'config'
 import logging
 import ConfigParser
+
+ESCAPE = 27
 
 def updateView(camera):
     """
@@ -42,6 +43,16 @@ class DisplayServer(object):
             self.log_level = logging.DEBUG
         else:
             self.log_level = logging.INFO
+
+        if options and options.config_file:
+            self.config_file = options.config_file
+        else:
+            self.config_file = os.path.join(config_dir,"config")
+
+        self.no_cache = False
+        if options and options.no_cache:
+            self.no_cache = True
+
         self.logger = logging.getLogger("RobotViewer")
         self.logger.setLevel(logging.DEBUG)
         # create console handler and set level to debug
@@ -50,7 +61,6 @@ class DisplayServer(object):
         formatter = logging.Formatter("%(asctime)s:%(name)s:%(levelname)s - %(message)s")
         self.ch.setFormatter(formatter)
         self.logger.addHandler(self.ch)
-
 
         self._element_dict = dict()
         self.initGL()
@@ -106,7 +116,7 @@ class DisplayServer(object):
             return s
 
         config = ConfigParser.ConfigParser()
-        config.read(config_file)
+        config.read(self.config_file)
         self.logger.info( 'parsed_config %s'%config)
         if config.has_section('robots'):
             robot_names = config.options('robots')
@@ -163,6 +173,9 @@ class DisplayServer(object):
         if etype == 'robot':
             edes = edescription.replace("/","_")
             cached_file = config_dir+"/%s.cache"%edes
+            if self.no_cache and os.path.isfile(cached_file):
+                os.remove(cached_file)
+
             if os.path.isfile(cached_file):
                 self.logger.info( "Using cached file %s.\n Remove it to reparse the wrl/xml file"%cached_file)
                 new_robot = pickle.load(open(cached_file))
