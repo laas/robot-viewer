@@ -152,6 +152,7 @@ class DsRobot(DsElement):
 
     def renderSkeleton(self, size = 1):
         # draw_skeleton a sphere at each mobile joint
+        # print "rendering skeleton", self._robot.joint_list
         for joint in self._robot.joint_list:
             pos=joint.globalTransformation[0:3,3]
             glPushMatrix()
@@ -160,7 +161,7 @@ class DsRobot(DsElement):
             gluSphere(sphere,0.01*size,10,10)
             glPopMatrix()
 
-            if joint.jointType in ["rotate","revolute","prismatic",
+            if joint.parent and joint.jointType in ["rotate","revolute","prismatic",
                                    "rotation", "translation"]:
                 parent=joint.parent
                 parent_pos=parent.globalTransformation[0:3,3]

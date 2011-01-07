@@ -33,7 +33,6 @@ class GenericObject(object):
         s+= "id\t\t= "+str(self.id)
         s+= "\ntranslation\t= "+str(self.translation)
         s+= "\nrotation\t= "+str(self.rotation)
-        s+= "\nrpy\t\t= "+str(self.rpy)
         if self.type== "joint":
             s+= "\naxis\t\t= "+str(self.axis)
             s+= "\nangle\t\t= "+str(self.angle)
@@ -49,8 +48,6 @@ class GenericObject(object):
 
         s+= "\nT=\n"+str(self.globalTransformation)
         s+= "\nlocalT=\n"+str(self.localTransformation)
-        s+= "\nlocalR1=\n"+str(self.localR1)
-        s+= "\nlocalR2=\n"+str(self.localR2)
 
         # count the size of the tree
         count = 0
@@ -217,6 +214,8 @@ class BaseNode(Joint):
         self.id= BASE_NODE_ID
         self.joint_list= []
         self.joint_dict= {}
+        self.joint_names = []
+        self.segment_names = []
         self.waist=None
         self.mesh_list=[]
         self.moving_joint_list = []

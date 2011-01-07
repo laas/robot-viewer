@@ -189,7 +189,7 @@ class DisplayServer(object):
                 self.logger.info( "Using cached file %s.\n Remove it to reparse the wrl/xml file"%cached_file)
                 new_robot = pickle.load(open(cached_file))
             else:
-                new_robot = robotLoader.robotLoader(edescription,True)
+                new_robot = robotLoader.robotLoader(edescription)
                 f = open(cached_file,'w')
                 pickle.dump(new_robot,f)
                 f.close()
@@ -313,9 +313,10 @@ class DisplayServer(object):
 
             elif args[0] == 'm':
                 self.render_mesh_flag = not self.render_mesh_flag
-
+                print "render mesh:", self.render_mesh_flag
             elif args[0] == 's':
                 self.render_skeleton_flag = not self.render_skeleton_flag
+                print "render skeleton:", self.render_skeleton_flag
 
             elif args[0] == '+':
                 self.skeleton_size += 1
