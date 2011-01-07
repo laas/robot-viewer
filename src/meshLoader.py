@@ -65,10 +65,7 @@ class Geometry():
     def __str__(self):
         s="Geometry:"
         s+="%d points and %d faces"%(len(self.coord)/3,len(self.idx)/4)
-        return s
-
-
-
+        return
 # helper function
 def getLeavesNextTo(tree,leafValue):
     pile = deque()
@@ -228,6 +225,19 @@ def OBJmeshLoader(filename):
     else:
         raise Exception("Invalid mesh")
 
+def VRMLmeshLoader(filename):
+    data = open(filename).read()
+    from vrml_grammar import VRMLPARSERDEF,buildVRMLParser
+    parser = buildVRMLParser()
+    success, tags, next = parser.parse(data)
+    if success!=1:
+        raise Exception("Invalid vrml file")
+    print tags
+    tag = (tags[0])[0]
+    amesh = Mesh()
+    VRMLtree=parseVRML(tag,data)
+    amesh.shapes.append(Shape().loadVRMLleaf(VRMLtree))
+    return amesh
 
 def meshLoader(filename):
     if re.search(r"\.wrl$",filename):

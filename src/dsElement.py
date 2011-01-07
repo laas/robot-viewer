@@ -124,7 +124,7 @@ class DsRobot(DsElement):
             self._robot.update()
 
 
-    def render(self, render_mesh_flag = True, render_skeleton_flag = False):
+    def render(self, render_mesh_flag = True, render_skeleton_flag = False, size = 1):
         """
 
         Arguments:
@@ -138,9 +138,9 @@ class DsRobot(DsElement):
             self.renderMesh()
 
         if render_skeleton_flag:
-            self.renderSkeleton()
+            self.renderSkeleton(size)
 
-    def draw_link(self,p1,p2,size=0.01):
+    def draw_link(self,p1,p2,size=1):
         p=p2-p1
         height=np.sqrt(np.dot(p,p))
         glPushMatrix()
@@ -150,14 +150,14 @@ class DsRobot(DsElement):
         glEnd()
         glPopMatrix()
 
-    def renderSkeleton(self):
+    def renderSkeleton(self, size = 1):
         # draw_skeleton a sphere at each mobile joint
         for joint in self._robot.joint_list:
             pos=joint.globalTransformation[0:3,3]
             glPushMatrix()
             glTranslatef(pos[0], pos[1], pos[2])
             sphere = gluNewQuadric()
-            gluSphere(sphere,0.01,10,10)
+            gluSphere(sphere,0.01*size,10,10)
             glPopMatrix()
 
             if joint.jointType in ["rotate","revolute","prismatic",

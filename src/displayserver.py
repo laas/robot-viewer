@@ -69,8 +69,15 @@ class DisplayServer(object):
         self.camera = Camera()
         self._mouseButton = None
         self._oldMousePos = [ 0, 0 ]
-        self.render_mesh_flag = True
-        self.render_skeleton_flag = False
+
+        if options and options.skeleton:
+            self.render_mesh_flag = False
+            self.render_skeleton_flag = True
+        else:
+            self.render_mesh_flag = True
+            self.render_skeleton_flag = False
+
+        self.skeleton_size = 1
 
     def initGL(self):
         glutInit(sys.argv)
@@ -289,7 +296,7 @@ class DisplayServer(object):
             ele = item[1]
 #            self.logger.info( item[0], item[1]._enabled)
             if isinstance(ele, DsRobot):
-                ele.render(self.render_mesh_flag, self.render_skeleton_flag)
+                ele.render(self.render_mesh_flag, self.render_skeleton_flag, self.skeleton_size)
             else:
                 ele.render()
 
@@ -309,6 +316,14 @@ class DisplayServer(object):
 
             elif args[0] == 's':
                 self.render_skeleton_flag = not self.render_skeleton_flag
+
+            elif args[0] == '+':
+                self.skeleton_size += 1
+
+            elif args[0] == '-':
+                if self.skeleton_size >1:
+                    self.skeleton_size -= 1
+
 
             return
 

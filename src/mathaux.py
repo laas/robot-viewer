@@ -26,6 +26,15 @@ def rot2AngleAxis(M):
     angle=acos( min ( (M[0][0]+M[1][1]+M[2][2]-1)/2 ,1) )*180/pi
     return [angle,v[0],v[1],v[2]]
 
+def rot2AxisAngle(M):
+    v=np.array( [M[2][1]-M[1][2], M[0][2]-M[2][0], M[1][0]-M[0][1] ])
+    normv=sqrt(np.dot(v,v))
+    if normv == 0.0:
+        return (0.0,1.0,0.0,0.0)
+    v=v/normv
+    angle=acos( min ( (M[0][0]+M[1][1]+M[2][2]-1)/2 ,1) )*180/pi
+    return [v[0],v[1],v[2],angle]
+
 def euleur2AngleAxis(rpy):
     R = euleur2rotation(rpy)
     return rot2AngleAxis(R)

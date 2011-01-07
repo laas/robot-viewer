@@ -11,6 +11,11 @@ import xml.dom.minidom as dom
 import robo
 # from dynamic_graph.sot.dynamics.dynamic import Dynamic
 # from dynamic_graph.sot import SE3, R3, SO3
+import numpy
+import numpy.linalg
+import meshLoader
+from mathaux import *
+import os
 
 class Parser (object):
     """
@@ -61,12 +66,36 @@ class Parser (object):
 
     robotTag = "HPP_HUMANOID_ROBOT"
 
+    meshTag = "RELATIVE_FILENAME"
+    solidrefTag = "SOLID_REF"
+
+
     def __init__(self, robot_name, filename):
         self.robot_name = robot_name
         self.filename = filename
+        self.kxml_dir_name = os.path.abspath(os.path.dirname(filename))
+        self.shapes = {}
 
     def parse (self):
         dom1 = dom.parse(self.filename)
+
+        mesh_nodes = dom1.getElementsByTagName(self.meshTag)
+        for n in mesh_nodes:
+            path = str(n.childNodes[0].nodeValue)
+            parent = n.parentNode
+            while parent and parent.attributes:
+                nid = int(parent.attributes["id"].value)
+                self.shapes[nid] = path
+                parent = parent.parentNode
+
+        solidref_nodes = dom1.getElementsByTagName(self.solidrefTag)
+        for n in solidref_nodes:
+            nid = int(n.attributes["id"].value)
+            refid = int(n.attributes["referencedComponentId"].value)
+            self.shapes[nid] = self.shapes[refid]
+
+
+        print self.shapes
         hNode = dom1.getElementsByTagName(self.robotTag)[0]
         for p in self.robotStringProperties:
             value = self.findStringProperty(hNode, p)
@@ -91,18 +120,72 @@ class Parser (object):
             joint = robo.Joint()
             parent.children.append(joint)
             joint.parent = parent
+            joint.angle = self.findJointValue(node)
+            joint.axis = "x"
+            joint.id = int(node.attributes["id"].value)
 
         sotJointType = self.jointType[node.nodeName]
         jointName = self.findStringProperty(node, 'NAME')
         joint.name = jointName
+        joint.jointType = sotJointType
+        current_position , relative_solid_position, solid_id = self.findJointPositions(node)
+        joint.globalTransformation = current_position
+        if joint.parent:
+            joint.localTransformation = numpy.dot( numpy.linalg.inv(joint.parent.globalTransformation),
+                                                   joint.globalTransformation)
+            joint.translation = joint.localTransformation[0:3,3]
+
+            joint.localR2 = rot2(joint.axis,joint.angle)
+            joint.localR1 = numpy.dot(joint.localTransformation[0:3,0:3] ,
+                                      numpy.linalg.inv(joint.localR2))
+
+            rotation_matrix = joint.localR1[0:3,0:3]
+            joint.rotation = rot2AxisAngle(rotation_matrix)
+
+        shape_rel_path = self.shapes[solid_id]
+        amesh = meshLoader.meshLoader(os.path.join(self.kxml_dir_name, shape_rel_path))
+        amesh.translation = relative_solid_position[0:3,3]
+        amesh.rotation = rot2AxisAngle(relative_solid_position[0:3,0:3])
+        amesh.setParent(joint)
+        joint.addChild(amesh)
+
         # recursively create child joints
         childJointNodes = filter(lambda n:n.nodeName in self.jointTypes,
                              node.childNodes)
-
         for childJointNode in childJointNodes:
             childJoint = self.createJoint(childJointNode, joint)
 
         return joint
+
+    def findJointPositions(self, node):
+        posNodes = filter(lambda n: n.nodeName in ['CURRENT_POSITION',
+                                                   'RELATIVE_SOLID_POSITION'],
+                                                   node.childNodes)
+        current_position = None
+        relative_solid_position = None
+        solid_id = None
+        for n in posNodes:
+            try:
+                data =  n.childNodes[0].nodeValue.split()
+                data = [ float(e) for e in data ]
+            except:
+                raise Exception("Invalid position node %s"%n.toprettyxml())
+
+            if len(data) != 16:
+                raise Exception("Wrong dimension for position %s"%str(data))
+
+            pos = numpy.array([[data[0],  data[1],  data[2],  data[3]],
+                               [data[4],  data[5],  data[6],  data[7]],
+                               [data[8],  data[9],  data[10], data[11]],
+                               [data[12], data[13], data[14], data[15]]
+                               ]
+                              )
+            if n.nodeName == "CURRENT_POSITION":
+                current_position = pos
+            else:
+                solid_id = int(n.attributes["solidRefId"].value)
+                relative_solid_position = pos
+        return ( current_position , relative_solid_position, solid_id )
 
 
     def attachJointToParent(self, parentName, jointName):
@@ -143,6 +226,14 @@ class Parser (object):
 
             bounds.append((minValue, maxValue))
         return bounds
+
+    def findJointValue(self, node):
+        dofList = filter(lambda n: n.nodeName == 'DOF', node.childNodes)
+        value = 0
+        for dof in dofList:
+            value = self.findFloatProperty(dof, 'DOF_VALUE')
+        return value
+
 
     def findStringProperty (self, node, prop):
         return self.findProperty(node, prop, str)
@@ -226,4 +317,5 @@ def load(filename):
     return parser.parse()
 
 if __name__ == '__main__':
-    print load(sys.argv[1])
+    robot = load(sys.argv[1])
+    robot.printJoints()

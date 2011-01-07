@@ -3,7 +3,7 @@
 # Copyright LAAS/CNRS 2009-2012
 # Authors Duong Dang
 import re
-import vrml_loader,xml_loader
+import vrml_loader,xml_loader, kxml_loader
 
 def robotLoader(filename, load_mesh_bool):
     re_ext = re.compile(r"\.(?P<EXT>[A-Za-z]+)$")
@@ -16,6 +16,10 @@ def robotLoader(filename, load_mesh_bool):
 
     elif ext == "xml":
         return xml_loader.load(filename)
+
+    elif ext == "kxml":
+        return kxml_loader.load(filename)
+
 
     else:
         raise Exception("Unknown extension %s"%ext)
