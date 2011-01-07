@@ -21,6 +21,10 @@ def main():
                       action="store_true", dest="no_cache", default=False,
                       help="force parsing robots' kinematics file")
 
+    parser.add_option("--skeleton",
+                      action="store_true", dest="skeleton", default=False,
+                      help="only display robot skeletons")
+
     (options, args) = parser.parse_args()
 
     if options.server == "CORBA":
