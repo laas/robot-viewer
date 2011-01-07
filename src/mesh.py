@@ -1,8 +1,7 @@
 #! /usr/bin/env python
 
-from vrml_loader import *
 from robo import GenericObject
-
+import numpy as np
 class Mesh(GenericObject):
     def __init__(self):
         GenericObject.__init__(self)
