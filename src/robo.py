@@ -33,9 +33,6 @@ class GenericObject(object):
         s+= "id\t\t= "+str(self.id)
         s+= "\ntranslation\t= "+str(self.translation)
         s+= "\nrotation\t= "+str(self.rotation)
-        if self.type== "joint":
-            s+= "\naxis\t\t= "+str(self.axis)
-            s+= "\nangle\t\t= "+str(self.angle)
 
         s+= "\nPARENT\t\t= "
         if self.parent:
@@ -49,16 +46,6 @@ class GenericObject(object):
         s+= "\nT=\n"+str(self.globalTransformation)
         s+= "\nlocalT=\n"+str(self.localTransformation)
 
-        # count the size of the tree
-        count = 0
-        pile = deque()
-        pile.append(self)
-        while not len(pile) == 0:
-            an_element = pile.pop()
-            count +=  1
-            for child in reversed(an_element.children):
-                pile.append(child)
-        s += "\nThe hierarchy tree has %d elements"%count
         return s
 
 
@@ -66,7 +53,8 @@ class GenericObject(object):
         '''
         Add a :class:`robo.GenericObject` object to element's children list
         '''
-        (self.children).append(a_child)
+        self.children.append(a_child)
+        a_child.parent = self
 
     def setParent(self,parent):
         '''
@@ -169,6 +157,12 @@ class Joint(GenericObject):
         self.localR1=np.eye(3)  # due to cordinate offset
         self.localR2=np.eye(3)  # due to self rotation (revolute joint)
 
+    def __str__(self):
+        s = GenericObject.__str__(self)
+        s+= "\naxis\t\t= "+str(self.axis)
+        s+= "\nangle\t\t= "+str(self.angle)
+        return s
+
     def updateLocalTransformation(self):
         '''
         update local transformation w.r.t element's parent
@@ -219,6 +213,12 @@ class BaseNode(Joint):
         self.waist=None
         self.mesh_list=[]
         self.moving_joint_list = []
+
+    def __str__(self):
+        s = Joint.__str__(self)
+        s += "\nNumber of dof: %d"%self.ndof
+        s += "\nNumber meshes: %d"%len(self.mesh_list)
+        return s
 
     def setAngles(self,angles):
         '''

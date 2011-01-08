@@ -4,7 +4,8 @@ import OpenGL
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
-import robo,robotLoader
+import robo
+import ml_parser
 import pickle
 from openglaux import IsExtensionSupported,ReSizeGLScene, GlWindow
 from dsElement import *
@@ -189,7 +190,16 @@ class DisplayServer(object):
                 self.logger.info( "Using cached file %s.\n Remove it to reparse the wrl/xml file"%cached_file)
                 new_robot = pickle.load(open(cached_file))
             else:
-                new_robot = robotLoader.robotLoader(edescription)
+                objs = ml_parser.parse(edescription)
+                robots = []
+                for obj in objs:
+                    if isinstance(obj, robo.BaseNode):
+                        robots.append(obj)
+                if len(robots) != 1:
+                    raise Exception("Description file %s contains %d robots, expected 1."
+                                    %(edescription, len(robots)))
+                new_robot = robots[0]
+
                 f = open(cached_file,'w')
                 pickle.dump(new_robot,f)
                 f.close()

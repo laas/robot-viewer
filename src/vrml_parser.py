@@ -52,15 +52,49 @@ class VrmlProcessor(DispatchProcessor):
 
         processed_node = vrml_node
 
+        shapes = []
+        if 'children' in vrml_node.keys():
+            for child in vrml_node['children']:
+                if isinstance(child,Shape):
+                    shapes.append(child)
+
         if vrml_node.name == "Appearance":
             processed_node = Appearance()
-            mat = vrml_node['material']
-            processed_node.__dict__.update(vrml_node['material'][0])
+            try:
+                mat = vrml_node['material']
+                processed_node.__dict__.update(vrml_node['material'][0])
+            except KeyError:
+                logger.warning("No material node found for %s"%vrml_node)
 
         elif vrml_node.name == "IndexedFaceSet":
             processed_node = Geometry()
             processed_node.coord = vrml_node['coord'][0]['point']
             processed_node.idx = vrml_node['coordIndex']
+
+        elif ( isinstance(vrml_node,dict) and 'appearance' in vrml_node.keys()
+               and 'geometry' in vrml_node.keys()):
+            processed_node = Shape()
+            processed_node.app = vrml_node['appearance'][0]
+            processed_node.geo = vrml_node['geometry'][0]
+
+        elif shapes[:]:
+            processed_node = Mesh()
+            processed_node.shapes = shapes
+
+        elif vrml_node.name == "Transform":
+            processed_node = GenericObject()
+            for key in 'translation', 'rotation':
+                if key in vrml_node.keys():
+                    processed_node.__dict__[key] = vrml_node[key]
+
+            if 'children' in vrml_node.keys():
+                children = vrml_node['children']
+                for child in children:
+                    if isinstance(child, GenericObject):
+                        processed_node.addChild(child)
+                        child.parent = processed_node
+                    else:
+                        logger.debug("Ignoring transform child %s"%str(child))
 
         elif vrml_node.name == "Humanoid":
             processed_node = BaseNode()
@@ -69,28 +103,7 @@ class VrmlProcessor(DispatchProcessor):
             body = vrml_node['humanoidBody'][0]
             processed_node.addChild(body)
             body.parent = processed_node
-
-        elif vrml_node.name == "Transform":
-            processed_node = GenericObject()
-            for key in 'translation', 'rotation':
-                if key in vrml_node.keys():
-                    processed_node.__dict__[key] = vrml_node[key]
-
-            shapes = []
-            for child in vrml_node['children']:
-                if ( isinstance(child,dict) and 'appearance' in child.keys()
-                     and 'geometry' in child.keys()):
-                    sh = Shape()
-                    sh.app = child['appearance'][0]
-                    sh.geo = child['geometry'][0]
-                    shapes.append(sh)
-
-            if shapes[:]:
-                mesh = Mesh()
-                mesh.shapes = shapes
-                processed_node.children.append(mesh)
-                mesh.parent = processed_node
-
+            processed_node.init()
 
         elif vrml_node.name == "Segment":
             processed_node = GenericObject()
@@ -206,9 +219,7 @@ def main():
     res = parse(args[0])
     for r in res:
         if isinstance(r,BaseNode):
-            r.init()
             print r
-            print r.mesh_list
 
 if __name__ == '__main__':
     main()

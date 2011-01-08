@@ -13,9 +13,10 @@ import robo
 # from dynamic_graph.sot import SE3, R3, SO3
 import numpy
 import numpy.linalg
-import meshLoader
+import vrml_parser
 from mathaux import *
 import os
+import ml_parser
 
 class Parser (object):
     """
@@ -95,7 +96,6 @@ class Parser (object):
             self.shapes[nid] = self.shapes[refid]
 
 
-        print self.shapes
         hNode = dom1.getElementsByTagName(self.robotTag)[0]
         for p in self.robotStringProperties:
             value = self.findStringProperty(hNode, p)
@@ -108,10 +108,12 @@ class Parser (object):
             setattr(self, p, value)
 
         # self.robot.createRobot()
-        rootJointNode = self.findRootJoint(hNode)
-        self.robot = self.createJoint(rootJointNode, parent = None)
-        self.robot.init()
-        return self.robot
+        robots = []
+        for rootJointNode in self.findRootJoints(hNode):
+            robot = self.createJoint(rootJointNode, parent = None)
+            robot.init()
+            robots.append(robot)
+        return robots
 
     def createJoint (self, node, parent = None):
         if not parent:
@@ -143,18 +145,19 @@ class Parser (object):
             joint.rotation = rot2AxisAngle(rotation_matrix)
 
         shape_rel_path = self.shapes[solid_id]
-        amesh = meshLoader.meshLoader(os.path.join(self.kxml_dir_name, shape_rel_path))
-        amesh.translation = relative_solid_position[0:3,3]
-        amesh.rotation = rot2AxisAngle(relative_solid_position[0:3,0:3])
-        amesh.setParent(joint)
-        joint.addChild(amesh)
+
+        objs = ml_parser.parse(os.path.join(self.kxml_dir_name, shape_rel_path))
+        for obj in objs:
+            if isinstance(obj,robo.GenericObject):
+                joint.addChild(obj)
 
         # recursively create child joints
         childJointNodes = filter(lambda n:n.nodeName in self.jointTypes,
                              node.childNodes)
         for childJointNode in childJointNodes:
             childJoint = self.createJoint(childJointNode, joint)
-
+        if isinstance(joint, robo.BaseNode):
+            joint.init()
         return joint
 
     def findJointPositions(self, node):
@@ -194,7 +197,7 @@ class Parser (object):
         else:
             self.robot.addJoint(parentName, jointName)
 
-    def findRootJoint (self, hNode):
+    def findRootJoints (self, hNode):
         rJoint = filter(lambda n:n.nodeName in self.jointTypes,
                         hNode.childNodes)
         if len(rJoint) == 0:
@@ -202,7 +205,7 @@ class Parser (object):
         if len(rJoint) > 1:
             raise RuntimeError("Robot should have exactly one root joint.\n" +
                                "This one has " + str(len(rJoint)) + ".")
-        return rJoint[0]
+        return rJoint
 
     def findJointBounds(self, node, jointName):
         dofList = filter(lambda n: n.nodeName == 'DOF', node.childNodes)
@@ -312,10 +315,10 @@ class Parser (object):
         return tuple(output)
 
 
-def load(filename):
+def parse(filename):
     parser = Parser("nao",filename)
     return parser.parse()
 
 if __name__ == '__main__':
-    robot = load(sys.argv[1])
-    robot.printJoints()
+    robot = parse(sys.argv[1])[0]
+    print robot
