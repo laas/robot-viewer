@@ -2,6 +2,7 @@
 
 from robo import GenericObject
 import numpy as np
+
 class Mesh(GenericObject):
     def __init__(self):
         GenericObject.__init__(self)
@@ -18,6 +19,11 @@ class Mesh(GenericObject):
             s+=shape.__str__()
             s+="\n"
         return s
+
+    def scale(self, scale_vec):
+        for sh in self.shapes:
+            sh.scale(scale_vec)
+
 
 class Appearance():
     def __init__(self):
@@ -46,6 +52,18 @@ class Geometry():
         s="Geometry:"
         s+="%d points and %d faces"%(len(self.coord)/3,len(self.idx)/4)
         return s
+    def scale(self,scale_vec):
+        if len(scale_vec) !=3 :
+            raise Exception("Expected scale_vec of dim 3, got %s"%str(scale_vec))
+
+        scale_x = scale_vec[0]
+        scale_y = scale_vec[1]
+        scale_z = scale_vec[2]
+
+        for i in range(len(self.coord)/3):
+            self.coord[3*i]   *= scale_x
+            self.coord[3*i+1] *= scale_y
+            self.coord[3*i+2] *= scale_z
 
 class Shape():
     def __init__(self):
@@ -58,4 +76,6 @@ class Shape():
         s+="\n"
         s+=self.geo.__str__()
         return s
+    def scale(self, scale_vec):
+        self.geo.scale(scale_vec)
 

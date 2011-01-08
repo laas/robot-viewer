@@ -91,6 +91,8 @@ class VrmlProcessor(DispatchProcessor):
                 children = vrml_node['children']
                 for child in children:
                     if isinstance(child, GenericObject):
+                        if vrml_node['scale'] and isinstance(child,Mesh):
+                            child.scale(vrml_node['scale'])
                         processed_node.addChild(child)
                         child.parent = processed_node
                     else:
