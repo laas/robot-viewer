@@ -8,7 +8,7 @@ import robo,sys,re
 import meshLoader
 xmlFilePath="./"
 
-def XMLloader(filename):
+def load(filename):
     global xmlFilePath
     xmlFilePath=re.sub(r"[\w_\-\d]+\.xml","",filename)
     s=open(filename,'r').read()
@@ -147,7 +147,7 @@ def parseJoint(element):
 
 
 def main():
-    robots=XMLloader(sys.argv[1])
+    robots=load(sys.argv[1])
     for robot in robots:
         print robot
 #        robot.printJoints()

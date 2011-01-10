@@ -4,9 +4,14 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from OpenGL.GL.ARB.vertex_buffer_object import *
 import numpy, time
-import robo,robotLoader
+import robo
 from mathaux import *
 from safeeval import safe_eval
+
+import logging, os, sys
+logger = logging.getLogger("display_element")
+logger.setLevel(logging.DEBUG)
+
 class DsElement(object):
     """
     """
@@ -88,6 +93,11 @@ class DsRobot(DsElement):
         self._kinematics_update_t = 0
         self._config_update_t = 0
         for amesh in robot.mesh_list:
+            joint_name = "Unknown"
+            if amesh.getParentJoint():
+                joint_name = amesh.getParentJoint().name
+            logger.info("Loading mesh %s of joint %s into memory."
+                        %(amesh.name, joint_name))
             for ashape in amesh.shapes:
                 shapeVBO=ShapeVBO(ashape)
                 shapeVBO._mesh=amesh
@@ -115,7 +125,16 @@ class DsRobot(DsElement):
     def getConfig(self):
         return self._xyz + self._rpy + self._q
 
-    def render(self):
+    def updateKinematics(self):
+        if self._kinematics_update_t < self._config_update_t:
+            self._kinematics_update_t = time.time()
+            self._robot.waistPos(self._xyz)
+            self._robot.waistRpy(self._rpy)
+            self._robot.setAngles(self._q)
+            self._robot.update()
+
+
+    def render(self, render_mesh_flag = True, render_skeleton_flag = False, size = 1):
         """
 
         Arguments:
@@ -124,19 +143,41 @@ class DsRobot(DsElement):
         if not self._enabled:
             return
 
-        if self._kinematics_update_t < self._config_update_t:
-            self._kinematics_update_t = time.time()
-            self._robot.waistPos(self._xyz)
-            self._robot.waistRpy(self._rpy)
-            self._robot.jointAngles(self._q)
-            self._robot.update()
-            # print "Waist: \n", self._robot.waist.globalTransformation, "\n\n"
-            # for i in range(6):
-                # print "R(%d): \n"%i, self._robot.joint_dict[i], "\n"
-                # print "J(%d): \n"%i, self._robot.joint_dict[i].globalTransformation, "\n"
-                # print "L(%d): \n"%i, self._robot.joint_dict[i+6], "\n"
-                # print "L(%d): \n"%i, self._robot.joint_dict[i+6].globalTransformation, "\n\n"
-                # print "%d %f"%(i,self._robot.joint_dict[i].angle)
+        self.updateKinematics()
+        if render_mesh_flag:
+            self.renderMesh()
+
+        if render_skeleton_flag:
+            self.renderSkeleton(size)
+
+    def draw_link(self,p1,p2,size=1):
+        p=p2-p1
+        height=np.sqrt(np.dot(p,p))
+        glPushMatrix()
+        glBegin(GL_LINES)
+        glVertex3f(p1[0],p1[1],p1[2])
+        glVertex3f(p2[0],p2[1],p2[2])
+        glEnd()
+        glPopMatrix()
+
+    def renderSkeleton(self, size = 1):
+        # draw_skeleton a sphere at each mobile joint
+        # print "rendering skeleton", self._robot.joint_list
+        for joint in self._robot.joint_list:
+            pos=joint.globalTransformation[0:3,3]
+            glPushMatrix()
+            glTranslatef(pos[0], pos[1], pos[2])
+            sphere = gluNewQuadric()
+            gluSphere(sphere,0.01*size,10,10)
+            glPopMatrix()
+
+            if joint.parent and joint.jointType in ["rotate","revolute","prismatic",
+                                   "rotation", "translation"]:
+                parent=joint.parent
+                parent_pos=parent.globalTransformation[0:3,3]
+                self.draw_link(pos,parent_pos)
+
+    def renderMesh(self):
         glEnableClientState(GL_NORMAL_ARRAY);
         glEnableClientState(GL_VERTEX_ARRAY);
         for avbo in self._shapeVBOlist:

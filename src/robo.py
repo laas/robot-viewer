@@ -8,6 +8,7 @@ from math import sin,cos
 from mathaux import *
 from collections import deque
 
+BASE_NODE_ID = -1
 class GenericObject(object):
     '''
     Base element in the kinematic tree
@@ -32,10 +33,6 @@ class GenericObject(object):
         s+= "id\t\t= "+str(self.id)
         s+= "\ntranslation\t= "+str(self.translation)
         s+= "\nrotation\t= "+str(self.rotation)
-        s+= "\nrpy\t\t= "+str(self.rpy)
-        if self.type== "joint":
-            s+= "\naxis\t\t= "+str(self.axis)
-            s+= "\nangle\t\t= "+str(self.angle)
 
         s+= "\nPARENT\t\t= "
         if self.parent:
@@ -48,19 +45,7 @@ class GenericObject(object):
 
         s+= "\nT=\n"+str(self.globalTransformation)
         s+= "\nlocalT=\n"+str(self.localTransformation)
-        s+= "\nlocalR1=\n"+str(self.localR1)
-        s+= "\nlocalR2=\n"+str(self.localR2)
 
-        # count the size of the tree
-        count = 0
-        pile = deque()
-        pile.append(self)
-        while not len(pile) == 0:
-            an_element = pile.pop()
-            count +=  1
-            for child in reversed(an_element.children):
-                pile.append(child)
-        s += "\nThe hierarchy tree has %d elements"%count
         return s
 
 
@@ -68,7 +53,8 @@ class GenericObject(object):
         '''
         Add a :class:`robo.GenericObject` object to element's children list
         '''
-        (self.children).append(a_child)
+        self.children.append(a_child)
+        a_child.parent = self
 
     def setParent(self,parent):
         '''
@@ -91,7 +77,7 @@ class GenericObject(object):
         compute local transformation w.r.t for the first time (compute everything)
         '''
         # rotation part
-        self.localR = rot1(self.rotation)
+        self.localR = axisAngle2rot(self.rotation)
         self.localTransformation[0:3,0:3]=self.localR
 
         # last column
@@ -137,6 +123,7 @@ class GenericObject(object):
         self.updateGlobalTransformation()
         for child in self.children:
             child.update()
+
     def getBaseNode(self):
         '''
         Get the highest level parent
@@ -148,6 +135,20 @@ class GenericObject(object):
             return self
         else:
             return self.parent.getBaseNode()
+
+    def getParentJoint(self):
+        '''
+        Get the highest level parent
+
+        :returns: the BaseNode
+        :rtype: :class:`robo.BaseNode`.
+        '''
+        if not self.parent:
+            return None
+        elif isinstance(self.parent,Joint):
+            return self.parent
+        else:
+            return self.parent.getParentJoint()
 
 
 #*****************************#
@@ -163,13 +164,19 @@ class Joint(GenericObject):
     def __init__(self):
         GenericObject.__init__(self)
         self.type= "joint"
-        self.jointType="rotate"
+        self.jointType=None
         self.isBaseNode=False
         self.rpy=[0,0,0]
         self.angle=0
         self.axis=""
         self.localR1=np.eye(3)  # due to cordinate offset
         self.localR2=np.eye(3)  # due to self rotation (revolute joint)
+
+    def __str__(self):
+        s = GenericObject.__str__(self)
+        s+= "\naxis\t\t= "+str(self.axis)
+        s+= "\nangle\t\t= "+str(self.angle)
+        return s
 
     def updateLocalTransformation(self):
         '''
@@ -182,8 +189,9 @@ class Joint(GenericObject):
             self.localTransformation[0:3,0:3]=self.localR
             self.localTransformation[0:3,3]=np.array(self.translation)+\
                 np.dot(np.eye(3)-self.localR,np.array(self.center))
-        elif self.type=="joint" and self.jointType=="rotate" and self.id >= 0:
-            self.localR2=rot2(self.axis,self.angle)
+        elif ( self.type=="joint" and self.jointType in [ "rotate", "rotation", "revolute"]
+               and self.id >= 0):
+            self.localR2=axisNameAngle2rot(self.axis,self.angle)
             self.localR=np.dot(self.localR1, self.localR2)
             self.localTransformation[0:3,0:3]=self.localR
 
@@ -191,7 +199,7 @@ class Joint(GenericObject):
         '''
         compute local transformation w.r.t for the first time (compute everything)
         '''
-        self.localR1=rot1(self.rotation)
+        self.localR1=axisAngle2rot(self.rotation)
         self.localR = self.localR1
         self.localTransformation[0:3,0:3]=self.localR
         self.updateLocalTransformation()
@@ -210,27 +218,35 @@ class BaseNode(Joint):
     '''
     def __init__(self):
         Joint.__init__(self)
+        self.ndof = 0
         self.type= "BaseNode"
-        self.id=-999
-        self.joint_list=list()
-        self.joint_dict=dict()
+        self.id= BASE_NODE_ID
+        self.joint_list= []
+        self.joint_dict= {}
+        self.joint_names = []
+        self.segment_names = []
         self.waist=None
         self.mesh_list=[]
+        self.moving_joint_list = []
 
+    def __str__(self):
+        s = Joint.__str__(self)
+        s += "\nNumber of dof: %d"%self.ndof
+        s += "\nNumber meshes: %d"%len(self.mesh_list)
+        return s
 
-    def jointAngles(self,angles):
+    def setAngles(self,angles):
         '''
         Set joint angles
 
         :param angles: input joint angles
         :type angles: list of double
         '''
-        if len(angles) != 40:
-            raise Exception("wrong angles size need 40 but have %d"%len(angles))
-        for i in range(len(angles)):
-            angle=angles[i]
-            (self.joint_dict[i]).angle=angle
-#            print "update joint id =%d, angle=%f"%(i,angle)
+        if len(angles) != self.ndof:
+            raise Exception("Wrong dimension. Expected %d dof but got %d dof"%(self.ndof,
+                                                                                  len(angles)) )
+        for i,angle in enumerate(angles):
+            self.moving_joint_list[i].angle = angle
 
     def printJoints(self):
         '''
@@ -271,6 +287,12 @@ class BaseNode(Joint):
         for joint in self.joint_list:
             self.joint_dict[joint.id] = joint
 
+    def update_moving_joint_list(self):
+        self.moving_joint_list = [ j for j in self.joint_list if isinstance(j.id,int)
+                                   and j.id != BASE_NODE_ID ]
+        self.moving_joint_list.sort(key = lambda x: x.id)
+        self.ndof = len(self.moving_joint_list)
+
     def init(self):
         ''' Do the following initializations in order:
 
@@ -295,7 +317,7 @@ class BaseNode(Joint):
                 pile.append(child)
 
         for joint in self.joint_list:
-            if joint.jointType=="free":
+            if joint.jointType in ["free","freeflyer"]:
                 joint.getBaseNode().waist=joint
 
         self.update_joint_dict()
@@ -307,3 +329,5 @@ class BaseNode(Joint):
                 child.init()
             except Exception, error:
                 print error, "on object %s"%child.name
+
+        self.update_moving_joint_list()

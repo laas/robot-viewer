@@ -1,20 +1,25 @@
 #! /usr/bin/env python
-
+import os
 import OpenGL
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
-import robo,robotLoader
+import robo
+import ml_parser
 import pickle
 from openglaux import IsExtensionSupported,ReSizeGLScene, GlWindow
-from dsElement import *
+from display_element import *
 import re,imp
 from camera import Camera
 import pickle
 config_dir = os.environ['HOME']+'/.robotviewer/'
-config_file = config_dir + 'config'
 import logging
 import ConfigParser
+
+ESCAPE = 27
+
+logger = logging.getLogger("displayserver")
+logger.setLevel(logging.DEBUG)
 
 def updateView(camera):
     """
@@ -42,15 +47,15 @@ class DisplayServer(object):
             self.log_level = logging.DEBUG
         else:
             self.log_level = logging.INFO
-        self.logger = logging.getLogger("RobotViewer")
-        self.logger.setLevel(logging.DEBUG)
-        # create console handler and set level to debug
-        self.ch = logging.StreamHandler()
-        self.ch.setLevel(self.log_level)
-        formatter = logging.Formatter("%(asctime)s:%(name)s:%(levelname)s - %(message)s")
-        self.ch.setFormatter(formatter)
-        self.logger.addHandler(self.ch)
 
+        if options and options.config_file:
+            self.config_file = options.config_file
+        else:
+            self.config_file = os.path.join(config_dir,"config")
+
+        self.no_cache = False
+        if options and options.no_cache:
+            self.no_cache = True
 
         self._element_dict = dict()
         self.initGL()
@@ -59,6 +64,15 @@ class DisplayServer(object):
         self.camera = Camera()
         self._mouseButton = None
         self._oldMousePos = [ 0, 0 ]
+
+        if options and options.skeleton:
+            self.render_mesh_flag = False
+            self.render_skeleton_flag = True
+        else:
+            self.render_mesh_flag = True
+            self.render_skeleton_flag = False
+
+        self.skeleton_size = 1
 
     def initGL(self):
         glutInit(sys.argv)
@@ -86,7 +100,7 @@ class DisplayServer(object):
             m = pattern.match(line)
             if m:
                 correct_joint_dict[m.group(1)] = int(m.group(2)) -6
-                self.logger.info( m.group(1)+ "\t" + m.group(2))
+                logger.info( m.group(1)+ "\t" + m.group(2))
 
         for joint in self._element_dict[robot_name]._robot.joint_list:
             if correct_joint_dict.has_key(joint.name):
@@ -106,22 +120,22 @@ class DisplayServer(object):
             return s
 
         config = ConfigParser.ConfigParser()
-        config.read(config_file)
-        self.logger.info( 'parsed_config %s'%config)
+        config.read(self.config_file)
+        logger.info( 'parsed_config %s'%config)
         if config.has_section('robots'):
             robot_names = config.options('robots')
             for robot_name in robot_names:
                 robot_config = config.get('robots',robot_name)
                 robot_config = replace_env_var(robot_config)
-                self.logger.info( 'robot_config=%s'%robot_config)
+                logger.info( 'robot_config=%s'%robot_config)
                 if not os.path.isfile(robot_config):
-                    self.logger.info( "WARNING: Couldn't load %s. Are you sure %s exists?"\
+                    logger.info( "WARNING: Couldn't load %s. Are you sure %s exists?"\
                         %(robot_name,robot_config))
                     continue
                 self.createElement('robot',robot_name,robot_config)
                 self.enableElement(robot_name)
         else:
-            self.logger.info( """Couldn't any default robots. Loading an empty scene
+            logger.info( """Couldn't any default robots. Loading an empty scene
     You might need to load some robots yourself.
     See documentation""")
 
@@ -163,11 +177,23 @@ class DisplayServer(object):
         if etype == 'robot':
             edes = edescription.replace("/","_")
             cached_file = config_dir+"/%s.cache"%edes
+            if self.no_cache and os.path.isfile(cached_file):
+                os.remove(cached_file)
+
             if os.path.isfile(cached_file):
-                self.logger.info( "Using cached file %s.\n Remove it to reparse the wrl/xml file"%cached_file)
+                logger.info( "Using cached file %s.\n Remove it to reparse the wrl/xml file"%cached_file)
                 new_robot = pickle.load(open(cached_file))
             else:
-                new_robot = robotLoader.robotLoader(edescription,True)
+                objs = ml_parser.parse(edescription)
+                robots = []
+                for obj in objs:
+                    if isinstance(obj, robo.BaseNode):
+                        robots.append(obj)
+                if len(robots) != 1:
+                    raise Exception("Description file %s contains %d robots, expected 1."
+                                    %(edescription, len(robots)))
+                new_robot = robots[0]
+
                 f = open(cached_file,'w')
                 pickle.dump(new_robot,f)
                 f.close()
@@ -255,7 +281,7 @@ class DisplayServer(object):
     def DrawGLScene(self):
         if len(self.pendingObjects) > 0:
             obj = self.pendingObjects.pop()
-            self.logger.info( "creating %s %s %s"%( obj[0], obj[1], obj[2]))
+            logger.info( "creating %s %s %s"%( obj[0], obj[1], obj[2]))
             self.createElement(obj[0],obj[1],obj[2])
         # Clear Screen And Depth Buffer
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -272,8 +298,11 @@ class DisplayServer(object):
 
         for item in self._element_dict.items():
             ele = item[1]
-#            self.logger.info( item[0], item[1]._enabled)
-            ele.render()
+#            logger.info( item[0], item[1]._enabled)
+            if isinstance(ele, DsRobot):
+                ele.render(self.render_mesh_flag, self.render_skeleton_flag, self.skeleton_size)
+            else:
+                ele.render()
 
         glutSwapBuffers()
 
@@ -285,6 +314,22 @@ class DisplayServer(object):
             # If escape is pressed, kill everything.
             if args[0] == ESCAPE : # exit when ESCAPE is pressed
                 sys.exit ()
+
+            elif args[0] == 'm':
+                self.render_mesh_flag = not self.render_mesh_flag
+                print "render mesh:", self.render_mesh_flag
+            elif args[0] == 's':
+                self.render_skeleton_flag = not self.render_skeleton_flag
+                print "render skeleton:", self.render_skeleton_flag
+
+            elif args[0] == '+':
+                self.skeleton_size += 1
+
+            elif args[0] == '-':
+                if self.skeleton_size >1:
+                    self.skeleton_size -= 1
+
+
             return
 
         def mouseButtonFunc( button, mode, x, y ):

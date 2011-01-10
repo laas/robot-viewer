@@ -96,7 +96,7 @@ def ReSizeGLScene(Width, Height):
     glLoadIdentity()
     # # field of view, aspect ratio, near and far
     # This will squash and stretch our objects as the window is resized.
-    gluPerspective(45.0, float(Width)/float(Height), 1, 1000.0)
+    gluPerspective(45.0, float(Width)/float(Height), 0.1, 1000.0)
 
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()

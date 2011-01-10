@@ -10,7 +10,6 @@ import numpy as np
 import re
 from math import sin,cos,sqrt,acos,pi,atan2
 
-
 def norm(a):
     return sqrt(np.dot(a,a))
 
@@ -18,13 +17,51 @@ def normalized(v):
     return v/norm(v)
 
 def rot2AngleAxis(M):
-    v=np.array( [M[2][1]-M[1][2], M[0][2]-M[2][0], M[1][0]-M[0][1] ])
-    normv=sqrt(np.dot(v,v))
-    if normv == 0.0:
-        return (0.0,1.0,0.0,0.0)
-    v=v/normv
-    angle=acos( min ( (M[0][0]+M[1][1]+M[2][2]-1)/2 ,1) )*180/pi
-    return [angle,v[0],v[1],v[2]]
+    """
+    Convert Transformation to angle, axis reprensentation (angle in degree)
+    """
+    angle=acos( min ( (M[0][0]+M[1][1]+M[2][2]-1)/2 ,1))
+    if angle == 0.0:
+        v = [1,0,0]
+    else:
+        v=np.array( [M[2][1]-M[1][2], M[0][2]-M[2][0], M[1][0]-M[0][1] ])
+        normv=sqrt(np.dot(v,v))
+        v=v/normv
+    angle = angle*180/pi
+    return [angle, v[0],v[1],v[2]]
+
+# http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/index.htm
+def rot2AxisAngle(M):
+    """
+    Convert Transformation to axis, angle reprensentation (angle in radian)
+    """
+    angle=acos( min ( (M[0][0]+M[1][1]+M[2][2]-1)/2 ,1))
+    if angle == 0.0:
+        v = [1,0,0]
+    else:
+        v=np.array( [M[2][1]-M[1][2], M[0][2]-M[2][0], M[1][0]-M[0][1] ])
+        normv=sqrt(np.dot(v,v))
+        if normv < 1e-6:
+            if M[0][0]+1 > 0:
+                v[0] = sqrt((M[0][0] + 1)/2)
+                v[1] = M[0][1]/2/v[0]
+                v[2] = M[0][2]/2/v[0]
+            elif M[1][1]+1 > 0:
+                v[1] = sqrt((M[1][1] + 1)/2)
+                v[0] = M[1][0]/2/v[1]
+                v[2] = M[1][2]/2/v[1]
+            elif M[2][2]+1 > 0:
+                v[2] = sqrt((M[2][2] + 1)/2)
+                v[0] = M[2][0]/2/v[2]
+                v[1] = M[2][1]/2/v[2]
+            else:
+                raise Exception("mathaux:rot2AngleAxis:Uncaught corner case for: %s"
+                                %str(M))
+            return [v[0],v[1],v[2],angle]
+
+
+        v=v/normv
+    return [v[0],v[1],v[2],angle]
 
 def euleur2AngleAxis(rpy):
     R = euleur2rotation(rpy)
@@ -41,7 +78,7 @@ def draw_link(p1,p2,size=0.01):
     glEnd()
     glPopMatrix()
 
-def rot2(axis,a):
+def axisNameAngle2rot(axis,a):
     if re.search(r"[zZ]",axis):
         return np.array([(cos(a), -sin(a),      0),\
                         (sin(a),  cos(a),      0),\
@@ -58,17 +95,28 @@ def rot2(axis,a):
                         (-sin(a),   0    , cos(a))])
     return np.eye(3)
 
-def rot1(array):
-    if array[0]==1:
-        axis="X"
-    elif array[1]==1:
-        axis="Y"
-    elif array[2]==1:
-        axis="Z"
-    else :
-        axis=""
+# http://www.euclideanspace.com/maths/geometry/rotations/conversions/angleToMatrix/index.htm
+def axisAngle2rot(array):
+    array = np.array(array)
+    array[0:3] = normalized(array[0:3])
+
+    x = array[0]
+    y = array[1]
+    z = array[2]
     angle = array[3]
-    return rot2(axis,angle)
+
+    if angle == 0:
+        return np.eye(3)
+
+    c = cos(angle)
+    s = sin(angle)
+    t = 1 - c
+
+    return np.array([[t*x*x + c  , t*x*y - z*s , t*x*z + y*s],
+                     [t*x*y + z*s, t*y*y + c   , t*y*z - x*s],
+                     [t*x*z - y*s, t*y*z + x*s , t*z*z +c]
+                     ]
+                    )
 
 def euleur2rotation(rpy):
     tx=rpy[0]

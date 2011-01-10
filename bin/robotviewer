@@ -1,6 +1,5 @@
 #! /usr/bin/env python
 import sys,imp, os
-
 from optparse import OptionParser
 def main():
     """
@@ -15,17 +14,26 @@ def main():
     parser.add_option("-s","--server", dest="server", default = "CORBA",
                       help="server type to be used (default: CORBA)")
 
+    parser.add_option("-c","--config-file", dest="config_file",
+                      help="specify config file")
+
+    parser.add_option("--no-cache",
+                      action="store_true", dest="no_cache", default=False,
+                      help="force parsing robots' kinematics file")
+
+    parser.add_option("--skeleton",
+                      action="store_true", dest="skeleton", default=False,
+                      help="only display robot skeletons")
+
     (options, args) = parser.parse_args()
 
     if options.server == "CORBA":
-        import robotviewer.displayserver_corba
-        robotviewer.displayserver_corba.main()
-
+        from robotviewer.displayserver_corba import DisplayServerCorba as DisplayServer
     elif options.server == "XML-RPC":
-        import robotviewer.displayserver_xmlrpc
-        robotviewer.displayserver_xmlrpc.main()
+        from robotviewer.displayserver_xmlrpc import DisplayServerXmlrpc as DisplayServer
 
-
+    server = DisplayServer(options,args)
+    server.run()
 
 if __name__ == '__main__':
     main()
