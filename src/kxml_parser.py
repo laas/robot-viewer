@@ -15,8 +15,12 @@ import numpy
 import numpy.linalg
 import vrml_parser
 from mathaux import *
-import os
+import os, logging
 import ml_parser
+import copy
+
+logger = logging.getLogger("kxml_parser")
+logger.setLevel(logging.DEBUG)
 
 class Parser (object):
     """
@@ -67,34 +71,98 @@ class Parser (object):
 
     robotTag = "HPP_HUMANOID_ROBOT"
 
-    meshTag = "RELATIVE_FILENAME"
+    relPathTag = "RELATIVE_FILENAME"
     solidrefTag = "SOLID_REF"
 
-
+    assemblyTag = "ASSEMBLY"
+    polyhedronTag = "POLYHEDRON"
+    relPosTag =  "RELATIVE_POSITION"
     def __init__(self, robot_name, filename):
         self.robot_name = robot_name
         self.filename = filename
         self.kxml_dir_name = os.path.abspath(os.path.dirname(filename))
         self.shapes = {}
+        self.globalTransformations = {}
 
     def parse (self):
         dom1 = dom.parse(self.filename)
 
-        mesh_nodes = dom1.getElementsByTagName(self.meshTag)
-        for n in mesh_nodes:
-            path = str(n.childNodes[0].nodeValue)
-            parent = n.parentNode
-            while parent and parent.attributes:
-                nid = int(parent.attributes["id"].value)
-                self.shapes[nid] = path
-                parent = parent.parentNode
+        assembly_nodes = dom1.getElementsByTagName(self.assemblyTag)
+        for assembly_node in assembly_nodes:
+            assembly_nid = int(assembly_node.attributes["id"].value)
+            assembly_obj = robo.GenericObject()
+            assembly_obj.id = assembly_nid
+            self.shapes[assembly_nid] = assembly_obj
+            for rel_pos_node in assembly_node.childNodes:
+                if rel_pos_node.nodeName != self.relPosTag:
+                    continue
+                try:
+                    data =  rel_pos_node.childNodes[0].nodeValue.split()
+                    data = [ float(e) for e in data ]
+                except:
+                    raise Exception("Invalid position node %s"%rel_pos_node.toprettyxml())
+
+                if len(data) != 16:
+                    raise Exception("Wrong dimension for position %s"%str(data))
+
+                rel_pos = numpy.array([[data[0],  data[1],  data[2],  data[3]],
+                                   [data[4],  data[5],  data[6],  data[7]],
+                                   [data[8],  data[9],  data[10], data[11]],
+                                   [data[12], data[13], data[14], data[15]]
+                                   ]
+                                  )
+
+                assembly_obj.translation = rel_pos[0:3,3]
+                assembly_obj.rotation = rot2AxisAngle(rel_pos[0:3,0:3])
+
+            polyhedron_nodes = assembly_node.getElementsByTagName(self.polyhedronTag)
+
+            for polyhedron_node in polyhedron_nodes:
+                polyhedron_nid = int(polyhedron_node.attributes["id"].value)
+                polyhedron_obj = robo.GenericObject()
+                polyhedron_obj.id = polyhedron_nid
+                assembly_obj.addChild(polyhedron_obj)
+                self.shapes[polyhedron_nid] = polyhedron_obj
+                for rel_pos_node in polyhedron_node.childNodes:
+                    if rel_pos_node.nodeName != self.relPosTag:
+                        continue
+                    try:
+                        data =  rel_pos_node.childNodes[0].nodeValue.split()
+                        data = [ float(e) for e in data ]
+                    except:
+                        raise Exception("Invalid position node %s"%rel_pos_node.toprettyxml())
+
+                    if len(data) != 16:
+                        raise Exception("Wrong dimension for position %s"%str(data))
+
+                    rel_pos = numpy.array([[data[0],  data[1],  data[2],  data[3]],
+                                       [data[4],  data[5],  data[6],  data[7]],
+                                       [data[8],  data[9],  data[10], data[11]],
+                                       [data[12], data[13], data[14], data[15]]
+                                       ]
+                                      )
+
+                    polyhedron_obj.translation = rel_pos[0:3,3]
+                    polyhedron_obj.rotation = rot2AxisAngle(rel_pos[0:3,0:3])
+
+                for rel_path_node in polyhedron_node.childNodes:
+                    if rel_path_node.nodeName != self.relPathTag:
+                        continue
+                    rel_path = rel_path_node.childNodes[0].nodeValue
+                    #if rel_path != "vrml2/AcademicHead.wrl":
+                    #    continue
+                    logger.info("Parsing %s "%(os.path.join(self.kxml_dir_name, rel_path)))
+                    objs = ml_parser.parse(os.path.join(self.kxml_dir_name, rel_path))
+                    for obj in objs:
+                        if isinstance(obj,robo.GenericObject):
+                            polyhedron_obj.addChild(obj)
 
         solidref_nodes = dom1.getElementsByTagName(self.solidrefTag)
+
         for n in solidref_nodes:
             nid = int(n.attributes["id"].value)
             refid = int(n.attributes["referencedComponentId"].value)
             self.shapes[nid] = self.shapes[refid]
-
 
         hNode = dom1.getElementsByTagName(self.robotTag)[0]
         for p in self.robotStringProperties:
@@ -111,7 +179,6 @@ class Parser (object):
         robots = []
         for rootJointNode in self.findRootJoints(hNode):
             robot = self.createJoint(rootJointNode, parent = None)
-            robot.init()
             robots.append(robot)
         return robots
 
@@ -123,7 +190,7 @@ class Parser (object):
             parent.children.append(joint)
             joint.parent = parent
             joint.angle = self.findJointValue(node)
-            joint.axis = "x"
+            joint.axis = "X"
             joint.id = int(node.attributes["id"].value)
 
         sotJointType = self.jointType[node.nodeName]
@@ -131,33 +198,92 @@ class Parser (object):
         joint.name = jointName
         joint.jointType = sotJointType
         current_position , relative_solid_position, solid_id = self.findJointPositions(node)
-        joint.globalTransformation = current_position
-        if joint.parent:
-            joint.localTransformation = numpy.dot( numpy.linalg.inv(joint.parent.globalTransformation),
-                                                   joint.globalTransformation)
-            joint.translation = joint.localTransformation[0:3,3]
-
-            joint.localR2 = rot2(joint.axis,joint.angle)
-            joint.localR1 = numpy.dot(joint.localTransformation[0:3,0:3] ,
-                                      numpy.linalg.inv(joint.localR2))
-
-            rotation_matrix = joint.localR1[0:3,0:3]
-            joint.rotation = rot2AxisAngle(rotation_matrix)
-
-        shape_rel_path = self.shapes[solid_id]
-
-        objs = ml_parser.parse(os.path.join(self.kxml_dir_name, shape_rel_path))
-        for obj in objs:
-            if isinstance(obj,robo.GenericObject):
-                joint.addChild(obj)
+        joint.globalTransformation = copy.copy(current_position)
+        self.globalTransformations[joint.id] = copy.copy(current_position)
 
         # recursively create child joints
         childJointNodes = filter(lambda n:n.nodeName in self.jointTypes,
                              node.childNodes)
         for childJointNode in childJointNodes:
             childJoint = self.createJoint(childJointNode, joint)
+
+
+        def compute_localT_from_globalT_(joint_):
+            if joint_.parent:
+                 joint_.localTransformation = numpy.dot( numpy.linalg.inv(joint_.parent.globalTransformation),
+                                                        joint_.globalTransformation)
+                 # print joint_.id, joint_.localTransformation
+                 joint_.translation = joint_.localTransformation[0:3,3]
+
+                 joint_.localR2 = axisNameAngle2rot(joint_.axis,joint_.angle)
+                 joint_.localR1 = numpy.dot(joint_.localTransformation[0:3,0:3] ,
+                                           numpy.linalg.inv(joint_.localR2))
+                 rotation_matrix = joint_.localR1[0:3,0:3]
+                 joint_.rotation = rot2AxisAngle(rotation_matrix)
+                 joint_.localR = numpy.dot(joint_.localR1, joint_.localR2)
+                 # joint_.initLocalTransformation()
+                 # print joint_.id, joint_.rotation, joint_.localTransformation
+
+
+            for child in [ c for c in joint_.children if isinstance(c,robo.Joint)]:
+                compute_localT_from_globalT_(child)
+
+        # add shape object already loaded at the beginning
+        solid = robo.GenericObject()
+        solid.translation = relative_solid_position[0:3,3]
+        solid.rotation    = rot2AxisAngle(relative_solid_position[0:3,0:3])
+        solid.addChild(self.shapes[solid_id])
+        joint.addChild(solid)
+
+
         if isinstance(joint, robo.BaseNode):
+            compute_localT_from_globalT_(joint)
             joint.init()
+
+            # # Since relative_solid_position is expressed in term of
+            # # previous joint(it seems?), it should be convert back to current
+            # # joint coordinate.
+            # for j in joint.joint_list:
+            #     for child in [ c for c in j.children if not isinstance(c,robo.Joint)]:
+            #         child.localTransformation = numpy.dot(numpy.linalg.inv(joint.localTransformation),
+            #                                               child.localTransformation)
+            #         child.translation = child.localTransformation[0:3,3]
+            #         child.localR = child.localTransformation[0:3,0:3]
+            #         child.rotation = rot2AngleAxis(child.localR)
+
+            # joint.init()
+
+            for i,j in enumerate(joint.joint_list):
+                if (numpy.linalg.norm(j.globalTransformation -
+                                      self.globalTransformations[j.id])) > 1e-6:
+                    msg = ("""
+Wrong transformation for %dth joint (id = %d)%s:
+computed transformation=
+%s
+vs.
+kxml transformation=
+%s
+
+joint.localT=
+%s
+"""
+                                    %(i, j.id, j.name, str(j.globalTransformation),
+                                      str(self.globalTransformations[j.id]),
+                                      str(j.localTransformation),
+                                      ))
+                    msg += "\nParent joints:"
+                    jj = j
+                    while jj:
+                        msg += "\n---\n"
+                        msg + str(jj)
+                        msg += "\nkxml global pos = %s"%str(self.globalTransformations[jj.id])
+                        jj = jj.getParentJoint()
+                    raise Exception(msg)
+                    # logger.exception(msg)
+
+
+
+
         return joint
 
     def findJointPositions(self, node):
@@ -321,4 +447,4 @@ def parse(filename):
 
 if __name__ == '__main__':
     robot = parse(sys.argv[1])[0]
-    print robot
+    print robot.printJoints()

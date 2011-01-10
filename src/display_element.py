@@ -7,6 +7,11 @@ import numpy, time
 import robo
 from mathaux import *
 from safeeval import safe_eval
+
+import logging, os, sys
+logger = logging.getLogger("display_element")
+logger.setLevel(logging.DEBUG)
+
 class DsElement(object):
     """
     """
@@ -88,6 +93,11 @@ class DsRobot(DsElement):
         self._kinematics_update_t = 0
         self._config_update_t = 0
         for amesh in robot.mesh_list:
+            joint_name = "Unknown"
+            if amesh.getParentJoint():
+                joint_name = amesh.getParentJoint().name
+            logger.info("Loading mesh %s of joint %s into memory."
+                        %(amesh.name, joint_name))
             for ashape in amesh.shapes:
                 shapeVBO=ShapeVBO(ashape)
                 shapeVBO._mesh=amesh

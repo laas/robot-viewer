@@ -77,7 +77,7 @@ class GenericObject(object):
         compute local transformation w.r.t for the first time (compute everything)
         '''
         # rotation part
-        self.localR = rot1(self.rotation)
+        self.localR = axisAngle2rot(self.rotation)
         self.localTransformation[0:3,0:3]=self.localR
 
         # last column
@@ -123,6 +123,7 @@ class GenericObject(object):
         self.updateGlobalTransformation()
         for child in self.children:
             child.update()
+
     def getBaseNode(self):
         '''
         Get the highest level parent
@@ -134,6 +135,20 @@ class GenericObject(object):
             return self
         else:
             return self.parent.getBaseNode()
+
+    def getParentJoint(self):
+        '''
+        Get the highest level parent
+
+        :returns: the BaseNode
+        :rtype: :class:`robo.BaseNode`.
+        '''
+        if not self.parent:
+            return None
+        elif isinstance(self.parent,Joint):
+            return self.parent
+        else:
+            return self.parent.getParentJoint()
 
 
 #*****************************#
@@ -176,7 +191,7 @@ class Joint(GenericObject):
                 np.dot(np.eye(3)-self.localR,np.array(self.center))
         elif ( self.type=="joint" and self.jointType in [ "rotate", "rotation", "revolute"]
                and self.id >= 0):
-            self.localR2=rot2(self.axis,self.angle)
+            self.localR2=axisNameAngle2rot(self.axis,self.angle)
             self.localR=np.dot(self.localR1, self.localR2)
             self.localTransformation[0:3,0:3]=self.localR
 
@@ -184,7 +199,7 @@ class Joint(GenericObject):
         '''
         compute local transformation w.r.t for the first time (compute everything)
         '''
-        self.localR1=rot1(self.rotation)
+        self.localR1=axisAngle2rot(self.rotation)
         self.localR = self.localR1
         self.localTransformation[0:3,0:3]=self.localR
         self.updateLocalTransformation()

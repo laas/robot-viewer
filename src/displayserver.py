@@ -8,7 +8,7 @@ import robo
 import ml_parser
 import pickle
 from openglaux import IsExtensionSupported,ReSizeGLScene, GlWindow
-from dsElement import *
+from display_element import *
 import re,imp
 from camera import Camera
 import pickle
@@ -17,6 +17,9 @@ import logging
 import ConfigParser
 
 ESCAPE = 27
+
+logger = logging.getLogger("displayserver")
+logger.setLevel(logging.DEBUG)
 
 def updateView(camera):
     """
@@ -53,15 +56,6 @@ class DisplayServer(object):
         self.no_cache = False
         if options and options.no_cache:
             self.no_cache = True
-
-        self.logger = logging.getLogger("RobotViewer")
-        self.logger.setLevel(logging.DEBUG)
-        # create console handler and set level to debug
-        self.ch = logging.StreamHandler()
-        self.ch.setLevel(self.log_level)
-        formatter = logging.Formatter("%(asctime)s:%(name)s:%(levelname)s - %(message)s")
-        self.ch.setFormatter(formatter)
-        self.logger.addHandler(self.ch)
 
         self._element_dict = dict()
         self.initGL()
@@ -106,7 +100,7 @@ class DisplayServer(object):
             m = pattern.match(line)
             if m:
                 correct_joint_dict[m.group(1)] = int(m.group(2)) -6
-                self.logger.info( m.group(1)+ "\t" + m.group(2))
+                logger.info( m.group(1)+ "\t" + m.group(2))
 
         for joint in self._element_dict[robot_name]._robot.joint_list:
             if correct_joint_dict.has_key(joint.name):
@@ -127,21 +121,21 @@ class DisplayServer(object):
 
         config = ConfigParser.ConfigParser()
         config.read(self.config_file)
-        self.logger.info( 'parsed_config %s'%config)
+        logger.info( 'parsed_config %s'%config)
         if config.has_section('robots'):
             robot_names = config.options('robots')
             for robot_name in robot_names:
                 robot_config = config.get('robots',robot_name)
                 robot_config = replace_env_var(robot_config)
-                self.logger.info( 'robot_config=%s'%robot_config)
+                logger.info( 'robot_config=%s'%robot_config)
                 if not os.path.isfile(robot_config):
-                    self.logger.info( "WARNING: Couldn't load %s. Are you sure %s exists?"\
+                    logger.info( "WARNING: Couldn't load %s. Are you sure %s exists?"\
                         %(robot_name,robot_config))
                     continue
                 self.createElement('robot',robot_name,robot_config)
                 self.enableElement(robot_name)
         else:
-            self.logger.info( """Couldn't any default robots. Loading an empty scene
+            logger.info( """Couldn't any default robots. Loading an empty scene
     You might need to load some robots yourself.
     See documentation""")
 
@@ -187,7 +181,7 @@ class DisplayServer(object):
                 os.remove(cached_file)
 
             if os.path.isfile(cached_file):
-                self.logger.info( "Using cached file %s.\n Remove it to reparse the wrl/xml file"%cached_file)
+                logger.info( "Using cached file %s.\n Remove it to reparse the wrl/xml file"%cached_file)
                 new_robot = pickle.load(open(cached_file))
             else:
                 objs = ml_parser.parse(edescription)
@@ -287,7 +281,7 @@ class DisplayServer(object):
     def DrawGLScene(self):
         if len(self.pendingObjects) > 0:
             obj = self.pendingObjects.pop()
-            self.logger.info( "creating %s %s %s"%( obj[0], obj[1], obj[2]))
+            logger.info( "creating %s %s %s"%( obj[0], obj[1], obj[2]))
             self.createElement(obj[0],obj[1],obj[2])
         # Clear Screen And Depth Buffer
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -304,7 +298,7 @@ class DisplayServer(object):
 
         for item in self._element_dict.items():
             ele = item[1]
-#            self.logger.info( item[0], item[1]._enabled)
+#            logger.info( item[0], item[1]._enabled)
             if isinstance(ele, DsRobot):
                 ele.render(self.render_mesh_flag, self.render_skeleton_flag, self.skeleton_size)
             else:
