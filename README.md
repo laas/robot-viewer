@@ -7,6 +7,10 @@ This package provides a viewer written in OpenGL.
 Setup
 -----
 Make sure you have the following dependency:
+ 
+ * python 2.6
+
+ * pyopengl
 
  * [SimpleParse 2.1](http://simpleparse.sourceforge.net/)
 
@@ -19,7 +23,7 @@ To install this package:
 Usage
 -----
 
- * Edit $HOME/.robotviewer/config to add your robot.
+ * Edit $HOME/.robotviewer/config to add your robot. robot-viewer supports vrml and kxml formats for robot representation.
  * Start the server:
         robotviewer -s SERVER_TYPE
 
