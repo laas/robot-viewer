@@ -77,6 +77,8 @@ class Parser (object):
     assemblyTag = "ASSEMBLY"
     polyhedronTag = "POLYHEDRON"
     relPosTag =  "RELATIVE_POSITION"
+    motionFrameTag = "MOTION_FRAME"
+
     def __init__(self, robot_name, filename):
         self.robot_name = robot_name
         self.filename = filename
@@ -94,7 +96,7 @@ class Parser (object):
             assembly_obj.id = assembly_nid
             self.shapes[assembly_nid] = assembly_obj
             for rel_pos_node in assembly_node.childNodes:
-                if rel_pos_node.nodeName != self.relPosTag:
+                if rel_pos_node.nodeName != self.motionFrameTag:
                     continue
                 try:
                     data =  rel_pos_node.childNodes[0].nodeValue.split()
@@ -142,8 +144,8 @@ class Parser (object):
                                        ]
                                       )
 
-                    polyhedron_obj.translation = rel_pos[0:3,3]
-                    polyhedron_obj.rotation = rot2AxisAngle(rel_pos[0:3,0:3])
+                    #polyhedron_obj.translation = rel_pos[0:3,3]
+                    #polyhedron_obj.rotation = rot2AxisAngle(rel_pos[0:3,0:3])
 
                 for rel_path_node in polyhedron_node.childNodes:
                     if rel_path_node.nodeName != self.relPathTag:
@@ -230,7 +232,7 @@ class Parser (object):
 
         # add shape object already loaded at the beginning
         solid = robo.GenericObject()
-        solid.translation = relative_solid_position[0:3,3]
+        #solid.translation = relative_solid_position[0:3,3]
         solid.rotation    = rot2AxisAngle(relative_solid_position[0:3,0:3])
         solid.addChild(self.shapes[solid_id])
         joint.addChild(solid)

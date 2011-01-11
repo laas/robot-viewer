@@ -15,7 +15,7 @@ import re,os
 import tempfile
 import scipy.io
 import subprocess, time, signal
-def reduce(mesh_verts, mesh_idxs):
+def reduce(mesh_verts, mesh_idxs, factor = 0.1):
     """
     """
     matlab_script = ""
@@ -57,9 +57,9 @@ def reduce(mesh_verts, mesh_idxs):
     matlab_script += "];\n"
     matlab_script += """
 path(path,'%s')
-[nf,nv]=reduce_mesh(verts, faces, 0.1);
+[nf,nv]=reduce_mesh(verts, faces, %f);
 save('%s.mat','nf','nv')
-"""%(srcpath,os.path.basename(mat_file))
+"""%(srcpath,factor,  os.path.basename(mat_file))
     f=open("%s.m"%script_file,'w')
     f.write(matlab_script)
     f.close()
@@ -90,7 +90,7 @@ def main():
 
     parser.add_option("-f", "--factor", type = "float",
                       action="store", dest="factor", default = 0.1,
-                      help="specify the fraction of the original number of faces")
+                      help="specify the fraction of the original number of faces to be kept")
 
 
     (options, args) = parser.parse_args(sys.argv[1:])
@@ -110,7 +110,7 @@ def main():
         idx_str = idxs[i]
         coord = [ float(w) for w in coord_str.split()]
         idx = [ int(w) for w in idx_str.replace(","," ").split()]
-        new_coord, new_idx = reduce(coord, idx)
+        new_coord, new_idx = reduce(coord, idx,options.factor)
         new_coord_str = " ".join(["%f %f %f \n"%(p[0], p[1], p[2]) for p in new_coord])
         new_idx_str = ""
         for j, b in enumerate(new_idx):

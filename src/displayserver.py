@@ -195,11 +195,11 @@ class DisplayServer(object):
                 new_robot = robots[0]
 
             new_element = DsRobot(new_robot)
-            logger.info("Saving new cached to %s"%cached_file)
+            logger.info("Saving new cache to %s"%cached_file)
             f = open(cached_file,'w')
             pickle.dump(new_robot,f)
             f.close()
-            logger.info("Finished saving new cached to %s"%cached_file)
+            logger.info("Finished saving new cache to %s"%cached_file)
             self._element_dict[ename] = new_element
 
         elif etype == 'script':
