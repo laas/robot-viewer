@@ -31,7 +31,8 @@ def main():
         from robotviewer.displayserver_corba import DisplayServerCorba as DisplayServer
     elif options.server == "XML-RPC":
         from robotviewer.displayserver_xmlrpc import DisplayServerXmlrpc as DisplayServer
-
+    else:
+        raise Exception ("Not supported server type %s"%options.server)
     server = DisplayServer(options,args)
     server.run()
 

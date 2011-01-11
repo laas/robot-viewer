@@ -8,7 +8,7 @@ import robo
 import ml_parser
 import pickle
 from openglaux import IsExtensionSupported,ReSizeGLScene, GlWindow
-from display_element import *
+from display_element import DsElement, DsRobot, DsScript
 import re,imp
 from camera import Camera
 import pickle
@@ -194,10 +194,12 @@ class DisplayServer(object):
                                     %(edescription, len(robots)))
                 new_robot = robots[0]
 
-                f = open(cached_file,'w')
-                pickle.dump(new_robot,f)
-                f.close()
             new_element = DsRobot(new_robot)
+            logger.info("Saving new cached to %s"%cached_file)
+            f = open(cached_file,'w')
+            pickle.dump(new_robot,f)
+            f.close()
+            logger.info("Finished saving new cached to %s"%cached_file)
             self._element_dict[ename] = new_element
 
         elif etype == 'script':

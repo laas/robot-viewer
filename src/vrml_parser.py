@@ -215,8 +215,7 @@ def main():
     (options, args) = parser.parse_args(sys.argv[1:])
     res = parse(args[0])
     for r in res:
-        if isinstance(r,BaseNode):
-            print r
+        print r
 
 if __name__ == '__main__':
     main()
