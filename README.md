@@ -7,6 +7,7 @@ This package provides a viewer written in OpenGL.
 Setup
 -----
 Make sure you have the following dependency:
+ 
  * python 2.6
 
  * pyopengl
