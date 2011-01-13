@@ -9,30 +9,30 @@ class Mesh(GenericObject):
         self.type="mesh"
         self.name=None
         self.localR1=np.eye(3)  # due to offset of coordonee
-        self.shapes=[]
+        self.app=Appearance()
+        self.geo=Geometry()
+
+    def scale(self, scale_vec):
+        self.geo.scale(scale_vec)
 
     def __str__(self):
         s=""
         s+="\nrotation="+str(self.rotation)
         s+="\ntranslation="+str(self.translation)
-        for shape in self.shapes:
-            s+=shape.__str__()
-            s+="\n"
+        s+="Apparence: %s\n"%str(self.app)
+        s+="\n"
+        s+="Geometry: %s\n"%str(self.geo)
         return s
-
-    def scale(self, scale_vec):
-        for sh in self.shapes:
-            sh.scale(scale_vec)
-
 
 class Appearance():
     def __init__(self):
-        self.diffuseColor   =None
-        self.specularColor  =None
-        self.emissiveColor  =None
-        self.shininess      =None
-        self.transparency   =None
-        self.ambientIntensity=0.0
+        self.diffuseColor   = None
+        self.ambientColor   = None
+        self.specularColor  = None
+        self.emissiveColor  = None
+        self.shininess      = None
+        self.transparency   = None
+        self.ambientIntensity= 0.0
     def __str__(self):
         s=""
         s+="\ndiffuseColor="+str(self.diffuseColor)
@@ -64,18 +64,4 @@ class Geometry():
             self.coord[3*i]   *= scale_x
             self.coord[3*i+1] *= scale_y
             self.coord[3*i+2] *= scale_z
-
-class Shape():
-    def __init__(self):
-        self.app=Appearance()
-        self.geo=Geometry()
-
-    def __str__(self):
-        s=""
-        s=self.app.__str__()
-        s+="\n"
-        s+=self.geo.__str__()
-        return s
-    def scale(self, scale_vec):
-        self.geo.scale(scale_vec)
 

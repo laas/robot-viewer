@@ -63,7 +63,7 @@ save('%s.mat','nf','nv')
     f=open("%s.m"%script_file,'w')
     f.write(matlab_script)
     f.close()
-    cmd = "cd /tmp && matlab -r %s"%os.path.basename(script_file)
+    cmd = "cd /tmp && matlab -nosplash 	-nojvm -r %s"%os.path.basename(script_file)
     mat_proc = subprocess.Popen(cmd, shell = True, preexec_fn=os.setsid)
     while not os.path.isfile("%s.mat"%mat_file):
         time.sleep(0.5)

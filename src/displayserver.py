@@ -65,14 +65,16 @@ class DisplayServer(object):
         self._mouseButton = None
         self._oldMousePos = [ 0, 0 ]
 
+        self.wired_frame_flag = False
+
         if options and options.skeleton:
             self.render_mesh_flag = False
             self.render_skeleton_flag = True
         else:
             self.render_mesh_flag = True
             self.render_skeleton_flag = False
-
         self.skeleton_size = 1
+        self.transparency = 0
 
     def initGL(self):
         glutInit(sys.argv)
@@ -84,6 +86,7 @@ class DisplayServer(object):
         glutIdleFunc(self.DrawGLScene)
         glutReshapeFunc(ReSizeGLScene)
         self._glwin=GlWindow(640, 480, "Robotviewer Server")
+        self.usage = ""
         self.bindEvents()
 
     def update_hrp_joint_link(self,robot_name, joint_rank_xml):
@@ -274,6 +277,7 @@ class DisplayServer(object):
         return [name for name in self._element_dict.keys() ]
 
     def run(self):
+        logger.info(self.usage)
         glutMainLoop()
 
 
@@ -311,6 +315,22 @@ class DisplayServer(object):
         return True
 
     def bindEvents(self):
+        self.usage="Keyboard shortcuts:\n"
+        for key, effect in [("ESCAPE", "Quit the program"),
+                            ("m", "Turn meshes on/off"),
+                            ("s", "Turn skeletons on/off"),
+                            ("w", "Turn wireframe on/off"),
+                            ("+", "Skeleton size up"),
+                            ("-", "Skeleton size down"),
+                            ("l", "lighter scene"),
+                            ("d", "dimmer scene"),
+                            ("o", "light ATTENUATION down"),
+                            ("e", "light ATTENUATION up"),
+                            ("t", "transparency up"),
+                            ("r", "transparency down")
+                            ]:
+
+            self.usage += "%.20s: %s\n"%(key, effect)
 
         def keyPressedFunc(*args):
             # If escape is pressed, kill everything.
@@ -324,6 +344,14 @@ class DisplayServer(object):
                 self.render_skeleton_flag = not self.render_skeleton_flag
                 print "render skeleton:", self.render_skeleton_flag
 
+            elif args[0] == 'w':
+                self.wired_frame_flag = not self.wired_frame_flag
+                print "render mesh:", self.wired_frame_flag
+                if self.wired_frame_flag:
+                    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+                else:
+                    glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+
             elif args[0] == '+':
                 self.skeleton_size += 1
 
@@ -331,6 +359,40 @@ class DisplayServer(object):
                 if self.skeleton_size >1:
                     self.skeleton_size -= 1
 
+            elif args[0] == 't':
+                if self.transparency < 1:
+                    self.transparency += 0.1
+                    for name, e in self._element_dict.items():
+                        if isinstance(e, DsRobot):
+                            e.set_transparency(self.transparency)
+
+            elif args[0] == 'r':
+                if self.transparency > 0:
+                    self.transparency -= .1
+                    for name, e in self._element_dict.items():
+                        if isinstance(e, DsRobot):
+                            e.set_transparency(self.transparency)
+            elif args[0] == 'l':
+                if self._glwin._modelAmbientLight < 1.0:
+                    self._glwin._modelAmbientLight += 0.1
+                    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [self._glwin._modelAmbientLight,
+                                                            self._glwin._modelAmbientLight,
+                                                            self._glwin._modelAmbientLight,1])
+            elif args[0] == 'd':
+                if self._glwin._modelAmbientLight >0 :
+                    self._glwin._modelAmbientLight -= 0.1
+                    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [self._glwin._modelAmbientLight,
+                                                            self._glwin._modelAmbientLight,
+                                                            self._glwin._modelAmbientLight,1])
+
+            elif args[0] == 'e':
+                if self._glwin._lightAttenuation < 1.0:
+                    self._glwin._lightAttenuation += 0.1
+                    glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self._glwin._lightAttenuation)
+            elif args[0] == 'o':
+                if self._glwin._lightAttenuation > 0.1 :
+                    self._glwin._lightAttenuation -= 0.1
+                    glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self._glwin._lightAttenuation)
 
             return
 

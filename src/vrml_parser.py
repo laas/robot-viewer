@@ -4,8 +4,6 @@ __author__ = "Duong Dang"
 __version__ = "0.1"
 
 import logging, os, sys
-logger = logging.getLogger("vrml_parser")
-logger.setLevel(logging.DEBUG)
 
 from simpleparse.common import numbers, strings, comments
 from simpleparse.parser import Parser
@@ -13,8 +11,15 @@ from simpleparse.dispatchprocessor import *
 from vrml_grammar import VRMLPARSERDEF
 import pprint
 
-from mesh import Mesh, Appearance, Geometry, Shape
+from mesh import Mesh, Appearance, Geometry
 from robo import GenericObject, Joint, BaseNode
+class NullHandler(logging.Handler):
+    def emit(self, record):
+        pass
+
+logger = logging.getLogger("vrml_parser")
+logger.addHandler(NullHandler())
+logger.setLevel(logging.DEBUG)
 
 class VrmlNode(dict):
     def __init__(self, n = None):
@@ -47,17 +52,12 @@ class VrmlProcessor(DispatchProcessor):
 
         processed_node = vrml_node
 
-        shapes = []
-        if 'children' in vrml_node.keys():
-            for child in vrml_node['children']:
-                if isinstance(child,Shape):
-                    shapes.append(child)
-
         if vrml_node.name == "Appearance":
             processed_node = Appearance()
             try:
                 mat = vrml_node['material']
                 processed_node.__dict__.update(vrml_node['material'][0])
+
             except KeyError:
                 logger.warning("No material node found for %s"%vrml_node)
 
@@ -68,13 +68,9 @@ class VrmlProcessor(DispatchProcessor):
 
         elif ( isinstance(vrml_node,dict) and 'appearance' in vrml_node.keys()
                and 'geometry' in vrml_node.keys()):
-            processed_node = Shape()
+            processed_node = Mesh()
             processed_node.app = vrml_node['appearance'][0]
             processed_node.geo = vrml_node['geometry'][0]
-
-        elif shapes[:]:
-            processed_node = Mesh()
-            processed_node.shapes = shapes
 
         elif vrml_node.name == "Transform":
             processed_node = GenericObject()
@@ -86,12 +82,20 @@ class VrmlProcessor(DispatchProcessor):
                 children = vrml_node['children']
                 for child in children:
                     if isinstance(child, GenericObject):
-                        if vrml_node['scale'] and isinstance(child,Mesh):
+                        if 'scale' in vrml_node.keys() and isinstance(child,GenericObject):
                             child.scale(vrml_node['scale'])
                         processed_node.addChild(child)
                         child.parent = processed_node
                     else:
                         logger.debug("Ignoring transform child %s"%str(child))
+
+        elif vrml_node.name == "Group":
+            processed_node = GenericObject()
+            if 'children' in vrml_node.keys():
+                children = vrml_node['children']
+                for child in children:
+                    processed_node.addChild(child)
+
 
         elif vrml_node.name == "Humanoid":
             processed_node = BaseNode()
@@ -206,6 +210,9 @@ def parse(filename):
 
 def main():
     import optparse
+    sh = logging.StreamHandler()
+    sh.setLevel(logging.DEBUG)
+    logger.addHandler(sh)
     parser = optparse.OptionParser(
         usage='\n\t%prog [options]',
         version='%%prog %s' % __version__)

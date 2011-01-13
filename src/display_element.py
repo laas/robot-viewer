@@ -77,6 +77,7 @@ class DsElement(object):
 class DsRobot(DsElement):
     """Display Element for a humanoid robot
     """
+
     def __init__(self, robot = None, xyz = [0,0,0], rpy = [0,0,0], enabled= False):
         """
 
@@ -89,7 +90,7 @@ class DsRobot(DsElement):
         self._enabled = enabled
         self._q = []
         self._robot = robot
-        self._shapeVBOlist=[]
+        self._meshVBOlist=[]
         self._kinematics_update_t = 0
         self._config_update_t = 0
         for amesh in robot.mesh_list:
@@ -98,11 +99,37 @@ class DsRobot(DsElement):
                 joint_name = amesh.getParentJoint().name
             logger.info("Loading mesh %s of joint %s into memory."
                         %(amesh.name, joint_name))
-            for ashape in amesh.shapes:
-                shapeVBO=ShapeVBO(ashape)
-                shapeVBO._mesh=amesh
-                self._shapeVBOlist.append(shapeVBO)
+            meshVBO=MeshVBO(amesh)
+            self._meshVBOlist.append(meshVBO)
 
+
+        self.glList_joint_sphere_mat = glGenLists(1)
+        self.wired_frame_flag = False
+        glNewList(self.glList_joint_sphere_mat, GL_COMPILE);
+        for (key, value) in [ (GL_SPECULAR, [1,1,1,1]),
+                              (GL_EMISSION, [0.5,0,0,1]),
+                              (GL_AMBIENT_AND_DIFFUSE, [0.5,0,0,1]),
+                              (GL_SHININESS, 5),
+                              ]:
+            glMaterialfv(GL_FRONT_AND_BACK, key, value)
+        glEndList()
+
+        self.glList_link_mat = glGenLists(1)
+        glNewList(self.glList_link_mat, GL_COMPILE);
+        for (key, value) in [ (GL_SPECULAR, [1,1,1,1]),
+                              (GL_EMISSION, [0,1,0,1]),
+                              (GL_AMBIENT_AND_DIFFUSE, [0,1,0,1]),
+                              (GL_SHININESS, 5),
+                              ]:
+            glMaterialfv(GL_FRONT_AND_BACK, key, value)
+        glEndList()
+
+    def set_transparency(self, transparency):
+        for m in self._robot.mesh_list:
+            m.app.transparency = transparency
+
+        for m in self._meshVBOlist:
+            m.createMatList()
 
     def __str__(self):
         s = "  type\t: Robot\n"
@@ -144,43 +171,77 @@ class DsRobot(DsElement):
             return
 
         self.updateKinematics()
-        if render_mesh_flag:
-            self.renderMesh()
 
         if render_skeleton_flag:
             self.renderSkeleton(size)
 
-    def draw_link(self,p1,p2,size=1):
-        p=p2-p1
-        height=np.sqrt(np.dot(p,p))
-        glPushMatrix()
-        glBegin(GL_LINES)
-        glVertex3f(p1[0],p1[1],p1[2])
-        glVertex3f(p2[0],p2[1],p2[2])
-        glEnd()
-        glPopMatrix()
+        if render_mesh_flag:
+            self.renderMesh()
+
 
     def renderSkeleton(self, size = 1):
+        def draw_link(p1,p2,size=1):
+            p=p2-p1
+            height=np.sqrt(np.dot(p,p))
+            glPushMatrix()
+            glCallList(self.glList_link_mat)
+            glBegin(GL_LINES)
+            glVertex3f(p1[0],p1[1],p1[2])
+            glVertex3f(p2[0],p2[1],p2[2])
+            glEnd()
+            glPopMatrix()
+
+        def draw_joint(joint, size = 1):
+            r = 0.01*size
+            h = r/2
+            pos=joint.globalTransformation[0:3,3]
+            glCallList(self.glList_joint_sphere_mat)
+
+            if joint.jointType in ["free", "free_flyer"]:
+                glPushMatrix()
+                glTranslatef(pos[0], pos[1], pos[2])
+                angleAxis = rot2AngleAxis(joint.globalTransformation[0:3][0:3])
+                glRotated(*angleAxis)
+                sphere = gluNewQuadric()
+                gluSphere(sphere,0.01*size,10,10)
+                glPopMatrix()
+            else:
+                glPushMatrix()
+                glTranslatef(pos[0], pos[1], pos[2])
+                angleAxis = rot2AngleAxis(joint.globalTransformation[0:3][0:3])
+                glRotated(*angleAxis)
+                if joint.axis in ("X","x"):
+                    glRotated(90,0,1,0)
+                elif joint.axis in ("Y","y"):
+                    glRotated(90,1,0,0)
+
+                glTranslated(0.0,0.0,-h/2)
+                qua = gluNewQuadric()
+                gluCylinder(qua,r,r,h,10,5)
+                glTranslated(0.0,0.0,h)
+                gluDisk(qua,0,r,10,5)
+                glTranslated(0.0,0.0,-h)
+                glRotated(180,1,0,0)
+                gluDisk(qua,0,r,10,5)
+                glPopMatrix()
+
         # draw_skeleton a sphere at each mobile joint
         # print "rendering skeleton", self._robot.joint_list
         for joint in self._robot.joint_list:
-            pos=joint.globalTransformation[0:3,3]
-            glPushMatrix()
-            glTranslatef(pos[0], pos[1], pos[2])
-            sphere = gluNewQuadric()
-            gluSphere(sphere,0.01*size,10,10)
-            glPopMatrix()
-
+            draw_joint(joint, size)
             if joint.parent and joint.jointType in ["rotate","revolute","prismatic",
                                    "rotation", "translation"]:
+                pos=joint.globalTransformation[0:3,3]
                 parent=joint.parent
                 parent_pos=parent.globalTransformation[0:3,3]
-                self.draw_link(pos,parent_pos)
+                draw_link(pos,parent_pos)
+
+
 
     def renderMesh(self):
         glEnableClientState(GL_NORMAL_ARRAY);
         glEnableClientState(GL_VERTEX_ARRAY);
-        for avbo in self._shapeVBOlist:
+        for avbo in self._meshVBOlist:
             amesh = avbo._mesh
             Tmatrix=amesh.globalTransformation
             R=Tmatrix[0:3,0:3]
@@ -253,18 +314,17 @@ class DsScript(DsElement):
         glPopMatrix()
 
 
-class ShapeVBO(object):
+class MeshVBO(object):
     """
     """
 
-    def __init__(self, shape):
+    def __init__(self, mesh):
         """
 
         Arguments:
         - `mesh`:
         """
-        self._shape  = shape
-        self._mesh = None
+        self._mesh  = mesh
 
         self.ver_vboId  = -1
         self.nor_vboId  = -1
@@ -276,13 +336,13 @@ class ShapeVBO(object):
         self.count  = 0
 
         # TODO glList for colors
-        # copy vertex and normals from shape
-        self._verts = self._shape.geo.coord
+        # copy vertex and normals from mesh
+        self._verts = self._mesh.geo.coord
         coord=self._verts
-        idx = self._shape.geo.idx
+        idx = self._mesh.geo.idx
         npoints=len(coord)/3
 
-        if self._shape.geo.norm==[]:
+        if self._mesh.geo.norm==[]:
             normals=[]
             points=[]
             for k in range(npoints):
@@ -305,7 +365,7 @@ class ShapeVBO(object):
             # idx=-1 and poly is a triangle
             self._idxs += poly
 
-            if self._shape.geo.norm==[]:
+            if self._mesh.geo.norm==[]:
                 # update the norm vector
                 # update the normals using G. Thurmer, C. A. Wuthrich,
                 # "Computing vertex normals from polygonal facets"
@@ -326,13 +386,13 @@ class ShapeVBO(object):
                 normals[id2]+=alpha2*normalized(numpy.cross(p21,p02))
             poly=[]
 
-        if self._shape.geo.norm!=[]:
-            self._norms=self._shape.geo.norm
+        if self._mesh.geo.norm!=[]:
+            self._norms=self._mesh.geo.norm
         else:
             for normal in normals:
                 normal                =  normalized(normal)
                 self._norms          += [normal[0],normal[1],normal[2]]
-                self._shape.geo.norm += [normal[0],normal[1],normal[2]]
+                self._mesh.geo.norm += [normal[0],normal[1],normal[2]]
 
         self.count = len(self._idxs)
         self.ver_vboId = int(glGenBuffersARB(1))
@@ -357,24 +417,33 @@ class ShapeVBO(object):
         glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,0 );
 
         self.glList_idx = glGenLists(1)
-        app=self._shape.app
+        self.createMatList()
+
+
+    def createMatList(self):
+        app=self._mesh.app
         glNewList(self.glList_idx, GL_COMPILE);
-        if app.specularColor:
-            glMaterialfv(GL_FRONT, GL_SPECULAR,app.specularColor)
-        if app.emissiveColor:
-            glMaterialfv(GL_FRONT, GL_EMISSION,app.emissiveColor )
-        if app.diffuseColor:
-            glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE,app.diffuseColor )
-        if app.shininess:
-            glMaterialfv(GL_FRONT, GL_SHININESS,app.shininess)
-
+        for (key, value) in [ (GL_SPECULAR,app.specularColor),
+                              (GL_EMISSION,app.emissiveColor ),
+                              (GL_AMBIENT_AND_DIFFUSE,app.diffuseColor ),
+                              (GL_AMBIENT,app.ambientColor ),
+                              (GL_SHININESS,app.shininess),
+                              #(GL_TRANSPARENCY,app.transparency)
+                              ]:
+            if value:
+                if key != GL_SHININESS:
+                    glMaterialfv(GL_FRONT_AND_BACK, key, value + [1-app.transparency])
+                else:
+                    glMaterialfv(GL_FRONT_AND_BACK, key, value)
+            else:
+                logger.warning("Mesh %s of joint %s: Missing %s in material"
+                               %(self._mesh.name, self._mesh.getParentJoint().name, key.name))
         glEndList();
-
 
     def __str__(self):
         """
         """
-        s="[ShapeVBO instance:\n"
+        s="[MeshVBO instance:\n"
         s+="ver_vboId\t=%d\n"%self.ver_vboId
         s+="nor_vboId\t=%d\n"%self.nor_vboId
         s+="idx_vboId\t=%d\n"%self.idx_vboId

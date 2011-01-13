@@ -8,7 +8,7 @@
 
 import sys
 import xml.dom.minidom as dom
-import robo
+import robo, mesh
 # from dynamic_graph.sot.dynamics.dynamic import Dynamic
 # from dynamic_graph.sot import SE3, R3, SO3
 import numpy
@@ -19,7 +19,12 @@ import os, logging
 import ml_parser
 import copy
 
+class NullHandler(logging.Handler):
+    def emit(self, record):
+        pass
+
 logger = logging.getLogger("kxml_parser")
+logger.addHandler(NullHandler())
 logger.setLevel(logging.DEBUG)
 
 class Parser (object):
@@ -78,6 +83,11 @@ class Parser (object):
     polyhedronTag = "POLYHEDRON"
     relPosTag =  "RELATIVE_POSITION"
     motionFrameTag = "MOTION_FRAME"
+    diffuseColorTag = "GEOMETRY_DIFFUSE_COLOR"
+    specularColorTag = "GEOMETRY_SPECULAR_COLOR"
+    ambientColorTag = "GEOMETRY_AMBIENT_COLOR"
+    shininessTag = "GEOMETRY_SHININESS"
+    nameTag      = "NAME"
 
     def __init__(self, robot_name, filename):
         self.robot_name = robot_name
@@ -123,41 +133,66 @@ class Parser (object):
                 polyhedron_nid = int(polyhedron_node.attributes["id"].value)
                 polyhedron_obj = robo.GenericObject()
                 polyhedron_obj.id = polyhedron_nid
+                polyhedron_obj.name = self.findStringProperty(polyhedron_node, self.nameTag)
                 assembly_obj.addChild(polyhedron_obj)
                 self.shapes[polyhedron_nid] = polyhedron_obj
-                for rel_pos_node in polyhedron_node.childNodes:
-                    if rel_pos_node.nodeName != self.relPosTag:
-                        continue
-                    try:
-                        data =  rel_pos_node.childNodes[0].nodeValue.split()
-                        data = [ float(e) for e in data ]
-                    except:
-                        raise Exception("Invalid position node %s"%rel_pos_node.toprettyxml())
 
-                    if len(data) != 16:
-                        raise Exception("Wrong dimension for position %s"%str(data))
+                for child_node in polyhedron_node.childNodes:
+                    if child_node.nodeName == self.relPosTag:
+                        rel_pos_node = child_node
+                        try:
+                            data =  rel_pos_node.childNodes[0].nodeValue.split()
+                            data = [ float(e) for e in data ]
+                        except:
+                            raise Exception("Invalid position node %s"%rel_pos_node.toprettyxml())
 
-                    rel_pos = numpy.array([[data[0],  data[1],  data[2],  data[3]],
-                                       [data[4],  data[5],  data[6],  data[7]],
-                                       [data[8],  data[9],  data[10], data[11]],
-                                       [data[12], data[13], data[14], data[15]]
-                                       ]
-                                      )
+                        if len(data) != 16:
+                            raise Exception("Wrong dimension for position %s"%str(data))
 
-                    #polyhedron_obj.translation = rel_pos[0:3,3]
-                    #polyhedron_obj.rotation = rot2AxisAngle(rel_pos[0:3,0:3])
+                        rel_pos = numpy.array([[data[0],  data[1],  data[2],  data[3]],
+                                           [data[4],  data[5],  data[6],  data[7]],
+                                           [data[8],  data[9],  data[10], data[11]],
+                                           [data[12], data[13], data[14], data[15]]
+                                           ]
+                                          )
+                        #polyhedron_obj.translation = rel_pos[0:3,3]
+                        #polyhedron_obj.rotation = rot2AxisAngle(rel_pos[0:3,0:3])
 
-                for rel_path_node in polyhedron_node.childNodes:
-                    if rel_path_node.nodeName != self.relPathTag:
-                        continue
-                    rel_path = rel_path_node.childNodes[0].nodeValue
-                    #if rel_path != "vrml2/AcademicHead.wrl":
-                    #    continue
-                    logger.info("Parsing %s "%(os.path.join(self.kxml_dir_name, rel_path)))
-                    objs = ml_parser.parse(os.path.join(self.kxml_dir_name, rel_path))
-                    for obj in objs:
-                        if isinstance(obj,robo.GenericObject):
-                            polyhedron_obj.addChild(obj)
+
+                    elif child_node.nodeName == self.relPathTag:
+                        rel_path_node = child_node
+                        rel_path = rel_path_node.childNodes[0].nodeValue
+                        #if rel_path != "vrml2/AcademicHead.wrl":
+                        #    continue
+                        logger.info("Parsing %s "%(os.path.join(self.kxml_dir_name, rel_path)))
+                        objs = ml_parser.parse(os.path.join(self.kxml_dir_name, rel_path))
+                        for obj in objs:
+                            if isinstance(obj,robo.GenericObject):
+                                polyhedron_obj.addChild(obj)
+                            else:
+                                logger.debug("Ignoring %s"%str(obj))
+
+                diffuseColor  = self.findVecProperty(polyhedron_node,self.diffuseColorTag)[:-1]
+                specularColor = self.findVecProperty(polyhedron_node,self.specularColorTag)[:-1]
+                ambientColor  = self.findVecProperty(polyhedron_node,self.ambientColorTag)[:-1]
+                shininess     = self.findFloatProperty(polyhedron_node,self.shininessTag)
+                def propagate_geo_param(obj, key, value):
+                    if isinstance(obj, mesh.Mesh):
+                        old_val =  getattr(obj.app, key)
+                        if old_val != value:
+                            logger.debug("Mesh %s: %s changed from %s to %s"
+                                         %(polyhedron_obj.name, key, str(old_val), str(value)))
+                        setattr(obj.app, key, value)
+
+                    for child in obj.children:
+                        propagate_geo_param(child, key, value)
+
+                for key,value in [#("diffuseColor",diffuseColor),
+                                  ("specularColor",specularColor),
+                                  ("ambientColor",ambientColor),
+                                  ("shininess",shininess),
+                                  ]:
+                    propagate_geo_param(polyhedron_obj, key, value)
 
         solidref_nodes = dom1.getElementsByTagName(self.solidrefTag)
 
@@ -391,6 +426,11 @@ joint.localT=
         value = value[0]
         return cast(value.data)
 
+    def findVecProperty(self, node, prop):
+        s = self.findStringProperty(node, prop)
+        return [ float(w) for w in s.split()]
+
+
     def findJointPosition(self, node):
         tag = 'CURRENT_POSITION'
         posNode = filter(lambda n: n.nodeName == tag,
@@ -448,5 +488,9 @@ def parse(filename):
     return parser.parse()
 
 if __name__ == '__main__':
+    sh = logging.StreamHandler()
+    sh.setLevel(logging.DEBUG)
+    logger.addHandler(sh)
     robot = parse(sys.argv[1])[0]
-    print robot.printJoints()
+    print robot
+    # print robot.printJoints()

@@ -126,7 +126,8 @@ class GlWindow(object):
         self.camera=Camera()
         self._mouseButton = None
         self._oldMousePos = [ 0, 0 ]
-
+        self._modelAmbientLight = 0.3
+        self._lightAttenuation = 0.2
         # # Check for VBOs Supported
         self._VBOSupported = IsExtensionSupported ("GL_ARB_vertex_buffer_object")
 
@@ -168,14 +169,22 @@ class GlWindow(object):
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_LIGHTING)
 
+        glEnable (GL_BLEND)
+        glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
         lightZeroPosition = [-3.0,3.0,3.0,1.0]
         lightZeroColor = [1.0,1.0,1.0,1.0] #green tinged
         glLightfv(GL_LIGHT0, GL_POSITION, lightZeroPosition)
         glLightfv(GL_LIGHT0, GL_DIFFUSE, lightZeroColor)
+        glLightfv(GL_LIGHT0, GL_SPECULAR, lightZeroColor)
+        glLightfv(GL_LIGHT0, GL_AMBIENT, [0,0,0,1])
+        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [self._modelAmbientLight,
+                                                self._modelAmbientLight,
+                                                self._modelAmbientLight,1])
 
-        glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.0)
-        glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 0.0)
-        glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.03)
+        # glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, )
+        glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self._lightAttenuation)
+        # glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.03)
 
         glEnable(GL_LIGHT0)
         self.bindEvents()

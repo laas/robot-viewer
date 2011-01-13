@@ -48,6 +48,10 @@ class GenericObject(object):
 
         return s
 
+    def scale(self, scale_vec):
+        for child in self.children:
+            child.scale(scale_vec)
+
 
     def addChild(self,a_child):
         '''
@@ -331,3 +335,17 @@ class BaseNode(Joint):
                 print error, "on object %s"%child.name
 
         self.update_moving_joint_list()
+
+        for mesh in self.mesh_list:
+            mesh.app.transparency = 0
+            for color in (mesh.app.diffuseColor,mesh.app.ambientColor,
+                          mesh.app.specularColor,mesh.app.emissiveColor):
+                if color == None:
+                    continue
+                if type(color) != list:
+                    raise Exception("Invalid color for mesh %s"%str(mesh))
+
+                if len(color) != 3:
+                    raise Exception("Invalid len for a color in mesh %s"%str(mesh.name))
+
+
