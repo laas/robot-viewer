@@ -14,7 +14,7 @@ def norm(a):
     return sqrt(np.dot(a,a))
 
 def normalized(v):
-    return v/norm(v)
+    return np.array([e/norm(v) for e in v])
 
 def rot2AngleAxis(M):
     """

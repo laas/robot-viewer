@@ -181,15 +181,30 @@ class DsRobot(DsElement):
 
     def renderSkeleton(self, size = 1):
         def draw_link(p1,p2,size=1):
-            p=p2-p1
-            height=np.sqrt(np.dot(p,p))
-            glPushMatrix()
+            r = 0.01*size/4
             glCallList(self.glList_link_mat)
-            glBegin(GL_LINES)
-            glVertex3f(p1[0],p1[1],p1[2])
-            glVertex3f(p2[0],p2[1],p2[2])
-            glEnd()
+            p = p2-p1
+            n_p = normalized(p)
+            h = norm(p)
+
+            glPushMatrix()
+            glTranslatef(p1[0], p1[1], p1[2])
+            z_axis = numpy.array([0,0,1])
+            axis = numpy.cross(z_axis, n_p)
+            angle = acos(numpy.dot(z_axis, n_p))*180/pi
+
+            glRotated(angle, axis[0], axis[1], axis[2])
+
+            qua = gluNewQuadric()
+            gluCylinder(qua,r,r,h,10,5)
+            glTranslated(0.0,0.0,h)
+            gluDisk(qua,0,r,10,5)
+            glTranslated(0.0,0.0,-h)
+            glRotated(180,1,0,0)
+            gluDisk(qua,0,r,10,5)
+
             glPopMatrix()
+
 
         def draw_joint(joint, size = 1):
             r = 0.01*size
@@ -234,7 +249,7 @@ class DsRobot(DsElement):
                 pos=joint.globalTransformation[0:3,3]
                 parent=joint.parent
                 parent_pos=parent.globalTransformation[0:3,3]
-                draw_link(pos,parent_pos)
+                draw_link(pos,parent_pos,size)
 
 
 
