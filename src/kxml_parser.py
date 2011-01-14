@@ -122,8 +122,8 @@ class Parser (object):
                                    ]
                                   )
 
-                assembly_obj.translation = rel_pos[0:3,3]
-                assembly_obj.rotation = rot2AxisAngle(rel_pos[0:3,0:3])
+                #assembly_obj.translation = rel_pos[0:3,3]
+                #assembly_obj.rotation = rot2AxisAngle(rel_pos[0:3,0:3])
 
             polyhedron_nodes = assembly_node.getElementsByTagName(self.polyhedronTag)
 
@@ -136,7 +136,7 @@ class Parser (object):
                 self.shapes[polyhedron_nid] = polyhedron_obj
 
                 for child_node in polyhedron_node.childNodes:
-                    if child_node.nodeName == self.relPosTag:
+                    if child_node.nodeName == self.motionFrameTag:
                         rel_pos_node = child_node
                         try:
                             data =  rel_pos_node.childNodes[0].nodeValue.split()
@@ -160,13 +160,12 @@ class Parser (object):
                     elif child_node.nodeName == self.relPathTag:
                         rel_path_node = child_node
                         rel_path = rel_path_node.childNodes[0].nodeValue
-                        #if rel_path != "vrml2/AcademicHead.wrl":
-                        #    continue
                         logger.info("Parsing %s "%(os.path.join(self.kxml_dir_name, rel_path)))
                         objs = ml_parser.parse(os.path.join(self.kxml_dir_name, rel_path))
                         for obj in objs:
                             if isinstance(obj,kinematic_chain.GenericObject):
                                 polyhedron_obj.addChild(obj)
+                                # obj.translation = [0,0,0]
                             else:
                                 logger.debug("Ignoring %s"%str(obj))
 
@@ -280,7 +279,7 @@ class Parser (object):
 
         # add shape object already loaded at the beginning
         solid = kinematic_chain.GenericObject()
-        #solid.translation = relative_solid_position[0:3,3]
+        # solid.translation = relative_solid_position[0:3,3]
         solid.rotation    = rot2AxisAngle(relative_solid_position[0:3,0:3])
         solid.addChild(self.shapes[solid_id])
         joint.addChild(solid)
