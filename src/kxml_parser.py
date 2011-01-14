@@ -96,9 +96,7 @@ class Parser (object):
         self.shapes = {}
         self.globalTransformations = {}
 
-    def parse (self):
-        dom1 = dom.parse(self.filename)
-
+    def parse_geometry(self, dom1):
         assembly_nodes = dom1.getElementsByTagName(self.assemblyTag)
         for assembly_node in assembly_nodes:
             assembly_nid = int(assembly_node.attributes["id"].value)
@@ -201,6 +199,10 @@ class Parser (object):
             refid = int(n.attributes["referencedComponentId"].value)
             self.shapes[nid] = self.shapes[refid]
 
+    def parse (self):
+        dom1 = dom.parse(self.filename)
+        self.parse_geometry(dom1)
+
         hNode = dom1.getElementsByTagName(self.robotTag)[0]
         for p in self.robotStringProperties:
             value = self.findStringProperty(hNode, p)
@@ -219,21 +221,52 @@ class Parser (object):
             robots.append(robot)
         return robots
 
+    def compute_localT_from_globalT_(self,joint_):
+        if joint_.parent:
+             joint_.localTransformation = numpy.dot( numpy.linalg.inv(joint_.parent.globalTransformation),
+                                                    joint_.globalTransformation)
+             # print joint_.id, joint_.localTransformation
+             joint_.translation = joint_.localTransformation[0:3,3]
+             joint_.localR = joint_.localTransformation[0:3,0:3]
+
+             joint_.localR2 = axisNameAngle2rot(joint_.axis,joint_.angle)
+             joint_.localR1 = numpy.dot(joint_.localR,
+                                        numpy.linalg.inv(joint_.localR2))
+             joint_.rotation = rot2AxisAngle(joint_.localR1)
+             # print joint_.name
+             # print joint_.localR1
+             # print joint_.rotation
+             # print joint_.globalTransformation
+             # print joint_.parent.globalTransformation
+             # print "---"
+             # joint_.initLocalTransformation()
+             # print joint_.id, joint_.rotation, joint_.localTransformation
+
+
+        for child in [ c for c in joint_.children if isinstance(c,robo.Joint)]:
+            self.compute_localT_from_globalT_(child)
+
+
+
     def createJoint (self, node, parent = None):
-        if not parent:
+        if node.nodeName == "HPP_FREEFLYER_JOINT":
             joint = robo.BaseNode()
         else:
             joint = robo.Joint()
-            parent.children.append(joint)
-            joint.parent = parent
-            joint.angle = self.findJointValue(node)
-            joint.axis = "X"
             joint.id = int(node.attributes["id"].value)
+            if not parent:
+                raise Exception("Expected a parent for node %s"%node.nodeName)
+            parent.addChild(joint)
+
 
         sotJointType = self.jointType[node.nodeName]
         jointName = self.findStringProperty(node, 'NAME')
         joint.name = jointName
         joint.jointType = sotJointType
+        if joint.jointType == "rotation":
+            joint.angle = self.findJointValue(node)
+            joint.axis = "X"
+
         current_position , relative_solid_position, solid_id = self.findJointPositions(node)
         joint.globalTransformation = copy.copy(current_position)
         self.globalTransformations[joint.id] = copy.copy(current_position)
@@ -241,29 +274,9 @@ class Parser (object):
         # recursively create child joints
         childJointNodes = filter(lambda n:n.nodeName in self.jointTypes,
                              node.childNodes)
+
         for childJointNode in childJointNodes:
             childJoint = self.createJoint(childJointNode, joint)
-
-
-        def compute_localT_from_globalT_(joint_):
-            if joint_.parent:
-                 joint_.localTransformation = numpy.dot( numpy.linalg.inv(joint_.parent.globalTransformation),
-                                                        joint_.globalTransformation)
-                 # print joint_.id, joint_.localTransformation
-                 joint_.translation = joint_.localTransformation[0:3,3]
-
-                 joint_.localR2 = axisNameAngle2rot(joint_.axis,joint_.angle)
-                 joint_.localR1 = numpy.dot(joint_.localTransformation[0:3,0:3] ,
-                                           numpy.linalg.inv(joint_.localR2))
-                 rotation_matrix = joint_.localR1[0:3,0:3]
-                 joint_.rotation = rot2AxisAngle(rotation_matrix)
-                 joint_.localR = numpy.dot(joint_.localR1, joint_.localR2)
-                 # joint_.initLocalTransformation()
-                 # print joint_.id, joint_.rotation, joint_.localTransformation
-
-
-            for child in [ c for c in joint_.children if isinstance(c,robo.Joint)]:
-                compute_localT_from_globalT_(child)
 
         # add shape object already loaded at the beginning
         solid = robo.GenericObject()
@@ -272,24 +285,9 @@ class Parser (object):
         solid.addChild(self.shapes[solid_id])
         joint.addChild(solid)
 
-
         if isinstance(joint, robo.BaseNode):
-            compute_localT_from_globalT_(joint)
+            self.compute_localT_from_globalT_(joint)
             joint.init()
-
-            # # Since relative_solid_position is expressed in term of
-            # # previous joint(it seems?), it should be convert back to current
-            # # joint coordinate.
-            # for j in joint.joint_list:
-            #     for child in [ c for c in j.children if not isinstance(c,robo.Joint)]:
-            #         child.localTransformation = numpy.dot(numpy.linalg.inv(joint.localTransformation),
-            #                                               child.localTransformation)
-            #         child.translation = child.localTransformation[0:3,3]
-            #         child.localR = child.localTransformation[0:3,0:3]
-            #         child.rotation = rot2AngleAxis(child.localR)
-
-            # joint.init()
-
             for i,j in enumerate(joint.joint_list):
                 if (numpy.linalg.norm(j.globalTransformation -
                                       self.globalTransformations[j.id])) > 1e-6:
@@ -317,10 +315,6 @@ joint.localT=
                         jj = jj.getParentJoint()
                     raise Exception(msg)
                     # logger.exception(msg)
-
-
-
-
         return joint
 
     def findJointPositions(self, node):

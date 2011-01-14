@@ -212,11 +212,11 @@ class DsRobot(DsElement):
             pos=joint.globalTransformation[0:3,3]
             glCallList(self.glList_joint_sphere_mat)
 
-            if joint.jointType in ["free", "free_flyer"]:
+            if joint.jointType in ["free", "freeflyer"]:
                 glPushMatrix()
                 glTranslatef(pos[0], pos[1], pos[2])
                 angleAxis = rot2AngleAxis(joint.globalTransformation[0:3][0:3])
-                glRotated(*angleAxis)
+                glRotated(angleAxis[0],angleAxis[1],angleAxis[2],angleAxis[3])
                 sphere = gluNewQuadric()
                 gluSphere(sphere,0.01*size,10,10)
                 glPopMatrix()
@@ -224,7 +224,7 @@ class DsRobot(DsElement):
                 glPushMatrix()
                 glTranslatef(pos[0], pos[1], pos[2])
                 angleAxis = rot2AngleAxis(joint.globalTransformation[0:3][0:3])
-                glRotated(*angleAxis)
+                glRotated(angleAxis[0],angleAxis[1],angleAxis[2],angleAxis[3])
                 if joint.axis in ("X","x"):
                     glRotated(90,0,1,0)
                 elif joint.axis in ("Y","y"):

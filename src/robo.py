@@ -9,6 +9,7 @@ from mathaux import *
 from collections import deque
 
 BASE_NODE_ID = -1
+
 class GenericObject(object):
     '''
     Base element in the kinematic tree
@@ -313,9 +314,9 @@ class BaseNode(Joint):
         ## loop through the tree to create a list of joints
         while not len(pile)==0:
             an_element=pile.pop()
-            if an_element.type=="joint":
+            if isinstance(an_element, Joint):
                 self.joint_list.append(an_element)
-            elif an_element.type=="mesh":
+            elif an_element.type == "mesh":
                 self.mesh_list.append(an_element)
             for child in reversed(an_element.children):
                 pile.append(child)

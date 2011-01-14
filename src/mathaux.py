@@ -20,15 +20,9 @@ def rot2AngleAxis(M):
     """
     Convert Transformation to angle, axis reprensentation (angle in degree)
     """
-    angle=acos( min ( (M[0][0]+M[1][1]+M[2][2]-1)/2 ,1))
-    if angle == 0.0:
-        v = [1,0,0]
-    else:
-        v=np.array( [M[2][1]-M[1][2], M[0][2]-M[2][0], M[1][0]-M[0][1] ])
-        normv=sqrt(np.dot(v,v))
-        v=v/normv
-    angle = angle*180/pi
-    return [angle, v[0],v[1],v[2]]
+    axisAngle = rot2AxisAngle(M)
+    return [axisAngle[3]*180/pi, axisAngle[0],axisAngle[1],axisAngle[2]]
+
 
 # http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/index.htm
 def rot2AxisAngle(M):
@@ -58,8 +52,6 @@ def rot2AxisAngle(M):
                 raise Exception("mathaux:rot2AngleAxis:Uncaught corner case for: %s"
                                 %str(M))
             return [v[0],v[1],v[2],angle]
-
-
         v=v/normv
     return [v[0],v[1],v[2],angle]
 
