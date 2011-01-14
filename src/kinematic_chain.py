@@ -255,7 +255,7 @@ class Joint(GenericObject):
 
         .. seealso:: VRML transform calculation http://www.web3d.org/x3d/specifications/vrml/ISO-IEC-14772-VRML97/part1/nodesRef.html#Transform
         '''
-        if self.jointType=="free":
+        if self.jointType in ["free", "freeflyer"]:
             self.localR=euleur2rotation(self.rpy)
             self.localTransformation[0:3,0:3]=self.localR
             self.localTransformation[0:3,3]=np.array(self.translation)+\
@@ -332,7 +332,6 @@ class BaseNode(Joint):
         for i in range(len(self.joint_list)):
             if self.joint_dict.has_key(i):
                 vec += [self.joint_dict[i].angle]
-
         return vec
 
     def waistPos(self,p):
