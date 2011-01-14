@@ -8,7 +8,7 @@
 
 import sys
 import xml.dom.minidom as dom
-import robo, mesh
+import kinematic_chain
 # from dynamic_graph.sot.dynamics.dynamic import Dynamic
 # from dynamic_graph.sot import SE3, R3, SO3
 import numpy
@@ -30,7 +30,7 @@ logger.setLevel(logging.DEBUG)
 class Parser (object):
     """
     Adapt from parser in sot-dynamic project https://github.com/jrl-umi3218/sot-dynamic
-    Parser to build robo.BaseNode entities.
+    Parser to build kinematic_chain.BaseNode entities.
 
     Format is kxml, Kineo CAM robot description format.
     """
@@ -100,7 +100,7 @@ class Parser (object):
         assembly_nodes = dom1.getElementsByTagName(self.assemblyTag)
         for assembly_node in assembly_nodes:
             assembly_nid = int(assembly_node.attributes["id"].value)
-            assembly_obj = robo.GenericObject()
+            assembly_obj = kinematic_chain.GenericObject()
             assembly_obj.id = assembly_nid
             self.shapes[assembly_nid] = assembly_obj
             for rel_pos_node in assembly_node.childNodes:
@@ -129,7 +129,7 @@ class Parser (object):
 
             for polyhedron_node in polyhedron_nodes:
                 polyhedron_nid = int(polyhedron_node.attributes["id"].value)
-                polyhedron_obj = robo.GenericObject()
+                polyhedron_obj = kinematic_chain.GenericObject()
                 polyhedron_obj.id = polyhedron_nid
                 polyhedron_obj.name = self.findStringProperty(polyhedron_node, self.nameTag)
                 assembly_obj.addChild(polyhedron_obj)
@@ -165,7 +165,7 @@ class Parser (object):
                         logger.info("Parsing %s "%(os.path.join(self.kxml_dir_name, rel_path)))
                         objs = ml_parser.parse(os.path.join(self.kxml_dir_name, rel_path))
                         for obj in objs:
-                            if isinstance(obj,robo.GenericObject):
+                            if isinstance(obj,kinematic_chain.GenericObject):
                                 polyhedron_obj.addChild(obj)
                             else:
                                 logger.debug("Ignoring %s"%str(obj))
@@ -175,7 +175,7 @@ class Parser (object):
                 ambientColor  = self.findVecProperty(polyhedron_node,self.ambientColorTag)[:-1]
                 shininess     = self.findFloatProperty(polyhedron_node,self.shininessTag)
                 def propagate_geo_param(obj, key, value):
-                    if isinstance(obj, mesh.Mesh):
+                    if isinstance(obj, kinematic_chain.Mesh):
                         old_val =  getattr(obj.app, key)
                         if old_val != value:
                             logger.debug("Mesh %s: %s changed from %s to %s"
@@ -243,16 +243,16 @@ class Parser (object):
              # print joint_.id, joint_.rotation, joint_.localTransformation
 
 
-        for child in [ c for c in joint_.children if isinstance(c,robo.Joint)]:
+        for child in [ c for c in joint_.children if isinstance(c,kinematic_chain.Joint)]:
             self.compute_localT_from_globalT_(child)
 
 
 
     def createJoint (self, node, parent = None):
         if node.nodeName == "HPP_FREEFLYER_JOINT":
-            joint = robo.BaseNode()
+            joint = kinematic_chain.BaseNode()
         else:
-            joint = robo.Joint()
+            joint = kinematic_chain.Joint()
             joint.id = int(node.attributes["id"].value)
             if not parent:
                 raise Exception("Expected a parent for node %s"%node.nodeName)
@@ -279,13 +279,13 @@ class Parser (object):
             childJoint = self.createJoint(childJointNode, joint)
 
         # add shape object already loaded at the beginning
-        solid = robo.GenericObject()
+        solid = kinematic_chain.GenericObject()
         #solid.translation = relative_solid_position[0:3,3]
         solid.rotation    = rot2AxisAngle(relative_solid_position[0:3,0:3])
         solid.addChild(self.shapes[solid_id])
         joint.addChild(solid)
 
-        if isinstance(joint, robo.BaseNode):
+        if isinstance(joint, kinematic_chain.BaseNode):
             self.compute_localT_from_globalT_(joint)
             joint.init()
             for i,j in enumerate(joint.joint_list):

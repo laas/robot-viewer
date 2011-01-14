@@ -4,7 +4,7 @@ import OpenGL
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
-import robo
+import kinematic_chain
 import ml_parser
 import pickle
 from openglaux import IsExtensionSupported,ReSizeGLScene, GlWindow
@@ -190,7 +190,7 @@ class DisplayServer(object):
                 objs = ml_parser.parse(edescription)
                 robots = []
                 for obj in objs:
-                    if isinstance(obj, robo.BaseNode):
+                    if isinstance(obj, kinematic_chain.BaseNode):
                         robots.append(obj)
                 if len(robots) != 1:
                     raise Exception("Description file %s contains %d robots, expected 1."

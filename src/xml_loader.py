@@ -4,7 +4,7 @@
 # Authors Duong Dang
 
 import xml.etree.ElementTree as ET
-import robo,sys,re
+import kinematic_chain,sys,re
 import meshLoader
 xmlFilePath="./"
 
@@ -23,7 +23,7 @@ def load(filename):
 
 def parseBaseNode(element):
     global xmlFilePath
-    robot=robo.BaseNode()
+    robot=kinematic_chain.BaseNode()
     robot.jointType="free"
     imageRot=[1,0,0,0]
     imagePos=[0,0,0]
@@ -81,7 +81,7 @@ def parseBaseNode(element):
 
 def parseJoint(element):
     global xmlFilePath
-    joint=robo.joint()
+    joint=kinematic_chain.joint()
     imageRot=[1,0,0,0]
     imagePos=[0,0,0]
     for child in element.getchildren():

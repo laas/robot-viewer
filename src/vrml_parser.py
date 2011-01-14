@@ -11,8 +11,8 @@ from simpleparse.dispatchprocessor import *
 from vrml_grammar import VRMLPARSERDEF
 import pprint
 
-from mesh import Mesh, Appearance, Geometry
-from robo import GenericObject, Joint, BaseNode
+from kinematic_chain import Mesh, Appearance, Geometry
+from kinematic_chain import GenericObject, Joint, BaseNode
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass

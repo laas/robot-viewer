@@ -4,7 +4,7 @@
 # Authors Duong Dang
 
 import re, sys
-import robo
+import kinematic_chain
 
 parsers = { 'vrml': 'vrml_parser',
             'wrl': 'vrml_parser',

@@ -1,5 +1,5 @@
 from __future__ import division
-import robo
+import kinematic_chain
 from math import sqrt,sin,cos,atan2
 import numpy
 

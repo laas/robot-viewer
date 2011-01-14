@@ -4,7 +4,7 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from OpenGL.GL.ARB.vertex_buffer_object import *
 import numpy, time
-import robo
+import kinematic_chain
 from mathaux import *
 from safeeval import safe_eval
 
