@@ -7,6 +7,15 @@ import re
 from math import sin,cos
 from mathaux import *
 from collections import deque
+import logging
+
+class NullHandler(logging.Handler):
+    def emit(self, record):
+        pass
+
+logger = logging.getLogger("kinematic_chain")
+logger.addHandler(NullHandler())
+logger.setLevel(logging.DEBUG)
 
 BASE_NODE_ID = -1
 
@@ -306,6 +315,7 @@ class BaseNode(Joint):
         s += "\nNumber meshes: %d"%len(self.mesh_list)
         return s
 
+
     def setAngles(self,angles):
         '''
         Set joint angles
@@ -414,4 +424,5 @@ class BaseNode(Joint):
                 if len(color) != 3:
                     raise Exception("Invalid len for a color in mesh %s"%str(mesh.name))
 
-
+        if not self.mesh_list[:]:
+            logger.warning("Robot contains 0 mesh.")

@@ -172,7 +172,7 @@ class DsRobot(DsElement):
 
         self.updateKinematics()
 
-        if render_skeleton_flag:
+        if render_skeleton_flag or not self._robot.mesh_list[:]:
             self.renderSkeleton(size)
 
         if render_mesh_flag:

@@ -124,7 +124,7 @@ class VrmlProcessor(DispatchProcessor):
             if os.path.isfile(vrml_path):
                 processed_node = parse(vrml_path)[0]
             else:
-                raise Exception("Couldnt find %s"%(vrml_path))
+                logger.exception("Couldnt find %s"%(vrml_path))
 
         elif vrml_node.name in  [ "ForceSensor", "VisionSensor"]:
             processed_node = GenericObject()
