@@ -15,7 +15,6 @@ class NullHandler(logging.Handler):
 
 logger = logging.getLogger("kinematic_chain")
 logger.addHandler(NullHandler())
-logger.setLevel(logging.DEBUG)
 
 BASE_NODE_ID = -1
 

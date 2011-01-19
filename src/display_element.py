@@ -10,7 +10,11 @@ from safeeval import safe_eval
 
 import logging, os, sys
 logger = logging.getLogger("display_element")
-logger.setLevel(logging.DEBUG)
+class NullHandler(logging.Handler):
+    def emit(self, record):
+        pass
+
+logger.addHandler(NullHandler())
 
 class DsElement(object):
     """

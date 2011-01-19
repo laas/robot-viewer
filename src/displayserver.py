@@ -19,8 +19,10 @@ import ConfigParser
 ESCAPE = 27
 
 logger = logging.getLogger("displayserver")
-logger.setLevel(logging.DEBUG)
-
+class NullHandler(logging.Handler):
+    def emit(self, record):
+        pass
+logger.addHandler(NullHandler())
 def updateView(camera):
     """
 
@@ -43,10 +45,6 @@ class DisplayServer(object):
 
         Arguments:
         """
-        if options and options.verbose:
-            self.log_level = logging.DEBUG
-        else:
-            self.log_level = logging.INFO
 
         if options and options.config_file:
             self.config_file = options.config_file

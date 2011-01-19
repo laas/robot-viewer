@@ -25,7 +25,6 @@ class NullHandler(logging.Handler):
 
 logger = logging.getLogger("kxml_parser")
 logger.addHandler(NullHandler())
-logger.setLevel(logging.DEBUG)
 
 class Parser (object):
     """

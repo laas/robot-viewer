@@ -19,7 +19,6 @@ class NullHandler(logging.Handler):
 
 logger = logging.getLogger("vrml_parser")
 logger.addHandler(NullHandler())
-logger.setLevel(logging.DEBUG)
 
 class VrmlNode(dict):
     def __init__(self, n = None):

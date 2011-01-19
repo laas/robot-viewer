@@ -14,6 +14,13 @@ import gtk.gtkgl
 import logging
 import logging.handlers
 
+class NullHandler(logging.Handler):
+    def emit(self, record):
+        pass
+
+logger = logging.getLogger("rvwidget")
+logger.addHandler(NullHandler())
+
 class RvWidget(DisplayServer, gtk.gtkgl.DrawingArea):
     """
     """
@@ -25,9 +32,8 @@ class RvWidget(DisplayServer, gtk.gtkgl.DrawingArea):
         self.camera = Camera()
         self.mouseButtons = [None,None,None]  ## (left,right,middle)
         self.oldMousePos = None
-        self.logger = logging
         major, minor = gtk.gdkgl.query_version()
-        self.logger.info( "GLX version = %d.%d" % (major, minor))
+        logger.info( "GLX version = %d.%d" % (major, minor))
 
         #
         # frame buffer configuration
@@ -54,14 +60,14 @@ class RvWidget(DisplayServer, gtk.gtkgl.DrawingArea):
         #     # try single-buffered
         #     self.glconfig = gtk.gdkgl.Config(attrib_list=(gtk.gdkgl.RGBA,
         #                                              gtk.gdkgl.DEPTH_SIZE, 1))
-        self.logger.info( "self.glconfig.is_rgba() =",            self.glconfig.is_rgba())
-        self.logger.info( "self.glconfig.is_double_buffered() =", self.glconfig.is_double_buffered())
-        self.logger.info( "self.glconfig.has_depth_buffer() =",   self.glconfig.has_depth_buffer())
+        logger.info( "self.glconfig.is_rgba() =",            self.glconfig.is_rgba())
+        logger.info( "self.glconfig.is_double_buffered() =", self.glconfig.is_double_buffered())
+        logger.info( "self.glconfig.has_depth_buffer() =",   self.glconfig.has_depth_buffer())
 
         # get_attrib()
-        self.logger.info( "gtk.gdkgl.RGBA = %d"         % self.glconfig.get_attrib(gtk.gdkgl.RGBA))
-        self.logger.info( "gtk.gdkgl.DOUBLEBUFFER = %d" % self.glconfig.get_attrib(gtk.gdkgl.DOUBLEBUFFER))
-        self.logger.info( "gtk.gdkgl.DEPTH_SIZE = %d"   % self.glconfig.get_attrib(gtk.gdkgl.DEPTH_SIZE))
+        logger.info( "gtk.gdkgl.RGBA = %d"         % self.glconfig.get_attrib(gtk.gdkgl.RGBA))
+        logger.info( "gtk.gdkgl.DOUBLEBUFFER = %d" % self.glconfig.get_attrib(gtk.gdkgl.DOUBLEBUFFER))
+        logger.info( "gtk.gdkgl.DEPTH_SIZE = %d"   % self.glconfig.get_attrib(gtk.gdkgl.DEPTH_SIZE))
         gtk.gtkgl.DrawingArea.__init__(self, self.glconfig)
         self.set_size_request(300, 300)
 
@@ -76,7 +82,7 @@ class RvWidget(DisplayServer, gtk.gtkgl.DrawingArea):
                 widget.window.process_updates(False)
             except Exception,error:
                 try:
-                    self.logger.exception()
+                    logger.exception()
                 except:
                     print error
             return True
