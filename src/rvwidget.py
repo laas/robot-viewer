@@ -18,7 +18,7 @@ class NullHandler(logging.Handler):
     def emit(self, record):
         pass
 
-logger = logging.getLogger("rvwidget")
+logger = logging.getLogger("robotviewer.rvwidget")
 logger.addHandler(NullHandler())
 
 class RvWidget(DisplayServer, gtk.gtkgl.DrawingArea):

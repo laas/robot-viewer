@@ -23,7 +23,7 @@ class NullHandler(logging.Handler):
     def emit(self, record):
         pass
 
-logger = logging.getLogger("kxml_parser")
+logger = logging.getLogger("robotviewer.kxml_parser")
 logger.addHandler(NullHandler())
 
 class Parser (object):

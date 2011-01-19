@@ -9,7 +9,7 @@ from mathaux import *
 from safeeval import safe_eval
 
 import logging, os, sys
-logger = logging.getLogger("display_element")
+logger = logging.getLogger("robotviewer.display_element")
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass

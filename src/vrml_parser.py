@@ -17,7 +17,7 @@ class NullHandler(logging.Handler):
     def emit(self, record):
         pass
 
-logger = logging.getLogger("vrml_parser")
+logger = logging.getLogger("robotviewer.vrml_parser")
 logger.addHandler(NullHandler())
 
 class VrmlNode(dict):

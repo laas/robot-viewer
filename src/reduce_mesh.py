@@ -4,7 +4,7 @@ __author__ = "Duong Dang"
 __version__ = "0.1"
 
 import logging, sys
-logger = logging.getLogger("reduce_mesh")
+logger = logging.getLogger("robotviewer.reduce_mesh")
 
 import re,os
 import tempfile

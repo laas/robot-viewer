@@ -11,7 +11,7 @@ import sys, logging
 from omniORB import CORBA, PortableServer
 import CosNaming
 
-logger = logging.getLogger("corba_util")
+logger = logging.getLogger("robotviewer.corba_util")
 ch = logging.StreamHandler()
 
 def GetObject(module_name, obj_name, context_name , poa_path = None):

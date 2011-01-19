@@ -18,7 +18,7 @@ import ConfigParser
 
 ESCAPE = 27
 
-logger = logging.getLogger("displayserver")
+logger = logging.getLogger("robotviewer.displayserver")
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass

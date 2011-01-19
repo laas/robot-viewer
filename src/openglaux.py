@@ -15,7 +15,7 @@ import logging
 ESCAPE = '\033'
 old_cam_up = None;
 
-logger = logging.getLogger("openglaux")
+logger = logging.getLogger("robotviewer.openglaux")
 
 def IsExtensionSupported (TargetExtension):
     """ Accesses the rendering context to see if it supports an extension.
