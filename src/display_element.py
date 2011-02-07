@@ -101,7 +101,7 @@ class DsRobot(DsElement):
             joint_name = "Unknown"
             if amesh.getParentJoint():
                 joint_name = amesh.getParentJoint().name
-            logger.info("Loading mesh %s of joint %s into memory."
+            logger.debug("Loading mesh %s of joint %s into memory."
                         %(amesh.name, joint_name))
             meshVBO=MeshVBO(amesh)
             self._meshVBOlist.append(meshVBO)
@@ -415,25 +415,30 @@ class MeshVBO(object):
         logger.debug("Creating VBO for mesh %s"%mesh.name)
         self.count = len(self._idxs)
         self.ver_vboId = int(glGenBuffersARB(1))
-        logger.debug("Generated %d vboID"%self.ver_vboId)
+        logger.debug("Populating VBO for vertices: vboID %d"%self.ver_vboId)
         glBindBufferARB( GL_ARRAY_BUFFER_ARB,self.ver_vboId );
         glBufferDataARB( GL_ARRAY_BUFFER_ARB, \
                              numpy.array (self._verts, dtype=numpy.float32),\
                              GL_STATIC_DRAW_ARB );
         glBindBufferARB( GL_ARRAY_BUFFER_ARB,0 );
+        logger.debug("Generated VBO for vertices: vboID %d"%self.ver_vboId)
 
         self.nor_vboId = int(glGenBuffersARB(1))
+        logger.debug("Populating VBO for normals: vboID %d"%self.nor_vboId)
         glBindBufferARB( GL_ARRAY_BUFFER_ARB,self.nor_vboId );
         glBufferDataARB( GL_ARRAY_BUFFER_ARB, \
                              numpy.array (self._norms, dtype=numpy.float32),\
                              GL_STATIC_DRAW_ARB );
         glBindBufferARB( GL_ARRAY_BUFFER_ARB,0 );
+        logger.debug("Generated VBO for normals: vboID %d"%self.nor_vboId)
 
         self.idx_vboId = int(glGenBuffersARB(1))
+        logger.debug("Populating creating VBO for mesh %s"%mesh.name)
         glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,self.idx_vboId );
         glBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB, \
                              numpy.array (self._idxs, dtype=numpy.uint16),\
                              GL_STATIC_DRAW_ARB );
+        logger.debug("Generated VBO for indices: vboID %d"%self.idx_vboId)
         glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,0 );
         logger.debug("Finished creating VBO for mesh %s"%mesh.name)
 
@@ -457,7 +462,7 @@ class MeshVBO(object):
                 else:
                     glMaterialfv(GL_FRONT_AND_BACK, key, value)
             else:
-                logger.warning("Mesh %s of joint %s: Missing %s in material"
+                logger.debug("Mesh %s of joint %s: Missing %s in material"
                                %(self._mesh.name, self._mesh.getParentJoint().name, key.name))
         glEndList();
 

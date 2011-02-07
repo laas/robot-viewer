@@ -10,7 +10,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.INFO)
 # create formatter and add it to the handlers
 #formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 formatter = logging.Formatter("%(name)s:%(levelname)s:%(message)s")
@@ -43,6 +43,9 @@ def main():
                       help="only display robot skeletons")
 
     (options, args) = parser.parse_args()
+    global ch
+    if options.verbose:
+        ch.setLevel(logging.DEBUG)
 
     if options.server == "CORBA":
         logger.info("Starting robotviewer in corba mode")

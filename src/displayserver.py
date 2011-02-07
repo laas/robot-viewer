@@ -15,6 +15,7 @@ import pickle
 config_dir = os.environ['HOME']+'/.robotviewer/'
 import logging
 import ConfigParser
+import time
 
 ESCAPE = 27
 
@@ -73,7 +74,6 @@ class DisplayServer(object):
             self.render_skeleton_flag = False
         self.skeleton_size = 1
         self.transparency = 0
-        self.paused = False
 
     def initGL(self):
         glutInit(sys.argv)
@@ -91,8 +91,12 @@ class DisplayServer(object):
     def setRobotJointRank(self,robot_name, joint_rank_xml):
         """
         """
+        if robot_name not in self._element_dict.keys():
+            return False
+
+
         if not os.path.isfile(joint_rank_xml):
-            return
+            return False
 
         pattern=re.compile(r"\s*<Link>\s*(\w+)\s*(\d+)\s*<\/Link>\s*")
         lines = open(joint_rank_xml).readlines()
@@ -109,7 +113,7 @@ class DisplayServer(object):
                 joint.id = correct_joint_dict[joint.name]
 
         self._element_dict[robot_name]._robot.update_joint_dict()
-        return
+        return True
 
     def parseConfig(self):
         def replace_env_var(s):
@@ -134,7 +138,7 @@ class DisplayServer(object):
                     logger.info( "WARNING: Couldn't load %s. Are you sure %s exists?"\
                         %(robot_name,robot_config))
                     continue
-                self.createElement('robot',robot_name,robot_config)
+                self._create_element('robot',robot_name,robot_config)
                 self.enableElement(robot_name)
         else:
             logger.info( """Couldn't any default robots. Loading an empty scene
@@ -161,19 +165,21 @@ class DisplayServer(object):
                     warnings.warn('Could not find %s'%script_file)
                     continue
                 description = open(script_file).read()
-                self.createElement('script',script_name,description)
+                self._create_element('script',script_name,description)
                 self.enableElement(script_name)
         return
 
-    def createElement(self,etype,ename,edescription):
+
+    def _create_element(self,etype,ename,edescription):
         """
+        Same as createElement but will not be called by outside world
+        (CORBA) show will always be in the GL thread
         Arguments:
         - `self`:
         - `etype`:        string, element type (e.g. robot, GLscript)
         - `name`:         string, element name
         - `description`:  string, description  (e.g. wrl path)
         """
-        self.paused = True
         if self._element_dict.has_key(ename):
             raise KeyError,"Element with that name exists already"
 
@@ -211,7 +217,26 @@ class DisplayServer(object):
             self._element_dict[ename] = new_element
         else:
             raise TypeError,"Unknown element type"
-        self.paused = False
+
+
+    def createElement(self,etype,ename,edescription):
+        """
+        Same as _create_element but could be called by outside world
+        (CORBA) show will always be in the GL thread
+        Arguments:
+        - `self`:
+        - `etype`:        string, element type (e.g. robot, GLscript)
+        - `name`:         string, element name
+        - `description`:  string, description  (e.g. wrl path)
+        """
+        TIMEOUT = 600
+        self.pendingObjects.append((etype, ename, edescription))
+        wait = 0
+        while ename not in self._element_dict.keys() and wait < TIMEOUT:
+            time.sleep(0.1)
+            wait += 0.1
+        if wait >= TIMEOUT:
+            logger.exception("Object took too long to create")
         return True
 
     def destroyElement(self,name):
@@ -234,7 +259,7 @@ class DisplayServer(object):
         - `name`:
         """
         if not self._element_dict.has_key(name):
-            raise KeyError,"Element with that name does not exist"
+            return False
 
         self._element_dict[name].enable()
         return True
@@ -246,7 +271,7 @@ class DisplayServer(object):
         - `name`:
         """
         if not self._element_dict.has_key(name):
-            raise KeyError,"Element with that name does not exist"
+            return False
 
         self._element_dict[name].disable()
         return True
@@ -286,13 +311,10 @@ class DisplayServer(object):
         return "pong"
 
     def DrawGLScene(self):
-        if self.paused:
-            return True
-
         if len(self.pendingObjects) > 0:
             obj = self.pendingObjects.pop()
             logger.info( "creating %s %s %s"%( obj[0], obj[1], obj[2]))
-            self.createElement(obj[0],obj[1],obj[2])
+            self._create_element(obj[0],obj[1],obj[2])
         # Clear Screen And Depth Buffer
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glLoadIdentity ();
