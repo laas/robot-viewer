@@ -75,6 +75,7 @@ class DisplayServer(object):
             self.render_skeleton_flag = False
         self.skeleton_size = 1
         self.transparency = 0
+        self.paused = False
 
     def initGL(self):
         glutInit(sys.argv)
@@ -89,7 +90,7 @@ class DisplayServer(object):
         self.usage = ""
         self.bindEvents()
 
-    def update_hrp_joint_link(self,robot_name, joint_rank_xml):
+    def setRobotJointRank(self,robot_name, joint_rank_xml):
         """
         """
         if not os.path.isfile(joint_rank_xml):
@@ -151,7 +152,7 @@ class DisplayServer(object):
                     continue
                 if not os.path.isfile(joint_rank_config):
                     continue
-                update_hrp_joint_link(robot_name,joint_rank_config)
+                setRobotJointRank(robot_name,joint_rank_config)
 
         if config.has_section('scripts'):
             script_names = config.options('scripts')
@@ -174,6 +175,7 @@ class DisplayServer(object):
         - `name`:         string, element name
         - `description`:  string, description  (e.g. wrl path)
         """
+        self.paused = True
         if self._element_dict.has_key(ename):
             raise KeyError,"Element with that name exists already"
 
@@ -211,6 +213,7 @@ class DisplayServer(object):
             self._element_dict[ename] = new_element
         else:
             raise TypeError,"Unknown element type"
+        self.paused = False
         return True
 
     def destroyElement(self,name):
@@ -285,6 +288,9 @@ class DisplayServer(object):
         return "pong"
 
     def DrawGLScene(self):
+        if self.paused:
+            return True
+
         if len(self.pendingObjects) > 0:
             obj = self.pendingObjects.pop()
             logger.info( "creating %s %s %s"%( obj[0], obj[1], obj[2]))

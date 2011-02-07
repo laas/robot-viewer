@@ -12,7 +12,7 @@ module hpp {
     };
 
     boolean createElement(in string type, in string name, in string description);
-
+    boolean setRobotJointRank(in string name, in string path);
     boolean destroyElement(in string name) raises(InvalidKey);
     boolean enableElement(in string name) raises(InvalidKey) ;
     boolean disableElement(in string name) raises(InvalidKey) ;

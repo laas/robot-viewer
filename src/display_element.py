@@ -408,9 +408,10 @@ class MeshVBO(object):
                 normal                =  normalized(normal)
                 self._norms          += [normal[0],normal[1],normal[2]]
                 self._mesh.geo.norm += [normal[0],normal[1],normal[2]]
-
+        logger.debug("Creating VBO for mesh %s"%mesh.name)
         self.count = len(self._idxs)
         self.ver_vboId = int(glGenBuffersARB(1))
+        logger.debug("Generated %d vboID"%self.ver_vboId)
         glBindBufferARB( GL_ARRAY_BUFFER_ARB,self.ver_vboId );
         glBufferDataARB( GL_ARRAY_BUFFER_ARB, \
                              numpy.array (self._verts, dtype=numpy.float32),\
@@ -430,6 +431,7 @@ class MeshVBO(object):
                              numpy.array (self._idxs, dtype=numpy.uint16),\
                              GL_STATIC_DRAW_ARB );
         glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,0 );
+        logger.debug("Finished creating VBO for mesh %s"%mesh.name)
 
         self.glList_idx = glGenLists(1)
         self.createMatList()
