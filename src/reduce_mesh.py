@@ -4,13 +4,8 @@ __author__ = "Duong Dang"
 __version__ = "0.1"
 
 import logging, sys
-logger = logging.getLogger("reduce_mesh")
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-ch.setFormatter(formatter)
-logger.addHandler(ch)
+logger = logging.getLogger("robotviewer.reduce_mesh")
+
 import re,os
 import tempfile
 import scipy.io
@@ -76,6 +71,12 @@ save('%s.mat','nf','nv')
 
 def main():
     import optparse
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
     parser = optparse.OptionParser(
         usage='\n\t%prog [options] input',
         version='%%prog %s' % __version__)

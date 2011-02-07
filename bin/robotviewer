@@ -1,6 +1,23 @@
 #! /usr/bin/env python
 import sys,imp, os
 from optparse import OptionParser
+import logging
+import robotviewer
+import robotviewer.displayserver_corba
+import robotviewer.displayserver_xmlrpc
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+# create formatter and add it to the handlers
+#formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+formatter = logging.Formatter("%(name)s:%(levelname)s:%(message)s")
+ch.setFormatter(formatter)
+# add the handlers to the logger
+logger.addHandler(ch)
+
 def main():
     """
     """
@@ -28,9 +45,11 @@ def main():
     (options, args) = parser.parse_args()
 
     if options.server == "CORBA":
-        from robotviewer.displayserver_corba import DisplayServerCorba as DisplayServer
+        logger.info("Starting robotviewer in corba mode")
+        DisplayServer = robotviewer.displayserver_corba.DisplayServerCorba
     elif options.server == "XML-RPC":
-        from robotviewer.displayserver_xmlrpc import DisplayServerXmlrpc as DisplayServer
+        logger.info("Starting robotviewer in xmlrpc mode")
+        DisplayServer = robotviewer.displayserver_xmlrpc.DisplayServerXmlrpc
     else:
         raise Exception ("Not supported server type %s"%options.server)
     server = DisplayServer(options,args)

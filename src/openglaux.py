@@ -15,7 +15,9 @@ import logging
 ESCAPE = '\033'
 old_cam_up = None;
 
-def IsExtensionSupported (TargetExtension, logger = logging):
+logger = logging.getLogger("robotviewer.openglaux")
+
+def IsExtensionSupported (TargetExtension):
     """ Accesses the rendering context to see if it supports an extension.
     Note, that this test only tells you if the OpenGL library
     supports the extension. The PyOpenGL system might not actually

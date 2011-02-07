@@ -13,9 +13,8 @@ class NullHandler(logging.Handler):
     def emit(self, record):
         pass
 
-logger = logging.getLogger("kinematic_chain")
+logger = logging.getLogger("robotviewer.kinematic_chain")
 logger.addHandler(NullHandler())
-logger.setLevel(logging.DEBUG)
 
 BASE_NODE_ID = -1
 

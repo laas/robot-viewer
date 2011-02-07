@@ -11,13 +11,8 @@ import sys, logging
 from omniORB import CORBA, PortableServer
 import CosNaming
 
-logger = logging.getLogger("corba_util")
+logger = logging.getLogger("robotviewer.corba_util")
 ch = logging.StreamHandler()
-formatter = logging.Formatter("%(asctime)s:%(name)s:%(levelname)s - %(message)s")
-ch.setFormatter(formatter)
-logger.addHandler(ch)
-ch.setLevel(logging.INFO)
-logger.setLevel(logging.INFO)
 
 def GetObject(module_name, obj_name, context_name , poa_path = None):
     """
@@ -31,7 +26,6 @@ def GetObject(module_name, obj_name, context_name , poa_path = None):
     Example:
          loscli=corba_util.GetObject("hpp","hpp.Localstepper",[('hpp','context'),('localstepper','object')])
     """
-    global logger
     if poa_path:
         sys.path = [poa_path] + sys.path
 
@@ -61,7 +55,6 @@ def GetObject(module_name, obj_name, context_name , poa_path = None):
 
 
 def StartServer( server_instance, module_name, obj_name, context_name , poa_path = None):
-    global logger
     if poa_path:
         sys.path = [poa_path] + sys.path
     exec("import %s"%module_name)
