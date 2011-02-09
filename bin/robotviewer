@@ -52,10 +52,12 @@ def main():
     elif options.server == "XML-RPC":
         logger.info("Starting robotviewer in xmlrpc mode")
         import robotviewer.displayserver_xmlrpc
+        logger.debug("Imported displayserver_xmlrpc")
         DisplayServer = robotviewer.displayserver_xmlrpc.DisplayServerXmlrpc
     else:
         raise Exception ("Not supported server type %s"%options.server)
     server = DisplayServer(options,args)
+    logger.debug("created server")
     server.run()
 
 if __name__ == '__main__':

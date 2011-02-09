@@ -5,6 +5,13 @@ from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler
 from displayserver import DisplayServer
 import threading
 
+import logging
+logger = logging.getLogger("robotviewer.displayserver_xmlrpc")
+class NullHandler(logging.Handler):
+    def emit(self, record):
+        pass
+logger.addHandler(NullHandler())
+
 class DisplayServerXmlrpc(DisplayServer):
     """
     """
@@ -16,6 +23,7 @@ class DisplayServerXmlrpc(DisplayServer):
         - `options`:
         - `args`:
         """
+        logger.debug("Creating generic DisplayServer")
         DisplayServer.__init__(self, options, args)
         # Create server
         self.server = SimpleXMLRPCServer(("localhost", 8000))

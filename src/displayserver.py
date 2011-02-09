@@ -24,6 +24,7 @@ class NullHandler(logging.Handler):
     def emit(self, record):
         pass
 logger.addHandler(NullHandler())
+
 def updateView(camera):
     """
 
@@ -57,6 +58,7 @@ class DisplayServer(object):
             self.no_cache = True
 
         self._element_dict = dict()
+        logger.debug("Initializing OpenGL")
         self.initGL()
         self.pendingObjects=[]
         self.parseConfig()
@@ -76,11 +78,15 @@ class DisplayServer(object):
         self.transparency = 0
 
     def initGL(self):
+        logger.debug("Initializing glut")
         glutInit(sys.argv)
+        logger.debug("Creating glutWindow")
+        window = glutCreateWindow("Robotviewer Server")
+        logger.debug("Setting glut DisplayMode")
         glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
+        logger.debug("Setting glut WindowSize")
         glutInitWindowSize(640, 480)
         glutInitWindowPosition(0, 0)
-        window = glutCreateWindow("Robotviewer Server")
         glutDisplayFunc(self.DrawGLScene)
         glutIdleFunc(self.DrawGLScene)
         glutReshapeFunc(ReSizeGLScene)
