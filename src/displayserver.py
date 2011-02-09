@@ -160,7 +160,7 @@ class DisplayServer(object):
                     continue
                 if not os.path.isfile(joint_rank_config):
                     continue
-                setRobotJointRank(robot_name,joint_rank_config)
+                self.setRobotJointRank(self, robot_name,joint_rank_config)
 
         if config.has_section('scripts'):
             script_names = config.options('scripts')
@@ -191,12 +191,15 @@ class DisplayServer(object):
 
         if etype == 'robot':
             edes = edescription.replace("/","_")
-            cached_file = config_dir+"/%s.cache"%edes
+            if re.match(r".*\.cache", edescription):
+                cached_file = edescription
+            else:
+                cached_file = config_dir+"/%s.cache"%edes
             if self.no_cache and os.path.isfile(cached_file):
                 os.remove(cached_file)
 
             if os.path.isfile(cached_file):
-                logger.info( "Using cached file %s.\n Remove it to reparse the wrl/xml file"%cached_file)
+                logger.info( "Using cached file %s."%cached_file)
                 new_robot = pickle.load(open(cached_file))
             else:
                 objs = ml_parser.parse(edescription)
@@ -210,11 +213,14 @@ class DisplayServer(object):
                 new_robot = robots[0]
 
             new_element = DsRobot(new_robot)
-            logger.info("Saving new cache to %s"%cached_file)
-            f = open(cached_file,'w')
-            pickle.dump(new_robot,f)
-            f.close()
-            logger.info("Finished saving new cache to %s"%cached_file)
+
+            if cached_file != edescription:
+                logger.info("Saving new cache to %s"%cached_file)
+                f = open(cached_file,'w')
+                pickle.dump(new_robot,f)
+                f.close()
+                logger.info("Finished saving new cache to %s"%cached_file)
+
             self._element_dict[ename] = new_element
 
         elif etype == 'script':
