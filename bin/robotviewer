@@ -3,8 +3,6 @@ import sys,imp, os
 from optparse import OptionParser
 import logging
 import robotviewer
-import robotviewer.displayserver_corba
-import robotviewer.displayserver_xmlrpc
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -49,9 +47,11 @@ def main():
 
     if options.server == "CORBA":
         logger.info("Starting robotviewer in corba mode")
+        import robotviewer.displayserver_corba
         DisplayServer = robotviewer.displayserver_corba.DisplayServerCorba
     elif options.server == "XML-RPC":
         logger.info("Starting robotviewer in xmlrpc mode")
+        import robotviewer.displayserver_xmlrpc
         DisplayServer = robotviewer.displayserver_xmlrpc.DisplayServerXmlrpc
     else:
         raise Exception ("Not supported server type %s"%options.server)

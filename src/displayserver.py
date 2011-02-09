@@ -237,6 +237,7 @@ class DisplayServer(object):
             wait += 0.1
         if wait >= TIMEOUT:
             logger.exception("Object took too long to create")
+            return False
         return True
 
     def destroyElement(self,name):

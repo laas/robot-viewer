@@ -6,14 +6,14 @@
 
 import os, sys
 import xmlrpclib
-import corba_util
-sys.path = [os.path.dirname(
-        os.path.abspath(__file__))+"/idl"] + sys.path
-import hpp, hpp__POA
 
 
 def client(server = "CORBA"):
     if server == "CORBA":
+        import corba_util
+        sys.path = [os.path.dirname(
+                os.path.abspath(__file__))+"/idl"] + sys.path
+        import hpp, hpp__POA
         return corba_util.GetObject('hpp','hpp.RobotViewer',
                                     [('RobotViewer','context'),
                                      ('RobotViewer','object')])
