@@ -1,8 +1,8 @@
 [robots]
-hrp $ROBOTPKG_BASE/OpenHRP/Controller/IOserver/robot/HRP2JRL/model/HRP2JRLmain.wrl
+hrp=$ROBOTPKG_BASE/OpenHRP/Controller/IOserver/robot/HRP2JRL/model/HRP2JRLmain.wrl
 
 [joint_rank]
-hrp $ROBOTPKG_BASE/share/hrp2_14/HRP2LinkJointRank.xml
+hrp=$ROBOTPKG_BASE/share/hrp2_14/HRP2LinkJointRank.xml
 
 [scripts]
-floor $HOME/.robotviewer/floor.py
+floor=$HOME/.robotviewer/floor.py
