@@ -27,3 +27,4 @@ setup(name='robot-viewer',
                   (config_dir,['data/floor.py','data/config'])
                   ]
       )
+ 
