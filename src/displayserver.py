@@ -16,7 +16,7 @@ config_dir = os.environ['HOME']+'/.robotviewer/'
 import logging
 import ConfigParser
 import time
-
+import subprocess
 ESCAPE = 27
 
 logger = logging.getLogger("robotviewer.displayserver")
@@ -81,7 +81,18 @@ class DisplayServer(object):
         logger.debug("Initializing glut")
         glutInit(sys.argv)
         logger.debug("Setting glut DisplayMode")
+
+        intel_card = False
+        if os.name == 'posix':
+            rt = subprocess.call("lspci | grep VGA | grep Intel", shell= True)
+            if rt == 0:
+                intel_card = True
+        # Hack to catch segfaut on intel cards
+        if intel_card:
+            dummy_win = glutCreateWindow("Initializing...")
         glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
+        if intel_card:
+            glutDestroyWindow(dummy_win)            
         logger.debug("Setting glut WindowSize")
         glutInitWindowSize(640, 480)
         glutInitWindowPosition(0, 0)
