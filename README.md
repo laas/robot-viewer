@@ -18,7 +18,7 @@ Make sure you have the following dependency:
 
 
 To install this package:
-    setup setup.py install --prefix $YOUR_PREFIX
+    python setup.py install --prefix $YOUR_PREFIX
 
 Usage
 -----
