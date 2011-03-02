@@ -8,7 +8,7 @@ os.system('mkdir -p $HOME/.robotviewer')
 config_dir = home_dir + '/.robotviewer'
 
 setup(name='robot-viewer',
-      version='1.4',
+      version='1.5',
       license='L-GPL',
       platforms='Linux/MacOSX',
       description='A viewer tool for robots',
@@ -18,8 +18,8 @@ setup(name='robot-viewer',
       url='www.laas.fr/~nddang',
       packages=['robotviewer',\
                     'robotviewer.idl',\
-                    'robotviewer.idl.hpp',\
-                    'robotviewer.idl.hpp__POA',
+                    'robotviewer.idl.robotviewer_corba',\
+                    'robotviewer.idl.robotviewer_corba__POA',
                 ],
       package_dir={'robotviewer':'src'},
       requires=['sphinx (>=0.6)','pyopengl'],
@@ -27,4 +27,4 @@ setup(name='robot-viewer',
                   (config_dir,['data/floor.py','data/config'])
                   ]
       )
- 
+

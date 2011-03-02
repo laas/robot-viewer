@@ -1,7 +1,7 @@
 #ifndef ROBOTVIEWER_IDL
 #define ROBOTVIEWER_IDL
 
-module hpp {
+module robotviewer_corba {
   typedef sequence<double> DoubleSeq;
   typedef sequence<string> ElementList;
 
