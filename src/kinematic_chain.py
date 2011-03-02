@@ -179,24 +179,24 @@ class GenericObject(object):
         for child in self.children:
             child.update()
 
-    def getBaseNode(self):
+    def getRobot(self):
         '''
         Get the highest level parent
 
-        :returns: the BaseNode
-        :rtype: :class:`kinematic_chain.BaseNode`.
+        :returns: the Robot
+        :rtype: :class:`kinematic_chain.Robot`.
         '''
         if self.parent==None:
             return self
         else:
-            return self.parent.getBaseNode()
+            return self.parent.getRobot()
 
     def getParentJoint(self):
         '''
         Get the highest level parent
 
-        :returns: the BaseNode
-        :rtype: :class:`kinematic_chain.BaseNode`.
+        :returns: the Robot
+        :rtype: :class:`kinematic_chain.Robot`.
         '''
         if not self.parent:
             return None
@@ -244,7 +244,7 @@ class Joint(GenericObject):
         GenericObject.__init__(self)
         self.type= "joint"
         self.jointType=None
-        self.isBaseNode=False
+        self.isRobot=False
         self.rpy=[0,0,0]
         self.angle=0
         self.axis=""
@@ -291,14 +291,14 @@ class Joint(GenericObject):
 #*****************************#
 
 
-class BaseNode(Joint):
+class Robot(Joint):
     '''
     Typically represent a robot/model. First element in the kinematic chain
     '''
     def __init__(self):
         Joint.__init__(self)
         self.ndof = 0
-        self.type= "BaseNode"
+        self.type= "Robot"
         self.id= BASE_NODE_ID
         self.joint_list= []
         self.joint_dict= {}
@@ -397,7 +397,7 @@ class BaseNode(Joint):
 
         for joint in self.joint_list:
             if joint.jointType in ["free","freeflyer"]:
-                joint.getBaseNode().waist=joint
+                joint.getRobot().waist=joint
 
         self.update_joint_dict()
 

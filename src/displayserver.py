@@ -216,7 +216,7 @@ class DisplayServer(object):
                 objs = ml_parser.parse(edescription)
                 robots = []
                 for obj in objs:
-                    if isinstance(obj, kinematic_chain.BaseNode):
+                    if isinstance(obj, kinematic_chain.Robot):
                         robots.append(obj)
                 if len(robots) != 1:
                     raise Exception("Description file %s contains %d robots, expected 1."

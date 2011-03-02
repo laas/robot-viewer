@@ -29,7 +29,7 @@ logger.addHandler(NullHandler())
 class Parser (object):
     """
     Adapt from parser in sot-dynamic project https://github.com/jrl-umi3218/sot-dynamic
-    Parser to build kinematic_chain.BaseNode entities.
+    Parser to build kinematic_chain.Robot entities.
 
     Format is kxml, Kineo CAM robot description format.
     """
@@ -248,7 +248,7 @@ class Parser (object):
 
     def createJoint (self, node, parent = None):
         if node.nodeName == "HPP_FREEFLYER_JOINT":
-            joint = kinematic_chain.BaseNode()
+            joint = kinematic_chain.Robot()
         else:
             joint = kinematic_chain.Joint()
             joint.id = int(node.attributes["id"].value)
@@ -283,7 +283,7 @@ class Parser (object):
         solid.addChild(self.shapes[solid_id])
         joint.addChild(solid)
 
-        if isinstance(joint, kinematic_chain.BaseNode):
+        if isinstance(joint, kinematic_chain.Robot):
             self.compute_localT_from_globalT_(joint)
             joint.init()
             for i,j in enumerate(joint.joint_list):

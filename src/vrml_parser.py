@@ -12,7 +12,7 @@ from vrml_grammar import VRMLPARSERDEF
 import pprint
 
 from kinematic_chain import Mesh, Appearance, Geometry
-from kinematic_chain import GenericObject, Joint, BaseNode
+from kinematic_chain import GenericObject, Joint, Robot
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass
@@ -97,7 +97,7 @@ class VrmlProcessor(DispatchProcessor):
 
 
         elif vrml_node.name == "Humanoid":
-            processed_node = BaseNode()
+            processed_node = Robot()
             processed_node.joint_names = vrml_node['joints']
             processed_node.segment_names = vrml_node['segments']
             body = vrml_node['humanoidBody'][0]
