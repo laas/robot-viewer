@@ -103,7 +103,6 @@ class VrmlProcessor(DispatchProcessor):
             body = vrml_node['humanoidBody'][0]
             processed_node.addChild(body)
             body.parent = processed_node
-            processed_node.init()
 
         elif vrml_node.name == "Segment":
             processed_node = GenericObject()
@@ -204,6 +203,10 @@ def parse(filename):
     parser = VrmlParser(vrml_dir_path, VRMLPARSERDEF, "vrmlScene" )
     data = open(filename).read()
     objs = parser.parse(data)[1]
+    objs = [ o for o in objs if isinstance(o,GenericObject)]
+    for obj in objs:
+        obj.init()
+        logger.debug("Load {0} from {1}, with {2} mesh(es)".format(obj.name, filename, len(obj.mesh_list)))
     return objs
 
 

@@ -59,6 +59,9 @@ def euleur2AngleAxis(rpy):
     R = euleur2rotation(rpy)
     return rot2AngleAxis(R)
 
+def euleur2AxisAngle(rpy):
+    R = euleur2rotation(rpy)
+    return rot2AxisAngle(R)
 
 def draw_link(p1,p2,size=0.01):
     p=p2-p1

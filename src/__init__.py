@@ -50,3 +50,4 @@ __version__=  '0.9.5'
 
 from client import client
 
+from version import __version__

@@ -7,6 +7,7 @@ import numpy, time
 import kinematic_chain
 from mathaux import *
 from safeeval import safe_eval
+from kinematic_chain import Robot, GenericObject
 
 import logging, os, sys
 logger = logging.getLogger("robotviewer.display_element")
@@ -77,12 +78,11 @@ class DsElement(object):
     def isEnabled(self):
         return self._enabled
 
-
-class DsRobot(DsElement):
-    """Display Element for a humanoid robot
+class DsGenericObject(DsElement):
+    """Wrapper for kinematic_chain.GenericObject
     """
 
-    def __init__(self, robot = None, xyz = [0,0,0], rpy = [0,0,0], enabled= False):
+    def __init__(self, obj = None, xyz = [0,0,0], rpy = [0,0,0], enabled= False):
         """
 
         Arguments:
@@ -93,11 +93,11 @@ class DsRobot(DsElement):
         self._rpy = rpy
         self._enabled = enabled
         self._q = []
-        self._robot = robot
+        self._obj = obj
         self._meshVBOlist=[]
         self._kinematics_update_t = 0
         self._config_update_t = 0
-        for amesh in robot.mesh_list:
+        for amesh in obj.mesh_list:
             joint_name = "Unknown"
             if amesh.getParentJoint():
                 joint_name = amesh.getParentJoint().name
@@ -128,17 +128,16 @@ class DsRobot(DsElement):
             glMaterialfv(GL_FRONT_AND_BACK, key, value)
         glEndList()
 
+    def __str__(self):
+        s = "  type\t: GenericObject\n"
+        return s
+
     def set_transparency(self, transparency):
-        for m in self._robot.mesh_list:
+        for m in self._obj.mesh_list:
             m.app.transparency = transparency
 
         for m in self._meshVBOlist:
             m.createMatList()
-
-    def __str__(self):
-        s = "  type\t: Robot\n"
-        s += "  config\t: %s\n"%str(self._robot.getConfig())
-        return s
 
     def updateConfig(self,conf):
         """Update element configuration
@@ -151,7 +150,78 @@ class DsRobot(DsElement):
         self._config_update_t = time.time()
         self._xyz = conf[0:3]
         self._rpy = conf[3:6]
-        self._q   = conf[6:]
+        self._q = conf[6:]
+
+    def getConfig(self):
+        return self._xyz + self._rpy
+
+    def updateKinematics(self):
+        if self._kinematics_update_t < self._config_update_t:
+            self._kinematics_update_t = time.time()
+            self._obj.translation = self._xyz
+            self._obj.rotation = euleur2AxisAngle(self._rpy)
+            self._obj.initLocalTransformation()
+            self._obj.update()
+
+
+    def render(self, render_mesh_flag = True):
+        """
+
+        Arguments:
+        - `self`:
+        """
+        if not self._enabled:
+            return
+
+        self.updateKinematics()
+
+        if render_mesh_flag:
+            self.renderMesh()
+
+    def renderMesh(self):
+        glEnableClientState(GL_NORMAL_ARRAY);
+        glEnableClientState(GL_VERTEX_ARRAY);
+        for avbo in self._meshVBOlist:
+            amesh = avbo._mesh
+            Tmatrix=amesh.globalTransformation
+            R=Tmatrix[0:3,0:3]
+            p=Tmatrix[0:3,3]
+            agax=rot2AngleAxis(R)
+
+            glPushMatrix()
+            glTranslatef(p[0],p[1],p[2])
+            glRotated(agax[0],agax[1],agax[2],agax[3])
+            glCallList(avbo.glList_idx)
+
+            # print avbo.ver_vboId,avbo.nor_vboId,avbo.idx_vboId
+            # before draw, specify vertex and index arrays with their offsets
+
+            # Use VBO
+            glBindBufferARB(GL_ARRAY_BUFFER_ARB, avbo.ver_vboId);
+            glVertexPointer( 3, GL_FLOAT, 0, None );
+
+            glBindBufferARB(GL_ARRAY_BUFFER_ARB, avbo.nor_vboId);
+            glNormalPointer(GL_FLOAT, 0,None);
+
+            glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, avbo.idx_vboId);
+
+            glDrawElements(GL_TRIANGLES, avbo.count, GL_UNSIGNED_SHORT, None);
+
+            glPopMatrix()
+            glFlush()
+        # end drawing the bot
+        glDisableClientState(GL_VERTEX_ARRAY);  # disable vertex arrays
+        glDisableClientState(GL_NORMAL_ARRAY);
+
+
+class DsRobot(DsGenericObject):
+    """Display Element for a humanoid robot
+    """
+
+    def __str__(self):
+        s = "  type\t: Robot\n"
+        s += "  config\t: %s\n"%str(self._obj.getConfig())
+        return s
 
     def getConfig(self):
         return self._xyz + self._rpy + self._q
@@ -159,10 +229,10 @@ class DsRobot(DsElement):
     def updateKinematics(self):
         if self._kinematics_update_t < self._config_update_t:
             self._kinematics_update_t = time.time()
-            self._robot.waistPos(self._xyz)
-            self._robot.waistRpy(self._rpy)
-            self._robot.setAngles(self._q)
-            self._robot.update()
+            self._obj.waistPos(self._xyz)
+            self._obj.waistRpy(self._rpy)
+            self._obj.setAngles(self._q)
+            self._obj.update()
 
 
     def render(self, render_mesh_flag = True, render_skeleton_flag = False, size = 1):
@@ -176,7 +246,7 @@ class DsRobot(DsElement):
 
         self.updateKinematics()
 
-        if render_skeleton_flag or not self._robot.mesh_list[:]:
+        if render_skeleton_flag or not self._obj.mesh_list[:]:
             self.renderSkeleton(size)
 
         if render_mesh_flag:
@@ -245,8 +315,8 @@ class DsRobot(DsElement):
                 glPopMatrix()
 
         # draw_skeleton a sphere at each mobile joint
-        # print "rendering skeleton", self._robot.joint_list
-        for joint in self._robot.joint_list:
+        # print "rendering skeleton", self._obj.joint_list
+        for joint in self._obj.joint_list:
             draw_joint(joint, size)
             if joint.parent and joint.jointType in ["rotate","revolute","prismatic",
                                    "rotation", "translation"]:
@@ -254,44 +324,6 @@ class DsRobot(DsElement):
                 parent=joint.parent
                 parent_pos=parent.globalTransformation[0:3,3]
                 draw_link(pos,parent_pos,size)
-
-
-
-    def renderMesh(self):
-        glEnableClientState(GL_NORMAL_ARRAY);
-        glEnableClientState(GL_VERTEX_ARRAY);
-        for avbo in self._meshVBOlist:
-            amesh = avbo._mesh
-            Tmatrix=amesh.globalTransformation
-            R=Tmatrix[0:3,0:3]
-            p=Tmatrix[0:3,3]
-            agax=rot2AngleAxis(R)
-
-            glPushMatrix()
-            glTranslatef(p[0],p[1],p[2])
-            glRotated(agax[0],agax[1],agax[2],agax[3])
-            glCallList(avbo.glList_idx)
-
-            # print avbo.ver_vboId,avbo.nor_vboId,avbo.idx_vboId
-            # before draw, specify vertex and index arrays with their offsets
-
-            # Use VBO
-            glBindBufferARB(GL_ARRAY_BUFFER_ARB, avbo.ver_vboId);
-            glVertexPointer( 3, GL_FLOAT, 0, None );
-
-            glBindBufferARB(GL_ARRAY_BUFFER_ARB, avbo.nor_vboId);
-            glNormalPointer(GL_FLOAT, 0,None);
-
-            glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, avbo.idx_vboId);
-
-            glDrawElements(GL_TRIANGLES, avbo.count, GL_UNSIGNED_SHORT, None);
-
-            glPopMatrix()
-            glFlush()
-        # end drawing the bot
-        glDisableClientState(GL_VERTEX_ARRAY);  # disable vertex arrays
-        glDisableClientState(GL_NORMAL_ARRAY);
-
 
 class DsScript(DsElement):
     """
@@ -399,7 +431,7 @@ class MeshVBO(object):
                     alpha1=acos(numpy.dot(p21,p10))
                     alpha2=acos(numpy.dot(p02,p21))
                 except Exception,error:
-                    warnings.warn("Mesh processing error: %s"%error)
+                    logger.warning("Mesh processing error: %s"%error)
                 normals[id0]+=alpha0*normalized(numpy.cross(p02,p10))
                 normals[id1]+=alpha1*normalized(numpy.cross(p10,p21))
                 normals[id2]+=alpha2*normalized(numpy.cross(p21,p02))
@@ -449,6 +481,8 @@ class MeshVBO(object):
     def createMatList(self):
         app=self._mesh.app
         glNewList(self.glList_idx, GL_COMPILE);
+        if not app.transparency:
+            app.transparency = 0
         for (key, value) in [ (GL_SPECULAR,app.specularColor),
                               (GL_EMISSION,app.emissiveColor ),
                               (GL_AMBIENT_AND_DIFFUSE,app.diffuseColor ),
@@ -462,8 +496,11 @@ class MeshVBO(object):
                 else:
                     glMaterialfv(GL_FRONT_AND_BACK, key, value)
             else:
+                joint_name = "None"
+                if self._mesh.getParentJoint():
+                    joint_name = self._mesh.getParentJoint().name
                 logger.debug("Mesh %s of joint %s: Missing %s in material"
-                               %(self._mesh.name, self._mesh.getParentJoint().name, key.name))
+                               %(self._mesh.name, joint_name, key.name))
         glEndList();
 
     def __str__(self):
