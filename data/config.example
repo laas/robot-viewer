@@ -4,5 +4,9 @@ hrp=$ROBOTPKG_BASE/OpenHRP/Controller/IOserver/robot/HRP2JRL/model/HRP2JRLmain.w
 [joint_rank]
 hrp=$ROBOTPKG_BASE/share/hrp2_14/HRP2LinkJointRank.xml
 
-[scripts]
+[objects]
 floor=$HOME/.robotviewer/floor.py
+chair=$HOME/chairlayaletest332.wrl
+
+[default_configs]
+chair=-1 0 1 0 0 0

@@ -24,7 +24,7 @@ def GetObject(module_name, obj_name, context_name , poa_path = None):
     - `poa_path`: path to omniidl generated interface
 
     Example:
-         loscli=corba_util.GetObject("hpp","hpp.Localstepper",[('hpp','context'),('localstepper','object')])
+         loscli=corba_util.GetObject("robotviewer_corba","robotviewer_corba.Localstepper",[('robotviewer_corba','context'),('localstepper','object')])
     """
     if poa_path:
         sys.path = [poa_path] + sys.path

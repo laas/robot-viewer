@@ -1,12 +1,11 @@
 #! /usr/bin/env python
-import sys,imp, os
+import sys,imp, os, stat
 from optparse import OptionParser
 import logging
 import robotviewer
-
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
-
+__version__ = robotviewer.__version__
 ch = logging.StreamHandler()
 ch.setLevel(logging.INFO)
 # create formatter and add it to the handlers
@@ -40,8 +39,19 @@ def main():
                       action="store_true", dest="skeleton", default=False,
                       help="only display robot skeletons")
 
+    parser.add_option("--version",
+                      action="store_true", dest="version", default=False,
+                      help="Print version and exit")
+
     (options, args) = parser.parse_args()
     global ch
+    if options.version:
+        print __version__
+        sys.exit(0)
+
+    os.chmod(os.path.join(os.environ['HOME'], ".robotviewer"),
+             stat.S_IWUSR | stat.S_IRUSR | stat.S_IXUSR)
+
     if options.verbose:
         ch.setLevel(logging.DEBUG)
 
@@ -52,10 +62,12 @@ def main():
     elif options.server == "XML-RPC":
         logger.info("Starting robotviewer in xmlrpc mode")
         import robotviewer.displayserver_xmlrpc
+        logger.debug("Imported displayserver_xmlrpc")
         DisplayServer = robotviewer.displayserver_xmlrpc.DisplayServerXmlrpc
     else:
         raise Exception ("Not supported server type %s"%options.server)
     server = DisplayServer(options,args)
+    logger.debug("created server")
     server.run()
 
 if __name__ == '__main__':

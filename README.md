@@ -10,7 +10,7 @@ Make sure you have the following dependency:
  
  * python 2.6
 
- * pyopengl
+ * pyopengl, numpy, python-numeric
 
  * [SimpleParse 2.1](http://simpleparse.sourceforge.net/)
 
@@ -18,7 +18,7 @@ Make sure you have the following dependency:
 
 
 To install this package:
-    setup setup.py install --prefix $YOUR_PREFIX
+    python setup.py install --prefix $YOUR_PREFIX
 
 Usage
 -----

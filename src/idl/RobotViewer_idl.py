@@ -8,43 +8,43 @@ _omnipy.checkVersion(3,0, __file__)
 
 
 #
-# Start of module "hpp"
+# Start of module "robotviewer_corba"
 #
-__name__ = "hpp"
-_0_hpp = omniORB.openModule("hpp", r"RobotViewer.idl")
-_0_hpp__POA = omniORB.openModule("hpp__POA", r"RobotViewer.idl")
+__name__ = "robotviewer_corba"
+_0_robotviewer_corba = omniORB.openModule("robotviewer_corba", r"RobotViewer.idl")
+_0_robotviewer_corba__POA = omniORB.openModule("robotviewer_corba__POA", r"RobotViewer.idl")
 
 
 # typedef ... DoubleSeq
 class DoubleSeq:
-    _NP_RepositoryId = "IDL:hpp/DoubleSeq:1.0"
+    _NP_RepositoryId = "IDL:robotviewer_corba/DoubleSeq:1.0"
     def __init__(self, *args, **kw):
         raise RuntimeError("Cannot construct objects of this type.")
-_0_hpp.DoubleSeq = DoubleSeq
-_0_hpp._d_DoubleSeq  = (omniORB.tcInternal.tv_sequence, omniORB.tcInternal.tv_double, 0)
-_0_hpp._ad_DoubleSeq = (omniORB.tcInternal.tv_alias, DoubleSeq._NP_RepositoryId, "DoubleSeq", (omniORB.tcInternal.tv_sequence, omniORB.tcInternal.tv_double, 0))
-_0_hpp._tc_DoubleSeq = omniORB.tcInternal.createTypeCode(_0_hpp._ad_DoubleSeq)
-omniORB.registerType(DoubleSeq._NP_RepositoryId, _0_hpp._ad_DoubleSeq, _0_hpp._tc_DoubleSeq)
+_0_robotviewer_corba.DoubleSeq = DoubleSeq
+_0_robotviewer_corba._d_DoubleSeq  = (omniORB.tcInternal.tv_sequence, omniORB.tcInternal.tv_double, 0)
+_0_robotviewer_corba._ad_DoubleSeq = (omniORB.tcInternal.tv_alias, DoubleSeq._NP_RepositoryId, "DoubleSeq", (omniORB.tcInternal.tv_sequence, omniORB.tcInternal.tv_double, 0))
+_0_robotviewer_corba._tc_DoubleSeq = omniORB.tcInternal.createTypeCode(_0_robotviewer_corba._ad_DoubleSeq)
+omniORB.registerType(DoubleSeq._NP_RepositoryId, _0_robotviewer_corba._ad_DoubleSeq, _0_robotviewer_corba._tc_DoubleSeq)
 del DoubleSeq
 
 # typedef ... ElementList
 class ElementList:
-    _NP_RepositoryId = "IDL:hpp/ElementList:1.0"
+    _NP_RepositoryId = "IDL:robotviewer_corba/ElementList:1.0"
     def __init__(self, *args, **kw):
         raise RuntimeError("Cannot construct objects of this type.")
-_0_hpp.ElementList = ElementList
-_0_hpp._d_ElementList  = (omniORB.tcInternal.tv_sequence, (omniORB.tcInternal.tv_string,0), 0)
-_0_hpp._ad_ElementList = (omniORB.tcInternal.tv_alias, ElementList._NP_RepositoryId, "ElementList", (omniORB.tcInternal.tv_sequence, (omniORB.tcInternal.tv_string,0), 0))
-_0_hpp._tc_ElementList = omniORB.tcInternal.createTypeCode(_0_hpp._ad_ElementList)
-omniORB.registerType(ElementList._NP_RepositoryId, _0_hpp._ad_ElementList, _0_hpp._tc_ElementList)
+_0_robotviewer_corba.ElementList = ElementList
+_0_robotviewer_corba._d_ElementList  = (omniORB.tcInternal.tv_sequence, (omniORB.tcInternal.tv_string,0), 0)
+_0_robotviewer_corba._ad_ElementList = (omniORB.tcInternal.tv_alias, ElementList._NP_RepositoryId, "ElementList", (omniORB.tcInternal.tv_sequence, (omniORB.tcInternal.tv_string,0), 0))
+_0_robotviewer_corba._tc_ElementList = omniORB.tcInternal.createTypeCode(_0_robotviewer_corba._ad_ElementList)
+omniORB.registerType(ElementList._NP_RepositoryId, _0_robotviewer_corba._ad_ElementList, _0_robotviewer_corba._tc_ElementList)
 del ElementList
 
 # interface RobotViewer
-_0_hpp._d_RobotViewer = (omniORB.tcInternal.tv_objref, "IDL:hpp/RobotViewer:1.0", "RobotViewer")
-omniORB.typeMapping["IDL:hpp/RobotViewer:1.0"] = _0_hpp._d_RobotViewer
-_0_hpp.RobotViewer = omniORB.newEmptyClass()
+_0_robotviewer_corba._d_RobotViewer = (omniORB.tcInternal.tv_objref, "IDL:robotviewer_corba/RobotViewer:1.0", "RobotViewer")
+omniORB.typeMapping["IDL:robotviewer_corba/RobotViewer:1.0"] = _0_robotviewer_corba._d_RobotViewer
+_0_robotviewer_corba.RobotViewer = omniORB.newEmptyClass()
 class RobotViewer :
-    _NP_RepositoryId = _0_hpp._d_RobotViewer[1]
+    _NP_RepositoryId = _0_robotviewer_corba._d_RobotViewer[1]
 
     def __init__(self, *args, **kw):
         raise RuntimeError("Cannot construct objects of this type.")
@@ -53,11 +53,11 @@ class RobotViewer :
 
     
     # exception InvalidKey
-    _0_hpp.RobotViewer.InvalidKey = omniORB.newEmptyClass()
+    _0_robotviewer_corba.RobotViewer.InvalidKey = omniORB.newEmptyClass()
     class InvalidKey (CORBA.UserException):
-        _NP_RepositoryId = "IDL:hpp/RobotViewer/InvalidKey:1.0"
+        _NP_RepositoryId = "IDL:robotviewer_corba/RobotViewer/InvalidKey:1.0"
 
-        _NP_ClassName = "hpp.RobotViewer.InvalidKey"
+        _NP_ClassName = "robotviewer_corba.RobotViewer.InvalidKey"
 
         def __init__(self, reason):
             CORBA.UserException.__init__(self, reason)
@@ -68,19 +68,19 @@ class RobotViewer :
     omniORB.registerType(InvalidKey._NP_RepositoryId, _d_InvalidKey, _tc_InvalidKey)
 
 
-_0_hpp.RobotViewer = RobotViewer
-_0_hpp._tc_RobotViewer = omniORB.tcInternal.createTypeCode(_0_hpp._d_RobotViewer)
-omniORB.registerType(RobotViewer._NP_RepositoryId, _0_hpp._d_RobotViewer, _0_hpp._tc_RobotViewer)
+_0_robotviewer_corba.RobotViewer = RobotViewer
+_0_robotviewer_corba._tc_RobotViewer = omniORB.tcInternal.createTypeCode(_0_robotviewer_corba._d_RobotViewer)
+omniORB.registerType(RobotViewer._NP_RepositoryId, _0_robotviewer_corba._d_RobotViewer, _0_robotviewer_corba._tc_RobotViewer)
 
 # RobotViewer operations and attributes
 RobotViewer._d_createElement = (((omniORB.tcInternal.tv_string,0), (omniORB.tcInternal.tv_string,0), (omniORB.tcInternal.tv_string,0)), (omniORB.tcInternal.tv_boolean, ), None)
 RobotViewer._d_setRobotJointRank = (((omniORB.tcInternal.tv_string,0), (omniORB.tcInternal.tv_string,0)), (omniORB.tcInternal.tv_boolean, ), None)
-RobotViewer._d_destroyElement = (((omniORB.tcInternal.tv_string,0), ), (omniORB.tcInternal.tv_boolean, ), {_0_hpp.RobotViewer.InvalidKey._NP_RepositoryId: _0_hpp.RobotViewer._d_InvalidKey})
-RobotViewer._d_enableElement = (((omniORB.tcInternal.tv_string,0), ), (omniORB.tcInternal.tv_boolean, ), {_0_hpp.RobotViewer.InvalidKey._NP_RepositoryId: _0_hpp.RobotViewer._d_InvalidKey})
-RobotViewer._d_disableElement = (((omniORB.tcInternal.tv_string,0), ), (omniORB.tcInternal.tv_boolean, ), {_0_hpp.RobotViewer.InvalidKey._NP_RepositoryId: _0_hpp.RobotViewer._d_InvalidKey})
-RobotViewer._d_updateElementConfig = (((omniORB.tcInternal.tv_string,0), omniORB.typeMapping["IDL:hpp/DoubleSeq:1.0"]), (omniORB.tcInternal.tv_boolean, ), {_0_hpp.RobotViewer.InvalidKey._NP_RepositoryId: _0_hpp.RobotViewer._d_InvalidKey})
-RobotViewer._d_getElementConfig = (((omniORB.tcInternal.tv_string,0), ), (omniORB.typeMapping["IDL:hpp/DoubleSeq:1.0"], ), {_0_hpp.RobotViewer.InvalidKey._NP_RepositoryId: _0_hpp.RobotViewer._d_InvalidKey})
-RobotViewer._d_listElement = ((), (omniORB.typeMapping["IDL:hpp/ElementList:1.0"], ), None)
+RobotViewer._d_destroyElement = (((omniORB.tcInternal.tv_string,0), ), (omniORB.tcInternal.tv_boolean, ), {_0_robotviewer_corba.RobotViewer.InvalidKey._NP_RepositoryId: _0_robotviewer_corba.RobotViewer._d_InvalidKey})
+RobotViewer._d_enableElement = (((omniORB.tcInternal.tv_string,0), ), (omniORB.tcInternal.tv_boolean, ), {_0_robotviewer_corba.RobotViewer.InvalidKey._NP_RepositoryId: _0_robotviewer_corba.RobotViewer._d_InvalidKey})
+RobotViewer._d_disableElement = (((omniORB.tcInternal.tv_string,0), ), (omniORB.tcInternal.tv_boolean, ), {_0_robotviewer_corba.RobotViewer.InvalidKey._NP_RepositoryId: _0_robotviewer_corba.RobotViewer._d_InvalidKey})
+RobotViewer._d_updateElementConfig = (((omniORB.tcInternal.tv_string,0), omniORB.typeMapping["IDL:robotviewer_corba/DoubleSeq:1.0"]), (omniORB.tcInternal.tv_boolean, ), {_0_robotviewer_corba.RobotViewer.InvalidKey._NP_RepositoryId: _0_robotviewer_corba.RobotViewer._d_InvalidKey})
+RobotViewer._d_getElementConfig = (((omniORB.tcInternal.tv_string,0), ), (omniORB.typeMapping["IDL:robotviewer_corba/DoubleSeq:1.0"], ), {_0_robotviewer_corba.RobotViewer.InvalidKey._NP_RepositoryId: _0_robotviewer_corba.RobotViewer._d_InvalidKey})
+RobotViewer._d_listElement = ((), (omniORB.typeMapping["IDL:robotviewer_corba/ElementList:1.0"], ), None)
 RobotViewer._d_Ping = ((), ((omniORB.tcInternal.tv_string,0), ), None)
 
 # RobotViewer object reference
@@ -91,57 +91,57 @@ class _objref_RobotViewer (CORBA.Object):
         CORBA.Object.__init__(self)
 
     def createElement(self, *args):
-        return _omnipy.invoke(self, "createElement", _0_hpp.RobotViewer._d_createElement, args)
+        return _omnipy.invoke(self, "createElement", _0_robotviewer_corba.RobotViewer._d_createElement, args)
 
     def setRobotJointRank(self, *args):
-        return _omnipy.invoke(self, "setRobotJointRank", _0_hpp.RobotViewer._d_setRobotJointRank, args)
+        return _omnipy.invoke(self, "setRobotJointRank", _0_robotviewer_corba.RobotViewer._d_setRobotJointRank, args)
 
     def destroyElement(self, *args):
-        return _omnipy.invoke(self, "destroyElement", _0_hpp.RobotViewer._d_destroyElement, args)
+        return _omnipy.invoke(self, "destroyElement", _0_robotviewer_corba.RobotViewer._d_destroyElement, args)
 
     def enableElement(self, *args):
-        return _omnipy.invoke(self, "enableElement", _0_hpp.RobotViewer._d_enableElement, args)
+        return _omnipy.invoke(self, "enableElement", _0_robotviewer_corba.RobotViewer._d_enableElement, args)
 
     def disableElement(self, *args):
-        return _omnipy.invoke(self, "disableElement", _0_hpp.RobotViewer._d_disableElement, args)
+        return _omnipy.invoke(self, "disableElement", _0_robotviewer_corba.RobotViewer._d_disableElement, args)
 
     def updateElementConfig(self, *args):
-        return _omnipy.invoke(self, "updateElementConfig", _0_hpp.RobotViewer._d_updateElementConfig, args)
+        return _omnipy.invoke(self, "updateElementConfig", _0_robotviewer_corba.RobotViewer._d_updateElementConfig, args)
 
     def getElementConfig(self, *args):
-        return _omnipy.invoke(self, "getElementConfig", _0_hpp.RobotViewer._d_getElementConfig, args)
+        return _omnipy.invoke(self, "getElementConfig", _0_robotviewer_corba.RobotViewer._d_getElementConfig, args)
 
     def listElement(self, *args):
-        return _omnipy.invoke(self, "listElement", _0_hpp.RobotViewer._d_listElement, args)
+        return _omnipy.invoke(self, "listElement", _0_robotviewer_corba.RobotViewer._d_listElement, args)
 
     def Ping(self, *args):
-        return _omnipy.invoke(self, "Ping", _0_hpp.RobotViewer._d_Ping, args)
+        return _omnipy.invoke(self, "Ping", _0_robotviewer_corba.RobotViewer._d_Ping, args)
 
     __methods__ = ["createElement", "setRobotJointRank", "destroyElement", "enableElement", "disableElement", "updateElementConfig", "getElementConfig", "listElement", "Ping"] + CORBA.Object.__methods__
 
 omniORB.registerObjref(RobotViewer._NP_RepositoryId, _objref_RobotViewer)
-_0_hpp._objref_RobotViewer = _objref_RobotViewer
+_0_robotviewer_corba._objref_RobotViewer = _objref_RobotViewer
 del RobotViewer, _objref_RobotViewer
 
 # RobotViewer skeleton
-__name__ = "hpp__POA"
+__name__ = "robotviewer_corba__POA"
 class RobotViewer (PortableServer.Servant):
-    _NP_RepositoryId = _0_hpp.RobotViewer._NP_RepositoryId
+    _NP_RepositoryId = _0_robotviewer_corba.RobotViewer._NP_RepositoryId
 
 
-    _omni_op_d = {"createElement": _0_hpp.RobotViewer._d_createElement, "setRobotJointRank": _0_hpp.RobotViewer._d_setRobotJointRank, "destroyElement": _0_hpp.RobotViewer._d_destroyElement, "enableElement": _0_hpp.RobotViewer._d_enableElement, "disableElement": _0_hpp.RobotViewer._d_disableElement, "updateElementConfig": _0_hpp.RobotViewer._d_updateElementConfig, "getElementConfig": _0_hpp.RobotViewer._d_getElementConfig, "listElement": _0_hpp.RobotViewer._d_listElement, "Ping": _0_hpp.RobotViewer._d_Ping}
+    _omni_op_d = {"createElement": _0_robotviewer_corba.RobotViewer._d_createElement, "setRobotJointRank": _0_robotviewer_corba.RobotViewer._d_setRobotJointRank, "destroyElement": _0_robotviewer_corba.RobotViewer._d_destroyElement, "enableElement": _0_robotviewer_corba.RobotViewer._d_enableElement, "disableElement": _0_robotviewer_corba.RobotViewer._d_disableElement, "updateElementConfig": _0_robotviewer_corba.RobotViewer._d_updateElementConfig, "getElementConfig": _0_robotviewer_corba.RobotViewer._d_getElementConfig, "listElement": _0_robotviewer_corba.RobotViewer._d_listElement, "Ping": _0_robotviewer_corba.RobotViewer._d_Ping}
 
 RobotViewer._omni_skeleton = RobotViewer
-_0_hpp__POA.RobotViewer = RobotViewer
+_0_robotviewer_corba__POA.RobotViewer = RobotViewer
 omniORB.registerSkeleton(RobotViewer._NP_RepositoryId, RobotViewer)
 del RobotViewer
-__name__ = "hpp"
+__name__ = "robotviewer_corba"
 
 #
-# End of module "hpp"
+# End of module "robotviewer_corba"
 #
 __name__ = "RobotViewer_idl"
 
-_exported_modules = ( "hpp", )
+_exported_modules = ( "robotviewer_corba", )
 
 # The end.

@@ -10,11 +10,11 @@ import xmlrpclib
 
 def client(server = "CORBA"):
     if server == "CORBA":
-        import corba_util
         sys.path = [os.path.dirname(
                 os.path.abspath(__file__))+"/idl"] + sys.path
-        import hpp, hpp__POA
-        return corba_util.GetObject('hpp','hpp.RobotViewer',
+        import corba_util
+        import robotviewer_corba, robotviewer_corba__POA
+        return corba_util.GetObject('robotviewer_corba','robotviewer_corba.RobotViewer',
                                     [('RobotViewer','context'),
                                      ('RobotViewer','object')])
     elif server == "XML-RPC":

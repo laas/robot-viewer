@@ -15,15 +15,15 @@ def load(filename):
     root = ET.fromstring(s)
     robots=[]
     for element in root.getchildren():
-        if element.tag=="BaseNode":
-            robot=parseBaseNode(element)
+        if element.tag=="Robot":
+            robot=parseRobot(element)
             robots.append(robot)
 #    robots[0].printJoints()
     return robots[0]
 
-def parseBaseNode(element):
+def parseRobot(element):
     global xmlFilePath
-    robot=kinematic_chain.BaseNode()
+    robot=kinematic_chain.Robot()
     robot.jointType="free"
     imageRot=[1,0,0,0]
     imagePos=[0,0,0]

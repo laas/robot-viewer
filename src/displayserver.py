@@ -8,7 +8,7 @@ import kinematic_chain
 import ml_parser
 import pickle
 from openglaux import IsExtensionSupported,ReSizeGLScene, GlWindow
-from display_element import DsElement, DsRobot, DsScript
+from display_element import DsElement, DsRobot, DsScript, DsGenericObject
 import re,imp
 from camera import Camera
 import pickle
@@ -16,7 +16,8 @@ config_dir = os.environ['HOME']+'/.robotviewer/'
 import logging
 import ConfigParser
 import time
-
+import subprocess
+import code
 ESCAPE = 27
 
 logger = logging.getLogger("robotviewer.displayserver")
@@ -24,6 +25,7 @@ class NullHandler(logging.Handler):
     def emit(self, record):
         pass
 logger.addHandler(NullHandler())
+
 def updateView(camera):
     """
 
@@ -57,6 +59,7 @@ class DisplayServer(object):
             self.no_cache = True
 
         self._element_dict = dict()
+        logger.debug("Initializing OpenGL")
         self.initGL()
         self.pendingObjects=[]
         self.parseConfig()
@@ -76,10 +79,25 @@ class DisplayServer(object):
         self.transparency = 0
 
     def initGL(self):
+        logger.debug("Initializing glut")
         glutInit(sys.argv)
+        logger.debug("Setting glut DisplayMode")
+
+        intel_card = False
+        if os.name == 'posix':
+            rt = subprocess.call("lspci | grep VGA | grep Intel", shell= True)
+            if rt == 0:
+                intel_card = True
+        # Hack to catch segfaut on intel cards
+        if intel_card:
+            dummy_win = glutCreateWindow("Initializing...")
         glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
+        if intel_card:
+            glutDestroyWindow(dummy_win)
+        logger.debug("Setting glut WindowSize")
         glutInitWindowSize(640, 480)
         glutInitWindowPosition(0, 0)
+        logger.debug("Creating glutWindow")
         window = glutCreateWindow("Robotviewer Server")
         glutDisplayFunc(self.DrawGLScene)
         glutIdleFunc(self.DrawGLScene)
@@ -108,11 +126,11 @@ class DisplayServer(object):
                 correct_joint_dict[m.group(1)] = int(m.group(2)) -6
                 logger.info( m.group(1)+ "\t" + m.group(2))
 
-        for joint in self._element_dict[robot_name]._robot.joint_list:
+        for joint in self._element_dict[robot_name]._obj.joint_list:
             if correct_joint_dict.has_key(joint.name):
                 joint.id = correct_joint_dict[joint.name]
 
-        self._element_dict[robot_name]._robot.update_joint_dict()
+        self._element_dict[robot_name]._obj.update_joint_dict()
         return True
 
     def parseConfig(self):
@@ -128,6 +146,13 @@ class DisplayServer(object):
         config = ConfigParser.ConfigParser()
         config.read(self.config_file)
         logger.info( 'parsed_config %s'%config)
+
+        for section in config.sections():
+            if section not in ['robots','default_configs','objects','joint_rank',
+                               'preferences']:
+                raise Exception("Invalid section {0} in {1}".format(sec,self.config_file))
+
+
         if config.has_section('robots'):
             robot_names = config.options('robots')
             for robot_name in robot_names:
@@ -154,72 +179,98 @@ class DisplayServer(object):
                     continue
                 if not os.path.isfile(joint_rank_config):
                     continue
-                setRobotJointRank(robot_name,joint_rank_config)
+                self.setRobotJointRank(self, robot_name,joint_rank_config)
 
-        if config.has_section('scripts'):
-            script_names = config.options('scripts')
-            for script_name in script_names:
-                script_file = config.get('scripts',script_name)
-                script_file = replace_env_var(script_file)
-                if not os.path.isfile(script_file):
-                    warnings.warn('Could not find %s'%script_file)
+        if config.has_section('objects'):
+            object_names = config.options('objects')
+            for object_name in object_names:
+                object_file = config.get('objects',object_name)
+                object_file = replace_env_var(object_file)
+                if not os.path.isfile(object_file):
+                    logger.warning('Could not find %s'%object_file)
                     continue
-                description = open(script_file).read()
-                self._create_element('script',script_name,description)
-                self.enableElement(script_name)
+                self._create_element('object', object_name, object_file)
+                self.enableElement(object_name)
+
+        if config.has_section('default_configs'):
+            object_names = config.options('default_configs')
+            for object_name in object_names:
+                pos = config.get('default_configs',object_name)
+                pos = [float(e) for e in pos.split()]
+                self.updateElementConfig(object_name,pos)
+
+        if config.has_section('preferences'):
+            for key, value in config.items('preferences'):
+                if key == 'background':
+                    value = [float(e) for e in value.split(",")]
+                    glClearColor (value[0], value[1], value[2], 0.5);
+
+
+
         return
 
 
-    def _create_element(self,etype,ename,edescription):
+    def _create_element(self, etype, ename, epath):
         """
         Same as createElement but will not be called by outside world
         (CORBA) show will always be in the GL thread
         Arguments:
         - `self`:
-        - `etype`:        string, element type (e.g. robot, GLscript)
+        - `etype`:        string, element type (e.g. robot, object)
         - `name`:         string, element name
-        - `description`:  string, description  (e.g. wrl path)
+        - `path`:  string, description  (e.g. wrl path)
         """
         if self._element_dict.has_key(ename):
-            raise KeyError,"Element with that name exists already"
+            logger.exception("Element with that name exists already")
+            return
 
         if etype == 'robot':
-            edes = edescription.replace("/","_")
-            cached_file = config_dir+"/%s.cache"%edes
-            if self.no_cache and os.path.isfile(cached_file):
-                os.remove(cached_file)
-
-            if os.path.isfile(cached_file):
-                logger.info( "Using cached file %s.\n Remove it to reparse the wrl/xml file"%cached_file)
-                new_robot = pickle.load(open(cached_file))
-            else:
-                objs = ml_parser.parse(edescription)
-                robots = []
-                for obj in objs:
-                    if isinstance(obj, kinematic_chain.BaseNode):
-                        robots.append(obj)
-                if len(robots) != 1:
-                    raise Exception("Description file %s contains %d robots, expected 1."
-                                    %(edescription, len(robots)))
-                new_robot = robots[0]
-
+            objs = ml_parser.parse(epath, not self.no_cache)
+            robots = []
+            for obj in objs:
+                if isinstance(obj, kinematic_chain.Robot):
+                    robots.append(obj)
+            if len(robots) != 1:
+                raise Exception("file %s contains %d robots, expected 1."
+                                %(epath, len(robots)))
+            new_robot = robots[0]
             new_element = DsRobot(new_robot)
-            logger.info("Saving new cache to %s"%cached_file)
-            f = open(cached_file,'w')
-            pickle.dump(new_robot,f)
-            f.close()
-            logger.info("Finished saving new cache to %s"%cached_file)
             self._element_dict[ename] = new_element
 
-        elif etype == 'script':
+        elif etype == 'object':
             new_element = None
-            new_element = DsScript(edescription)
+            # try to load as vrml and script
+            ext = os.path.splitext(epath)[1].replace(".","")
+            if ext == "py":
+                logger.debug("Creating element from python script file %s."%epath)
+                new_element = DsScript(open(epath).read())
+            elif ext in ml_parser.supported_extensions:
+                logger.debug("Creating element from supported markup language file %s."%epath)
+                objs = ml_parser.parse(epath, not self.no_cache)
+                objs = [ o for o in objs if isinstance(o, kinematic_chain.GenericObject)]
+                if len(objs) == 0:
+                    raise Exception('Found no object in file %s %d'%len(objs,epath))
+                elif len(objs) == 1:
+                    group = objs[0]
+                else:
+                    group  = kinematic_chain.GenericObject()
+                    for obj in objs:
+                        group.addChild(obj)
+                        group.init()
+                new_element = DsGenericObject(group)
+            else:
+                logger.debug("Creating element from raw script")
+                new_element = DsScript(epath)
+            if not new_element:
+                raise Exception("creation of element from {0} failed".format(epath))
+            logger.debug("Adding %s to internal dictionay"%(new_element))
             self._element_dict[ename] = new_element
+
         else:
-            raise TypeError,"Unknown element type"
+            raise TypeError,"Unknown element type %s"%etype
 
 
-    def createElement(self,etype,ename,edescription):
+    def createElement(self, etype, ename, epath):
         """
         Same as _create_element but could be called by outside world
         (CORBA) show will always be in the GL thread
@@ -227,10 +278,10 @@ class DisplayServer(object):
         - `self`:
         - `etype`:        string, element type (e.g. robot, GLscript)
         - `name`:         string, element name
-        - `description`:  string, description  (e.g. wrl path)
+        - `path`:  string, path  (e.g. wrl path)
         """
         TIMEOUT = 600
-        self.pendingObjects.append((etype, ename, edescription))
+        self.pendingObjects.append((etype, ename, epath))
         wait = 0
         while ename not in self._element_dict.keys() and wait < TIMEOUT:
             time.sleep(0.1)
@@ -247,7 +298,8 @@ class DisplayServer(object):
         - `name`:         string, element name
         """
         if not self._element_dict.has_key(name):
-            raise KeyError,"Element with that name does not exist"
+            logger.exception("Element with that name does not exist")
+            return False
 
         del self._element_dict[name]
         return True
@@ -284,7 +336,8 @@ class DisplayServer(object):
         - `name`:         string, element name
         """
         if not self._element_dict.has_key(name):
-            raise KeyError,"Element with that name does not exist"
+            logger.exception("Element with that name does not exist")
+            return False
 
         self._element_dict[name].updateConfig(config)
         return True
@@ -296,7 +349,8 @@ class DisplayServer(object):
         - `name`:         string, element name
         """
         if not self._element_dict.has_key(name):
-            raise KeyError,"Element with that name does not exist"
+            logger.exception(KeyError,"Element with that name does not exist")
+            return []
         return self._element_dict[name].getConfig()
 
 
