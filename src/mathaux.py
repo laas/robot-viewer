@@ -29,22 +29,23 @@ def rot2AxisAngle(M):
     """
     Convert Transformation to axis, angle reprensentation (angle in radian)
     """
+    epsilon = 1e-6
     angle=acos( min ( (M[0][0]+M[1][1]+M[2][2]-1)/2 ,1))
-    if angle == 0.0:
+    if abs(angle) < epsilon:
         v = [1,0,0]
     else:
         v=np.array( [M[2][1]-M[1][2], M[0][2]-M[2][0], M[1][0]-M[0][1] ])
         normv=sqrt(np.dot(v,v))
-        if normv < 1e-6:
-            if M[0][0]+1 > 0:
+        if normv < 1e-6 or abs(pi-angle) < epsilon:
+            if M[0][0]+1 > epsilon:
                 v[0] = sqrt((M[0][0] + 1)/2)
                 v[1] = M[0][1]/2/v[0]
                 v[2] = M[0][2]/2/v[0]
-            elif M[1][1]+1 > 0:
+            elif M[1][1]+1 > epsilon:
                 v[1] = sqrt((M[1][1] + 1)/2)
                 v[0] = M[1][0]/2/v[1]
                 v[2] = M[1][2]/2/v[1]
-            elif M[2][2]+1 > 0:
+            elif M[2][2]+1 > epsilon:
                 v[2] = sqrt((M[2][2] + 1)/2)
                 v[0] = M[2][0]/2/v[2]
                 v[1] = M[2][1]/2/v[2]
