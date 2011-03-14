@@ -409,7 +409,7 @@ class MeshVBO(object):
 
             # idx=-1
             if len(poly)!=3:
-                warnings.warn("""oops not a triangle, n=%d.
+                logger.warning("""oops not a triangle, n=%d.
                                   Only support triangle mesh for the moment"""%len(poly))
                 poly=[]
                 continue
@@ -481,8 +481,11 @@ class MeshVBO(object):
     def createMatList(self):
         app=self._mesh.app
         glNewList(self.glList_idx, GL_COMPILE);
-        if not app.transparency:
+        try:
+            app.transparency = float(app.transparency)
+        except:
             app.transparency = 0
+            logger.exception("Invalid transparency: {0}".format(app.transparency))
         for (key, value) in [ (GL_SPECULAR,app.specularColor),
                               (GL_EMISSION,app.emissiveColor ),
                               (GL_AMBIENT_AND_DIFFUSE,app.diffuseColor ),
@@ -491,10 +494,13 @@ class MeshVBO(object):
                               #(GL_TRANSPARENCY,app.transparency)
                               ]:
             if value:
-                if key != GL_SHININESS:
-                    glMaterialfv(GL_FRONT_AND_BACK, key, value + [1-app.transparency])
-                else:
-                    glMaterialfv(GL_FRONT_AND_BACK, key, value)
+                try:
+                    if key != GL_SHININESS:
+                        glMaterialfv(GL_FRONT_AND_BACK, key, value + [1-app.transparency])
+                    else:
+                        glMaterialfv(GL_FRONT_AND_BACK, key, value)
+                except:
+                    logger.exception("Failed to set material key={0}, value={1}".format(key,value))
             else:
                 joint_name = "None"
                 if self._mesh.getParentJoint():

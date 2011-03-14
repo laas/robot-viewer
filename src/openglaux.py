@@ -109,7 +109,7 @@ class GlWindow(object):
     """
     """
 
-    def __init__(self, width, height, title):
+    def __init__(self, width, height, title, bg = [0,0,0]):
         """
 
         Arguments:
@@ -149,7 +149,7 @@ class GlWindow(object):
                 raise "Help!  No GL_ARB_vertex_buffer_object"
 
         # Setup GL States
-        glClearColor (0.0, 0.0, 0.0, 0.5);
+        glClearColor (bg[0], bg[1], bg[2], 0.5);
         # # Black Background
         glClearDepth (1.0);
         # # Depth Buffer Setup

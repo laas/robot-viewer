@@ -17,6 +17,7 @@ import logging
 import ConfigParser
 import time
 import subprocess
+import code
 ESCAPE = 27
 
 logger = logging.getLogger("robotviewer.displayserver")
@@ -144,13 +145,14 @@ class DisplayServer(object):
 
         config = ConfigParser.ConfigParser()
         config.read(self.config_file)
+        logger.info( 'parsed_config %s'%config)
 
-        for sec in config.sections():
-            if sec not in ['robots','default_configs','objects','joint_rank']:
+        for section in config.sections():
+            if section not in ['robots','default_configs','objects','joint_rank',
+                               'preferences']:
                 raise Exception("Invalid section {0} in {1}".format(sec,self.config_file))
 
 
-        logger.info( 'parsed_config %s'%config)
         if config.has_section('robots'):
             robot_names = config.options('robots')
             for robot_name in robot_names:
@@ -185,7 +187,7 @@ class DisplayServer(object):
                 object_file = config.get('objects',object_name)
                 object_file = replace_env_var(object_file)
                 if not os.path.isfile(object_file):
-                    warnings.warn('Could not find %s'%object_file)
+                    logger.warning('Could not find %s'%object_file)
                     continue
                 self._create_element('object', object_name, object_file)
                 self.enableElement(object_name)
@@ -196,6 +198,15 @@ class DisplayServer(object):
                 pos = config.get('default_configs',object_name)
                 pos = [float(e) for e in pos.split()]
                 self.updateElementConfig(object_name,pos)
+
+        if config.has_section('preferences'):
+            for key, value in config.items('preferences'):
+                if key == 'background':
+                    value = [float(e) for e in value.split(",")]
+                    glClearColor (value[0], value[1], value[2], 0.5);
+
+
+
         return
 
 
@@ -210,7 +221,8 @@ class DisplayServer(object):
         - `path`:  string, description  (e.g. wrl path)
         """
         if self._element_dict.has_key(ename):
-            raise KeyError,"Element with that name exists already"
+            logger.exception("Element with that name exists already")
+            return
 
         if etype == 'robot':
             objs = ml_parser.parse(epath, not self.no_cache)
@@ -228,10 +240,12 @@ class DisplayServer(object):
         elif etype == 'object':
             new_element = None
             # try to load as vrml and script
-            ext = os.path.splitext(epath)[1]
-            if ext == ".py":
+            ext = os.path.splitext(epath)[1].replace(".","")
+            if ext == "py":
+                logger.debug("Creating element from python script file %s."%epath)
                 new_element = DsScript(open(epath).read())
-            else:
+            elif ext in ml_parser.supported_extensions:
+                logger.debug("Creating element from supported markup language file %s."%epath)
                 objs = ml_parser.parse(epath, not self.no_cache)
                 objs = [ o for o in objs if isinstance(o, kinematic_chain.GenericObject)]
                 if len(objs) == 0:
@@ -243,10 +257,17 @@ class DisplayServer(object):
                     for obj in objs:
                         group.addChild(obj)
                         group.init()
-                    new_element = DsGenericObject(group)
+                new_element = DsGenericObject(group)
+            else:
+                logger.debug("Creating element from raw script")
+                new_element = DsScript(epath)
+            if not new_element:
+                raise Exception("creation of element from {0} failed".format(epath))
+            logger.debug("Adding %s to internal dictionay"%(new_element))
             self._element_dict[ename] = new_element
+
         else:
-            raise TypeError,"Unknown element type"
+            raise TypeError,"Unknown element type %s"%etype
 
 
     def createElement(self, etype, ename, epath):
@@ -277,7 +298,8 @@ class DisplayServer(object):
         - `name`:         string, element name
         """
         if not self._element_dict.has_key(name):
-            raise KeyError,"Element with that name does not exist"
+            logger.exception("Element with that name does not exist")
+            return False
 
         del self._element_dict[name]
         return True
@@ -314,7 +336,8 @@ class DisplayServer(object):
         - `name`:         string, element name
         """
         if not self._element_dict.has_key(name):
-            raise KeyError,"Element with that name does not exist"
+            logger.exception("Element with that name does not exist")
+            return False
 
         self._element_dict[name].updateConfig(config)
         return True
@@ -326,7 +349,8 @@ class DisplayServer(object):
         - `name`:         string, element name
         """
         if not self._element_dict.has_key(name):
-            raise KeyError,"Element with that name does not exist"
+            logger.exception(KeyError,"Element with that name does not exist")
+            return []
         return self._element_dict[name].getConfig()
 
 

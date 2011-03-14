@@ -18,6 +18,8 @@ parsers = { 'vrml': 'vrml_parser',
             'wrl': 'vrml_parser',
             'kxml': 'kxml_parser'
             }
+supported_extensions = parsers.keys()
+
 def load_cache(cached_file):
     try:
         objs = pickle.load(open(cached_file))
@@ -72,6 +74,7 @@ def parse(filename, use_cache = True):
     pickle.dump(objs,f)
     f.close()
     logger.warning("Finished saving new cache to %s"%cached_file)
+    logger.debug("Loaded %s"%str(objs))
     return objs
 
 if __name__ == '__main__':
