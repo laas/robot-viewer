@@ -8,6 +8,7 @@ import kinematic_chain
 from mathaux import *
 from safeeval import safe_eval
 from kinematic_chain import Robot, GenericObject
+import traceback
 
 import logging, os, sys
 logger = logging.getLogger("robotviewer.display_element")
@@ -78,6 +79,10 @@ class DsElement(object):
     def isEnabled(self):
         return self._enabled
 
+
+    def createVBOs(self):
+        return
+
 class DsGenericObject(DsElement):
     """Wrapper for kinematic_chain.GenericObject
     """
@@ -97,7 +102,10 @@ class DsGenericObject(DsElement):
         self._meshVBOlist=[]
         self._kinematics_update_t = 0
         self._config_update_t = 0
-        for amesh in obj.mesh_list:
+        self.createVBOs()
+
+    def createVBOs(self):
+        for amesh in self._obj.mesh_list:
             joint_name = "Unknown"
             if amesh.getParentJoint():
                 joint_name = amesh.getParentJoint().name
@@ -197,15 +205,21 @@ class DsGenericObject(DsElement):
             # before draw, specify vertex and index arrays with their offsets
 
             # Use VBO
-            glBindBufferARB(GL_ARRAY_BUFFER_ARB, avbo.ver_vboId);
-            glVertexPointer( 3, GL_FLOAT, 0, None );
+            try:
+                glBindBufferARB(GL_ARRAY_BUFFER_ARB, avbo.ver_vboId);
+                glVertexPointer( 3, GL_FLOAT, 0, None );
 
-            glBindBufferARB(GL_ARRAY_BUFFER_ARB, avbo.nor_vboId);
-            glNormalPointer(GL_FLOAT, 0,None);
+                glBindBufferARB(GL_ARRAY_BUFFER_ARB, avbo.nor_vboId);
+                glNormalPointer(GL_FLOAT, 0,None);
 
-            glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, avbo.idx_vboId);
+                glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, avbo.tri_idx_vboId);
+                glDrawElements(GL_TRIANGLES, avbo.tri_count, GL_UNSIGNED_SHORT, None);
 
-            glDrawElements(GL_TRIANGLES, avbo.count, GL_UNSIGNED_SHORT, None);
+                glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, avbo.quad_idx_vboId);
+                glDrawElements(GL_QUADS, avbo.quad_count, GL_UNSIGNED_SHORT, None);
+            except:
+                logger.exception("Error while drawing mesh %s"%amesh.aname)
+                sys.exit()
 
             glPopMatrix()
             glFlush()
@@ -379,12 +393,14 @@ class MeshVBO(object):
 
         self.ver_vboId  = -1
         self.nor_vboId  = -1
-        self.idx_vboId  = -1
+        self.tri_idx_vboId  = -1
+        self.quad_idx_vboId  = -1
         self.glList_idx = -1
         self._verts = []
         self._norms = []
-        self._idxs  = []
-        self.count  = 0
+        self._tri_idxs  = []
+        self._quad_idxs = []
+        self.tri_count  = 0
 
         # TODO glList for colors
         # copy vertex and normals from mesh
@@ -408,44 +424,71 @@ class MeshVBO(object):
                 continue
 
             # idx=-1
-            if len(poly)!=3:
-                logger.warning("""oops not a triangle, n=%d.
-                                  Only support triangle mesh for the moment"""%len(poly))
+            num_sides = len(poly)
+            if num_sides not in (3,4):
+                logger.warning("""n=%d.
+                                  Only support tri and quad mesh for the moment"""%num_sides)
                 poly=[]
                 continue
             # idx=-1 and poly is a triangle
-            self._idxs += poly
+            if num_sides == 3:
+                self._tri_idxs += poly
 
-            if self._mesh.geo.norm==[]:
+            if num_sides == 4:
+                self._quad_idxs += poly
+
+
+            if self._mesh.geo.norm == []:
                 # update the norm vector
                 # update the normals using G. Thurmer, C. A. Wuthrich,
                 # "Computing vertex normals from polygonal facets"
                 # Journal of Graphics Tools, 3 1998
-                id0=poly[0];id1=poly[1];id2=poly[2]
-                p10=normalized(points[id1]-points[id0])
-                p21=normalized(points[id2]-points[id1])
-                p02=normalized(points[id0]-points[id2])
-                alpha0=alpha1=alpha2=0
-                try:
-                    alpha0=acos(numpy.dot(p10,p02))
-                    alpha1=acos(numpy.dot(p21,p10))
-                    alpha2=acos(numpy.dot(p02,p21))
-                except Exception,error:
-                    logger.warning("Mesh processing error: %s"%error)
-                normals[id0]+=alpha0*normalized(numpy.cross(p02,p10))
-                normals[id1]+=alpha1*normalized(numpy.cross(p10,p21))
-                normals[id2]+=alpha2*normalized(numpy.cross(p21,p02))
-            poly=[]
+                ids  = (num_sides)*[None]
+                vecs = []
+                for i in range(num_sides):
+                    vecs.append((num_sides)*[None])
+                alphas = (num_sides)*[0]
+                for i, iid in enumerate(poly):
+                    ids[i] = iid
 
+                for i in range(num_sides):
+                    for j in range(num_sides):
+                        vecs[i][j] = normalized(points[ids[i]] - points[ids[j]])
+                try:
+                    for i in range(num_sides):
+                        if i == 0:
+                            alphas[i] = acos(numpy.dot(vecs[1][0],vecs[0][num_sides-1]))
+                        elif i == num_sides - 1:
+                            alphas[i] = acos(numpy.dot(vecs[0][num_sides-1],
+                                                   vecs[num_sides-1][num_sides-2]))
+                        else:
+                            alphas[i] = acos(numpy.dot(vecs[i][i-1], vecs[i+1][i]))
+                except Exception,error:
+                    s = traceback.format_exc()
+                    logger.warning("Mesh processing error: %s"%s)
+
+                for i,alpha in enumerate(alphas):
+                    if i == 0:
+                        normals[ids[i]] += alpha*normalized(numpy.cross(vecs[0][num_sides-1],
+                                                             vecs[1][0]))
+                    elif i == num_sides - 1:
+                        normals[ids[i]] += alpha*normalized(numpy.cross(vecs[num_sides-1][num_sides-2],
+                                                             vecs[0][num_sides-1]))
+                    else:
+                        normals[ids[i]] += alpha*normalized(numpy.cross(vecs[i][i-1],
+                                                             vecs[i+1][i]))
+            poly=[]
         if self._mesh.geo.norm!=[]:
             self._norms=self._mesh.geo.norm
         else:
             for normal in normals:
                 normal                =  normalized(normal)
                 self._norms          += [normal[0],normal[1],normal[2]]
-                self._mesh.geo.norm += [normal[0],normal[1],normal[2]]
+                self._mesh.geo.norm  += self._norms
+
         logger.debug("Creating VBO for mesh %s"%mesh.name)
-        self.count = len(self._idxs)
+        self.tri_count = len(self._tri_idxs)
+        self.quad_count = len(self._quad_idxs)
         self.ver_vboId = int(glGenBuffersARB(1))
         logger.debug("Populating VBO for vertices: vboID %d"%self.ver_vboId)
         glBindBufferARB( GL_ARRAY_BUFFER_ARB,self.ver_vboId );
@@ -464,15 +507,25 @@ class MeshVBO(object):
         glBindBufferARB( GL_ARRAY_BUFFER_ARB,0 );
         logger.debug("Generated VBO for normals: vboID %d"%self.nor_vboId)
 
-        self.idx_vboId = int(glGenBuffersARB(1))
-        logger.debug("Populating creating VBO for mesh %s"%mesh.name)
-        glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,self.idx_vboId );
+        self.tri_idx_vboId = int(glGenBuffersARB(1))
+        glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,self.tri_idx_vboId );
         glBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB, \
-                             numpy.array (self._idxs, dtype=numpy.uint16),\
+                             numpy.array (self._tri_idxs, dtype=numpy.uint16),\
                              GL_STATIC_DRAW_ARB );
-        logger.debug("Generated VBO for indices: vboID %d"%self.idx_vboId)
+        logger.debug("Generated VBO for triangle indices: vboID %d"%self.tri_idx_vboId)
         glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,0 );
         logger.debug("Finished creating VBO for mesh %s"%mesh.name)
+
+        self.quad_idx_vboId = int(glGenBuffersARB(1))
+        glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,self.quad_idx_vboId );
+        glBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB, \
+                             numpy.array (self._quad_idxs, dtype=numpy.uint16),\
+                             GL_STATIC_DRAW_ARB );
+        logger.debug("Generated VBO for quadangle indices: vboID %d"%self.quad_idx_vboId)
+        glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,0 );
+        logger.debug("Finished creating VBO for mesh %s"%mesh.name)
+
+
 
         self.glList_idx = glGenLists(1)
         self.createMatList()
@@ -515,10 +568,11 @@ class MeshVBO(object):
         s="[MeshVBO instance:\n"
         s+="ver_vboId\t=%d\n"%self.ver_vboId
         s+="nor_vboId\t=%d\n"%self.nor_vboId
-        s+="idx_vboId\t=%d\n"%self.idx_vboId
+        s+="tri_idx_vboId\t=%d\n"%self.tri_idx_vboId
+        s+="quad_idx_vboId\t=%d\n"%self.quad_tri_idx_vboId
 
         s+="len (_verts)\t=%d\n"%(len(self._verts))
         s+="len (_norms)\t=%d\n"%(len(self._norms))
-        s+="len (_idxs)\t=%d\n"%(len(self._idxs))
+        s+="len (_idxs)\t=%d\n"%(len(self._tri_idxs))
         s+="]"
         return s

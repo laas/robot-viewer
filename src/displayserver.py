@@ -152,6 +152,12 @@ class DisplayServer(object):
                                'preferences','scales']:
                 raise Exception("Invalid section {0} in {1}".format(sec,self.config_file))
 
+        scales = {}
+        if config.has_section('scales'):
+            for key, value in config.items('scales'):
+                value = [float(e) for e in value.split(",")]
+                scales[key] = value
+
 
         if config.has_section('robots'):
             robot_names = config.options('robots')
@@ -163,7 +169,8 @@ class DisplayServer(object):
                     logger.info( "WARNING: Couldn't load %s. Are you sure %s exists?"\
                         %(robot_name,robot_config))
                     continue
-                self._create_element('robot',robot_name,robot_config)
+                self._create_element('robot',robot_name,robot_config, scales.get(robot_name))
+
                 self.enableElement(robot_name)
         else:
             logger.info( """Couldn't any default robots. Loading an empty scene
@@ -189,7 +196,7 @@ class DisplayServer(object):
                 if not os.path.isfile(object_file):
                     logger.warning('Could not find %s'%object_file)
                     continue
-                self._create_element('object', object_name, object_file)
+                self._create_element('object', object_name, object_file, scales.get(object_name))
                 self.enableElement(object_name)
 
         if config.has_section('default_configs'):
@@ -205,16 +212,11 @@ class DisplayServer(object):
                     value = [float(e) for e in value.split(",")]
                     glClearColor (value[0], value[1], value[2], 0.5);
 
-        if config.has_section('scales'):
-            for key, value in config.items('scales'):
-                value = [float(e) for e in value.split(",")]
-                self._element_dict[key]._obj.scale(value)
-
 
         return
 
 
-    def _create_element(self, etype, ename, epath):
+    def _create_element(self, etype, ename, epath, scale = None):
         """
         Same as createElement but will not be called by outside world
         (CORBA) show will always be in the GL thread
@@ -238,6 +240,8 @@ class DisplayServer(object):
                 raise Exception("file %s contains %d robots, expected 1."
                                 %(epath, len(robots)))
             new_robot = robots[0]
+            if scale:
+                new_robot.scale(scale)
             new_element = DsRobot(new_robot)
             self._element_dict[ename] = new_element
 
@@ -261,6 +265,8 @@ class DisplayServer(object):
                     for obj in objs:
                         group.addChild(obj)
                         group.init()
+                if scale:
+                    group.scale(scale)
                 new_element = DsGenericObject(group)
             else:
                 logger.debug("Creating element from raw script")

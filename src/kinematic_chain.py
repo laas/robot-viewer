@@ -59,9 +59,13 @@ class GenericObject(object):
 
         return s
 
-    def scale(self, scale_vec):
+    def scale(self, scale):
+        for i in range(3):
+            self.translation[i]*=scale[i]
+            self.localTransformation[i][3]*=scale[i]
+
         for child in self.children:
-            child.scale(scale_vec)
+            child.scale(scale)
 
 
     def addChild(self,a_child):
