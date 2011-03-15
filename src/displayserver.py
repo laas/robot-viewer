@@ -149,7 +149,7 @@ class DisplayServer(object):
 
         for section in config.sections():
             if section not in ['robots','default_configs','objects','joint_rank',
-                               'preferences']:
+                               'preferences','scales']:
                 raise Exception("Invalid section {0} in {1}".format(sec,self.config_file))
 
 
@@ -205,6 +205,10 @@ class DisplayServer(object):
                     value = [float(e) for e in value.split(",")]
                     glClearColor (value[0], value[1], value[2], 0.5);
 
+        if config.has_section('scales'):
+            for key, value in config.items('scales'):
+                value = [float(e) for e in value.split(",")]
+                self._element_dict[key]._obj.scale(value)
 
 
         return

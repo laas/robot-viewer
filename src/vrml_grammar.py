@@ -31,8 +31,8 @@ SFNull           := 'NULL', ts
 
 # should really have an optimised way of declaring a different reporting name for the same production...
 Def              :='DEF',ts,name,ts
->USE<            := name
->IS<             := name
+USE              := name
+IS               := name
 >nodegi<         := name
 Attr             := name, ts, (('IS', ts,IS,ts)/Field), ts
 Field            := ( '[',ts,((SFNumber/SFBool/SFString/('USE',ts,USE,ts)/Script/Node),ts)*, ']', ts )/((SFNumber/SFBool/SFNull/SFString/('USE',ts,USE,ts)/Script/Node),ts)+
