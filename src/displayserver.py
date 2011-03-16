@@ -98,7 +98,7 @@ class DisplayServer(object):
         glutInitWindowSize(640, 480)
         glutInitWindowPosition(0, 0)
         logger.debug("Creating glutWindow")
-        window = glutCreateWindow("Robotviewer Server")
+        self.window = glutCreateWindow("Robotviewer Server")
         glutDisplayFunc(self.DrawGLScene)
         glutIdleFunc(self.DrawGLScene)
         glutReshapeFunc(ReSizeGLScene)
@@ -376,6 +376,8 @@ class DisplayServer(object):
         return "pong"
 
     def DrawGLScene(self):
+        #if glGetError() > 0:
+
         if len(self.pendingObjects) > 0:
             obj = self.pendingObjects.pop()
             logger.info( "creating %s %s %s"%( obj[0], obj[1], obj[2]))
@@ -395,13 +397,17 @@ class DisplayServer(object):
 
         for item in self._element_dict.items():
             ele = item[1]
-#            logger.info( item[0], item[1]._enabled)
-            if isinstance(ele, DsRobot):
-                ele.render(self.render_mesh_flag, self.render_skeleton_flag, self.skeleton_size)
-            else:
-                ele.render()
+            #    logger.info( item[0], item[1]._enabled)
+            try:
+                if isinstance(ele, DsRobot):
+                    ele.render(self.render_mesh_flag, self.render_skeleton_flag, self.skeleton_size)
+                else:
+                    ele.render()
+            except:
+                glutDestroyWindow(self.window)
 
         glutSwapBuffers()
+
 
         return True
 

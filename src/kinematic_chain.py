@@ -129,7 +129,6 @@ class GenericObject(object):
         def _union(l1, l2):
             return list(set(l1).union(set(l2)))
 
-
         if isinstance(self, Mesh):
             self.mesh_list = [self]
         if isinstance(self, Joint):
@@ -194,6 +193,7 @@ class Mesh(GenericObject):
         self.geo=Geometry()
 
     def scale(self, scale_vec):
+        GenericObject.scale(self,scale_vec)
         self.geo.scale(scale_vec)
 
     def __str__(self):

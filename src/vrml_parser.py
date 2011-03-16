@@ -86,7 +86,8 @@ class VrmlProcessor(DispatchProcessor):
                 for child in children:
                     if isinstance(child, GenericObject):
                         if 'scale' in vrml_node.keys() and isinstance(child,GenericObject):
-                            child.scale(vrml_node['scale'])
+                            for grandchild in child.children:
+                                grandchild.geo.scale(vrml_node['scale'])
                         processed_node.addChild(child)
                         child.parent = processed_node
                     else:
@@ -201,8 +202,14 @@ class VrmlProcessor(DispatchProcessor):
 
         return self.def_dict[s]
 
-        return s
-    USE = IS
+
+    def USE(self,(tag,start,stop,subtags), buffer ):
+        s = buffer[start:stop]
+
+        if s not in self.def_dict.keys():
+            raise Exception("USE/IS used before node definition.")
+
+        return self.def_dict[s]
 
 class VrmlParser(Parser):
     def __init__(self, root_path, *args, **kwargs):
@@ -227,6 +234,8 @@ def parse(filename):
 
 def main():
     import optparse
+    logger = logging.getLogger("kinematic_chain")
+    logger.setLevel(logging.DEBUG)
     sh = logging.StreamHandler()
     sh.setLevel(logging.DEBUG)
     logger.addHandler(sh)
@@ -239,7 +248,7 @@ def main():
     (options, args) = parser.parse_args(sys.argv[1:])
     res = parse(args[0])
     for r in res:
-        print r
+        print r.mesh_list
 
 if __name__ == '__main__':
     main()

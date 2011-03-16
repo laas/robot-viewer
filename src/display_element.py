@@ -109,8 +109,8 @@ class DsGenericObject(DsElement):
             joint_name = "Unknown"
             if amesh.getParentJoint():
                 joint_name = amesh.getParentJoint().name
-            logger.debug("Loading mesh %s of joint %s into memory."
-                        %(amesh.name, joint_name))
+            logger.debug("Loading mesh {0} of joint {1} into memory."
+                        .format(amesh, joint_name))
             meshVBO=MeshVBO(amesh)
             self._meshVBOlist.append(meshVBO)
 
@@ -217,9 +217,12 @@ class DsGenericObject(DsElement):
 
                 glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, avbo.quad_idx_vboId);
                 glDrawElements(GL_QUADS, avbo.quad_count, GL_UNSIGNED_SHORT, None);
+                for i, vboId in enumerate(avbo.poly_idx_vboIds):
+                    glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, vboId);
+                    glDrawElements(GL_POLYGON, len(avbo._poly_idxs), GL_UNSIGNED_SHORT, None);
             except:
                 logger.exception("Error while drawing mesh %s"%amesh.aname)
-                sys.exit()
+
 
             glPopMatrix()
             glFlush()
@@ -395,13 +398,24 @@ class MeshVBO(object):
         self.nor_vboId  = -1
         self.tri_idx_vboId  = -1
         self.quad_idx_vboId  = -1
+        self.poly_idx_vboIds  = []
+
         self.glList_idx = -1
         self._verts = []
         self._norms = []
         self._tri_idxs  = []
         self._quad_idxs = []
-        self.tri_count  = 0
+        self._poly_idxs = []
 
+        self.tri_count  = 0
+        logger.debug("Computing normals")
+        self.computeNormals()
+        logger.debug("Loading to GPUs")
+        self.loadGPU()
+        logger.debug("Creating GLlist for materials")
+        self.createMatList()
+
+    def computeNormals(self):
         # TODO glList for colors
         # copy vertex and normals from mesh
         self._verts = self._mesh.geo.coord
@@ -422,21 +436,20 @@ class MeshVBO(object):
             if a_idx!=-1:
                 poly.append(a_idx)
                 continue
-
             # idx=-1
             num_sides = len(poly)
-            if num_sides not in (3,4):
-                logger.warning("""n=%d.
-                                  Only support tri and quad mesh for the moment"""%num_sides)
-                poly=[]
-                continue
+            # if num_sides not in (3,4):
+            #     logger.warning("""n=%d.
+            #                       Only support tri and quad mesh for the moment"""%num_sides)
+            #     poly=[]
+            #     continue
             # idx=-1 and poly is a triangle
             if num_sides == 3:
                 self._tri_idxs += poly
-
-            if num_sides == 4:
+            elif num_sides == 4:
                 self._quad_idxs += poly
-
+            else:
+                self._poly_idxs.append(poly)
 
             if self._mesh.geo.norm == []:
                 # update the norm vector
@@ -452,8 +465,11 @@ class MeshVBO(object):
                     ids[i] = iid
 
                 for i in range(num_sides):
-                    for j in range(num_sides):
-                        vecs[i][j] = normalized(points[ids[i]] - points[ids[j]])
+                    j = i + 1
+                    if j == num_sides:
+                        j = 0
+                    vecs[j][i] = normalized(points[ids[j]] - points[ids[i]])
+
                 try:
                     for i in range(num_sides):
                         if i == 0:
@@ -479,14 +495,17 @@ class MeshVBO(object):
                                                              vecs[i+1][i]))
             poly=[]
         if self._mesh.geo.norm!=[]:
-            self._norms=self._mesh.geo.norm
+            self._norms = self._mesh.geo.norm
         else:
             for normal in normals:
                 normal                =  normalized(normal)
                 self._norms          += [normal[0],normal[1],normal[2]]
-                self._mesh.geo.norm  += self._norms
+                # self._mesh.geo.norm  += self._norms
 
-        logger.debug("Creating VBO for mesh %s"%mesh.name)
+
+
+    def loadGPU(self):
+        logger.debug("Creating VBO for mesh %s"%self._mesh.name)
         self.tri_count = len(self._tri_idxs)
         self.quad_count = len(self._quad_idxs)
         self.ver_vboId = int(glGenBuffersARB(1))
@@ -514,7 +533,7 @@ class MeshVBO(object):
                              GL_STATIC_DRAW_ARB );
         logger.debug("Generated VBO for triangle indices: vboID %d"%self.tri_idx_vboId)
         glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,0 );
-        logger.debug("Finished creating VBO for mesh %s"%mesh.name)
+        logger.debug("Finished creating VBO for mesh %s"%self._mesh.name)
 
         self.quad_idx_vboId = int(glGenBuffersARB(1))
         glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,self.quad_idx_vboId );
@@ -523,15 +542,22 @@ class MeshVBO(object):
                              GL_STATIC_DRAW_ARB );
         logger.debug("Generated VBO for quadangle indices: vboID %d"%self.quad_idx_vboId)
         glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,0 );
-        logger.debug("Finished creating VBO for mesh %s"%mesh.name)
 
+        for i,poly in enumerate(self._poly_idxs):
+            poly_idx_vboId = int(glGenBuffersARB(1))
+            self.poly_idx_vboIds.append(poly_idx_vboId)
+            glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB, poly_idx_vboId );
+            glBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB, \
+                             numpy.array (poly, dtype=numpy.uint16),\
+                             GL_STATIC_DRAW_ARB );
+            logger.debug("Generated VBO for poly indices: vboID %d"%poly_idx_vboId)
+            glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,0 );
 
-
-        self.glList_idx = glGenLists(1)
-        self.createMatList()
+        logger.debug("Finished creating VBO for mesh %s"%self._mesh.name)
 
 
     def createMatList(self):
+        self.glList_idx = glGenLists(1)
         app=self._mesh.app
         glNewList(self.glList_idx, GL_COMPILE);
         try:
