@@ -93,7 +93,9 @@ class Parser (object):
         self.filename = filename
         self.kxml_dir_name = os.path.abspath(os.path.dirname(filename))
         self.shapes = {}
+        self.shape_types = {}
         self.globalTransformations = {}
+
 
     def parse_geometry(self, dom1):
         assembly_nodes = dom1.getElementsByTagName(self.assemblyTag)
@@ -101,105 +103,147 @@ class Parser (object):
             assembly_nid = int(assembly_node.attributes["id"].value)
             assembly_obj = kinematic_chain.GenericObject()
             assembly_obj.id = assembly_nid
+            rel_pos = None
+            motion_frame = None
             self.shapes[assembly_nid] = assembly_obj
-            for rel_pos_node in assembly_node.childNodes:
-                if rel_pos_node.nodeName != self.motionFrameTag:
-                    continue
-                try:
-                    data =  rel_pos_node.childNodes[0].nodeValue.split()
-                    data = [ float(e) for e in data ]
-                except:
-                    raise Exception("Invalid position node %s"%rel_pos_node.toprettyxml())
+            self.shape_types[assembly_nid] = "assembly"
+            rel_pos = self.findMatNode(assembly_node, self.relPosTag)
+            motion_frame = self.findMatNode(assembly_node,
+                                                    self.motionFrameTag)
+            assembly_obj.translation = rel_pos[0:3,3]
+            assembly_obj.rotation = rot2AxisAngle(rel_pos[0:3,0:3])
 
-                if len(data) != 16:
-                    raise Exception("Wrong dimension for position %s"%str(data))
-
-                rel_pos = numpy.array([[data[0],  data[1],  data[2],  data[3]],
-                                   [data[4],  data[5],  data[6],  data[7]],
-                                   [data[8],  data[9],  data[10], data[11]],
-                                   [data[12], data[13], data[14], data[15]]
-                                   ]
-                                  )
-
-                #assembly_obj.translation = rel_pos[0:3,3]
-                #assembly_obj.rotation = rot2AxisAngle(rel_pos[0:3,0:3])
-
-            polyhedron_nodes = assembly_node.getElementsByTagName(self.polyhedronTag)
+            polyhedron_nodes = assembly_node.getElementsByTagName(self.
+                                                                  polyhedronTag)
 
             for polyhedron_node in polyhedron_nodes:
                 polyhedron_nid = int(polyhedron_node.attributes["id"].value)
                 polyhedron_obj = kinematic_chain.GenericObject()
                 polyhedron_obj.id = polyhedron_nid
-                polyhedron_obj.name = self.findStringProperty(polyhedron_node, self.nameTag)
+                polyhedron_obj.name = self.findStringProperty(polyhedron_node,
+                                                              self.nameTag)
                 assembly_obj.addChild(polyhedron_obj)
                 self.shapes[polyhedron_nid] = polyhedron_obj
+                self.shape_types[polyhedron_nid] = "polyhedron"
+                poly_rel_pos = self.findMatNode(polyhedron_node,
+                                                    self.relPosTag)
+                poly_motion_frame = self.findMatNode(polyhedron_node,
+                                                         self.motionFrameTag)
 
-                for child_node in polyhedron_node.childNodes:
-                    if child_node.nodeName == self.motionFrameTag:
-                        rel_pos_node = child_node
-                        try:
-                            data =  rel_pos_node.childNodes[0].nodeValue.split()
-                            data = [ float(e) for e in data ]
-                        except:
-                            raise Exception("Invalid position node %s"%rel_pos_node.toprettyxml())
+                polyhedron_obj.translation = poly_rel_pos[0:3,3]
+                polyhedron_obj.rotation = rot2AxisAngle(poly_rel_pos[0:3,0:3])
+                rel_path = self.findStringNode(polyhedron_node, self.relPathTag)
+                logger.info("Parsing %s "%(os.path.join
+                                           (self.kxml_dir_name, rel_path)))
+                try:
+                    objs = vrml_parser.parse(os.path.join
+                                           (self.kxml_dir_name, rel_path))
+                except:
+                    print "Problem occured when parsing {0}".format(
+                        os.path.join(self.kxml_dir_name, rel_path))
+                    raise
+                for obj in objs:
+                    if isinstance(obj,kinematic_chain.GenericObject):
+                        polyhedron_obj.addChild(obj)
+                        # obj.translation = [0,0,0]
+                    else:
+                        logger.debug("Ignoring %s"%str(obj))
 
-                        if len(data) != 16:
-                            raise Exception("Wrong dimension for position %s"%str(data))
+                diffuseColor  = self.findVecProperty(polyhedron_node,
+                                                     self.diffuseColorTag)[:-1]
+                specularColor = self.findVecProperty(polyhedron_node,
+                                                     self.specularColorTag)[:-1]
+                ambientColor  = self.findVecProperty(polyhedron_node,
+                                                     self.ambientColorTag)[:-1]
+                shininess     = self.findFloatProperty(polyhedron_node,
+                                                       self.shininessTag)
 
-                        rel_pos = numpy.array([[data[0],  data[1],  data[2],  data[3]],
-                                           [data[4],  data[5],  data[6],  data[7]],
-                                           [data[8],  data[9],  data[10], data[11]],
-                                           [data[12], data[13], data[14], data[15]]
-                                           ]
-                                          )
-                        #polyhedron_obj.translation = rel_pos[0:3,3]
-                        #polyhedron_obj.rotation = rot2AxisAngle(rel_pos[0:3,0:3])
-
-
-                    elif child_node.nodeName == self.relPathTag:
-                        rel_path_node = child_node
-                        rel_path = rel_path_node.childNodes[0].nodeValue
-                        logger.info("Parsing %s "%(os.path.join(self.kxml_dir_name, rel_path)))
-                        objs = ml_parser.parse(os.path.join(self.kxml_dir_name, rel_path))
-                        for obj in objs:
-                            if isinstance(obj,kinematic_chain.GenericObject):
-                                polyhedron_obj.addChild(obj)
-                                # obj.translation = [0,0,0]
-                            else:
-                                logger.debug("Ignoring %s"%str(obj))
-
-                diffuseColor  = self.findVecProperty(polyhedron_node,self.diffuseColorTag)[:-1]
-                specularColor = self.findVecProperty(polyhedron_node,self.specularColorTag)[:-1]
-                ambientColor  = self.findVecProperty(polyhedron_node,self.ambientColorTag)[:-1]
-                shininess     = self.findFloatProperty(polyhedron_node,self.shininessTag)
-                def propagate_geo_param(obj, key, value):
-                    if isinstance(obj, kinematic_chain.Mesh):
-                        old_val =  getattr(obj.app, key)
-                        if old_val != value:
-                            logger.debug("Mesh %s: %s changed from %s to %s"
-                                         %(polyhedron_obj.name, key, str(old_val), str(value)))
-                        setattr(obj.app, key, value)
-
-                    for child in obj.children:
-                        propagate_geo_param(child, key, value)
 
                 for key,value in [#("diffuseColor",diffuseColor),
                                   ("specularColor",specularColor),
                                   ("ambientColor",ambientColor),
                                   ("shininess",shininess),
                                   ]:
-                    propagate_geo_param(polyhedron_obj, key, value)
+                    self._propagate_geo_param(polyhedron_obj, key, value)
+
+                # RELATIVE_POSITION est la position de l'objet dans le repère
+                # de son assemblage parent (ou dans le repère du monde si c'est
+                # un objet racine).
+
+                # MOTION_FRAME correspond à la position absolue du point de
+                # manipulation (point dont les coordonnées sont affichées pour
+                # représenter la position de l'objet solide, point utilisé pour
+                # afficher le contrôleur graphique de position, etc.).
+
+                # Lors du chargement d'un VRML, les positions indiquées dans le
+                # fichier sont bien respectées mais le point de manipulation
+                # est initialisé au centre de la boîte englobante des triangles
+                # de l'objet. Tu peux réinitialiser cette position à la matrice
+                # identité en sélectionnant l'objet et en cliquant sur le
+                # premier bouton ("Set Scene Frame") dans le panneau
+                # "Manipulate" à droite de la vue.
+                # polyhedron_obj.init()
+                # bbox = None
+
+                # for mesh in polyhedron_obj.mesh_list:
+                #     mbbox = mesh.bounding_box_global()
+                #     bbox = self._merge_bboxes(bbox, mbbox)
+
+                # if bbox:
+                #     bbox_center = [bbox[0][i]/2 + bbox[1][i]/2 for i in range(3)]
+                #     for i in range(3):
+                #        polyhedron_obj.translation[i] -= bbox_center[i]
+            # assembly_obj.init()
+            # bbox = None
+            # for mesh in assembly_obj.mesh_list:
+            #     mbbox = mesh.bounding_box_global()
+            #     bbox = self._merge_bboxes(bbox, mbbox)
+
+            # if bbox:
+            #     bbox_center = [bbox[0][i]/2 + bbox[1][i]/2 for i in range(3)]
+            #     for i in range(3):
+            #         assembly_obj.translation[i] -= bbox_center[i]
+
 
         solidref_nodes = dom1.getElementsByTagName(self.solidrefTag)
-
         for n in solidref_nodes:
             nid = int(n.attributes["id"].value)
             refid = int(n.attributes["referencedComponentId"].value)
             self.shapes[nid] = self.shapes[refid]
+            self.shape_types[nid] = self.shape_types[refid]
 
+    def _merge_bboxes(self, box1, box2):
+        if box1 == None:
+            return box2
+        if box2 == None:
+            return box1
+        res = [None, None]
+        res[0] = [min(box1[0][i], box2[0][i]) for i in range(3)]
+        res[1] = [min(box1[1][i], box2[1][i]) for i in range(3)]
+        return res
+
+    def _propagate_geo_param(self, obj, key, value):
+        if isinstance(obj, kinematic_chain.Mesh):
+            old_val =  getattr(obj.app, key)
+            if old_val != value:
+                logger.debug("Mesh %s: %s changed from %s to %s"
+                             %(obj.name, key,
+                               str(old_val), str(value)))
+            setattr(obj.app, key, value)
+
+        for child in obj.children:
+            self._propagate_geo_param(child, key, value)
     def parse (self):
         dom1 = dom.parse(self.filename)
         self.parse_geometry(dom1)
+
+        hNodes = dom1.getElementsByTagName(self.robotTag)
+        if not hNodes[:]:
+            obj = kinematic_chain.GenericObject()
+            for id, shape in self.shapes.items():
+                obj.addChild(shape)
+            obj.init()
+            return [obj]
 
         hNode = dom1.getElementsByTagName(self.robotTag)[0]
         for p in self.robotStringProperties:
@@ -217,12 +261,14 @@ class Parser (object):
         for rootJointNode in self.findRootJoints(hNode):
             robot = self.createJoint(rootJointNode, parent = None)
             robots.append(robot)
+
         return robots
 
     def compute_localT_from_globalT_(self,joint_):
         if joint_.parent:
-             joint_.localTransformation = numpy.dot( numpy.linalg.inv(joint_.parent.globalTransformation),
-                                                    joint_.globalTransformation)
+             joint_.localTransformation = numpy.dot(
+                 numpy.linalg.inv(joint_.parent.globalTransformation),
+                 joint_.globalTransformation)
              # print joint_.id, joint_.localTransformation
              joint_.translation = joint_.localTransformation[0:3,3]
              joint_.localR = joint_.localTransformation[0:3,0:3]
@@ -231,17 +277,9 @@ class Parser (object):
              joint_.localR1 = numpy.dot(joint_.localR,
                                         numpy.linalg.inv(joint_.localR2))
              joint_.rotation = rot2AxisAngle(joint_.localR1)
-             # print joint_.name
-             # print joint_.localR1
-             # print joint_.rotation
-             # print joint_.globalTransformation
-             # print joint_.parent.globalTransformation
-             # print "---"
-             # joint_.initLocalTransformation()
-             # print joint_.id, joint_.rotation, joint_.localTransformation
 
-
-        for child in [ c for c in joint_.children if isinstance(c,kinematic_chain.Joint)]:
+        for child in [ c for c in joint_.children
+                       if isinstance(c,kinematic_chain.Joint)]:
             self.compute_localT_from_globalT_(child)
 
 
@@ -265,7 +303,8 @@ class Parser (object):
             joint.angle = self.findJointValue(node)
             joint.axis = "X"
 
-        current_position , relative_solid_position, solid_id = self.findJointPositions(node)
+        current_position, relative_solid_position, solid_id = self.findJointPositions(node)
+
         joint.globalTransformation = copy.copy(current_position)
         self.globalTransformations[joint.id] = copy.copy(current_position)
 
@@ -277,10 +316,11 @@ class Parser (object):
             childJoint = self.createJoint(childJointNode, joint)
 
         # add shape object already loaded at the beginning
-        solid = kinematic_chain.GenericObject()
-        # solid.translation = relative_solid_position[0:3,3]
+        print solid_id, self.shape_types[solid_id]
+        solid = self.shapes[solid_id]
+        solid.translation = relative_solid_position[0:3,3]
         solid.rotation    = rot2AxisAngle(relative_solid_position[0:3,0:3])
-        solid.addChild(self.shapes[solid_id])
+        # solid.addChild(self.shapes[solid_id])
         joint.addChild(solid)
 
         if isinstance(joint, kinematic_chain.Robot):
@@ -309,7 +349,8 @@ joint.localT=
                     while jj:
                         msg += "\n---\n"
                         msg + str(jj)
-                        msg += "\nkxml global pos = %s"%str(self.globalTransformations[jj.id])
+                        msg += "\nkxml global pos = %s"%str(
+                            self.globalTransformations[jj.id])
                         jj = jj.getParentJoint()
                     raise Exception(msg)
                     # logger.exception(msg)
@@ -422,6 +463,18 @@ joint.localT=
         s = self.findStringProperty(node, prop)
         return [ float(w) for w in s.split()]
 
+    def findStringNode(self, node, node_name):
+        node = node.getElementsByTagName(node_name)[-1].childNodes[0]
+        s = node.data
+        s = s.strip()
+        return s
+
+    def findMatNode(self, node, node_name):
+        s = self.findStringNode(node, node_name)
+        return numpy.array( [ [ float(w) for w in line.split() ]
+                              for line in s.splitlines()
+                              ]
+                            )
 
     def findJointPosition(self, node):
         tag = 'CURRENT_POSITION'

@@ -55,14 +55,14 @@ class VrmlProcessor(DispatchProcessor):
             processed_node = Appearance()
             if 'material' not in vrml_node.keys():
                 logger.warning("No material node found for %s"%vrml_node)
-
-            try:
-                mat = vrml_node['material']
-                processed_node.__dict__.update(vrml_node['material'][0])
-            except:
-                logger.exception("Exception on:\nvrml_node={0}\nbuffer={1}..."
+            else:
+                try:
+                    mat = vrml_node['material']
+                    processed_node.__dict__.update(vrml_node['material'][0])
+                except:
+                    logger.exception("Exception on:\nvrml_node={0}\nbuffer={1}..."
                                  .format(vrml_node,buffer[start:max(stop,start+200)]))
-                raise
+                    raise
 
         elif vrml_node.name == "IndexedFaceSet":
             processed_node = Geometry()
@@ -248,7 +248,8 @@ def main():
     (options, args) = parser.parse_args(sys.argv[1:])
     res = parse(args[0])
     for r in res:
-        print r.mesh_list
+        #print r.mesh_list
+        print r
 
 if __name__ == '__main__':
     main()

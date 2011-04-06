@@ -31,8 +31,8 @@ class GenericObject(object):
         self.center=[0,0,0]
         self.parent=None
         self.children=[]
-        self.localTransformation=np.zeros([4,4])
-        self.globalTransformation=np.zeros([4,4])
+        self.localTransformation = None
+        self.globalTransformation = None
         self.localR=np.eye(3)
         self.id=None
         self.mesh_list=[]
@@ -96,6 +96,7 @@ class GenericObject(object):
         compute local transformation w.r.t for the first time (compute everything)
         """
         # rotation part
+        self.localTransformation = np.eye(4)
         self.localR = axisAngle2rot(self.rotation)
         self.localTransformation[0:3,0:3]=self.localR
 
@@ -111,11 +112,14 @@ class GenericObject(object):
         """ update position and orientation in the world coordinates based on
         local transformation and parent's global transformation
         """
-        if self.parent==None:
-            self.globalTransformation=self.localTransformation
+        if self.parent == None or self.parent.globalTransformation == None:
+            self.globalTransformation = self.localTransformation
+            return
         else:
             self.globalTransformation=np.dot\
                 (self.parent.globalTransformation,self.localTransformation)
+            return
+
 
     def init(self):
         """ Do the following initializations in order:
@@ -125,7 +129,6 @@ class GenericObject(object):
         """
         self.initLocalTransformation()
         self.updateGlobalTransformation()
-
         def _union(l1, l2):
             return list(set(l1).union(set(l2)))
 
@@ -205,7 +208,25 @@ class Mesh(GenericObject):
         s+="Geometry: %s\n"%str(self.geo)
         return s
 
+    def bounding_box_local(self):
+        no_points = len(self.geo.coord)/3
+        xs = [self.geo.coord[3*i] for i in range(no_points)]
+        ys = [self.geo.coord[3*i+1] for i in range(no_points)]
+        zs = [self.geo.coord[3*i+2] for i in range(no_points)]
+        bbox =  [ [min(xs), min(ys), min(zs)],
+                  [max(xs), max(ys), max(zs)]
+                   ]
+        return bbox
 
+    def bounding_box_global(self):
+        bbox = self.bounding_box_local()
+        bbox[0] = np.dot(self.globalTransformation,
+                         np.array(bbox[0] + [0]))[:3]
+        bbox[1] = np.dot(self.globalTransformation,
+                         np.array(bbox[1] + [0]))[:3]
+        return bbox
+
+    bounding_box = bounding_box_local
 
 #*****************************#
 #           JOINT             #
@@ -255,6 +276,8 @@ class Joint(GenericObject):
         """
         compute local transformation w.r.t for the first time (compute everything)
         """
+        self.localTransformation = np.eye(4)
+        self.globalTransformation = np.eye(4)
         self.localR1=axisAngle2rot(self.rotation)
         self.localR = self.localR1
         self.localTransformation[0:3,0:3]=self.localR
