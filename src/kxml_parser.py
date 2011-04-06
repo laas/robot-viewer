@@ -316,7 +316,7 @@ class Parser (object):
             childJoint = self.createJoint(childJointNode, joint)
 
         # add shape object already loaded at the beginning
-        print solid_id, self.shape_types[solid_id]
+        # print solid_id, self.shape_types[solid_id]
         solid = self.shapes[solid_id]
         solid.translation = relative_solid_position[0:3,3]
         solid.rotation    = rot2AxisAngle(relative_solid_position[0:3,0:3])
