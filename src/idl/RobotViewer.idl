@@ -19,7 +19,8 @@ module robotviewer_corba {
     boolean updateElementConfig(in string name, in DoubleSeq config) raises(InvalidKey);
     void getElementConfig(in string name, out DoubleSeq config) raises(InvalidKey);
 
-    void listElement(out ElementList list);
+    void listElements(out ElementList list);
+    void listElementDofs(in string element_name, out ElementList list);
     void Ping(out string outstring);
   };
 };

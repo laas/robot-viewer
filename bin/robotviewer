@@ -40,6 +40,10 @@ def main():
                       action="store_true", dest="skeleton", default=False,
                       help="only display robot skeletons")
 
+    parser.add_option("--strict",
+                      action="store_true", dest="strict", default=False,
+                      help="kill OpenGL on exception (might be caused by client).")
+
     parser.add_option("--version",
                       action="store_true", dest="version", default=False,
                       help="Print version and exit")

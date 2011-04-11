@@ -59,6 +59,10 @@ class DisplayServer(object):
             self.no_cache = True
 
         self._element_dict = dict()
+
+        if options:
+            self.strict = options.strict
+
         logger.debug("Initializing OpenGL")
         self.initGL()
         self.pendingObjects=[]
@@ -363,9 +367,20 @@ class DisplayServer(object):
             return []
         return self._element_dict[name].getConfig()
 
-
-    def listElement(self):
+    def listElements(self):
         return [name for name in self._element_dict.keys() ]
+
+    def listElementDofs(self, ename):
+        l = ["X", "Y", "Z", "roll", "pitch", "yaw"]
+        if not isinstance( self._element_dict[ename], DsGenericObject):
+            return l
+
+        obj = self._element_dict[ename]._obj
+        if not isinstance(obj, kinematic_chain.Robot):
+            return l
+        for j in obj.moving_joint_list:
+            l += [j.name]
+        return l
 
     def run(self):
         logger.info(self.usage)
@@ -404,7 +419,10 @@ class DisplayServer(object):
                 else:
                     ele.render()
             except:
-                glutDestroyWindow(self.window)
+                if self.strict:
+                    glutDestroyWindow(self.window)
+                else:
+                    logger.exception("Failed to render element {0}".format(ele))
 
         glutSwapBuffers()
 
