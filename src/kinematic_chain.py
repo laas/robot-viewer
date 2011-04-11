@@ -38,6 +38,22 @@ class GenericObject(object):
         self.mesh_list=[]
         self.joint_list= []
 
+    def get_op_point(self, id):
+        if not isinstance(self, Robot):
+            return self
+
+        if id == None:
+            return self.waist
+        else:
+            return self.moving_joint_list[id]
+
+    def update_kinematics(self, config):
+        self.translation = config[0:3]
+        self.rotation = config[3:6]
+        self.initLocalTransformation()
+        self.update()
+
+
     def __str__(self):
         s= "%s \t= %s\n"%(self.type,self.name)
         s+="jointType\t= %s\n"%self.jointType
@@ -248,6 +264,8 @@ class Joint(GenericObject):
         self.axis=""
         self.localR1=np.eye(3)  # due to cordinate offset
         self.localR2=np.eye(3)  # due to self rotation (revolute joint)
+        self.op_point = GenericObject()
+        self.addChild(self.op_point)
 
     def __str__(self):
         s = GenericObject.__str__(self)
@@ -307,6 +325,14 @@ class Robot(Joint):
         s += "\nNumber of dof: %d"%self.ndof
         s += "\nNumber meshes: %d"%len(self.mesh_list)
         return s
+
+
+    def update_kinematics(self, config):
+        self.waist.translation = config[0:3]
+        self.waist.rotation = config[3:6]
+        self.setAngles(config[6:])
+        self.initLocalTransformation()
+        self.update()
 
 
     def setAngles(self,angles):
@@ -400,6 +426,8 @@ class Robot(Joint):
 
         if not self.mesh_list[:]:
             logger.warning("Robot contains 0 mesh.")
+
+
 
 class Appearance():
     def __init__(self):

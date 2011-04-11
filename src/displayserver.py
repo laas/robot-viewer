@@ -9,6 +9,7 @@ import ml_parser
 import pickle
 from openglaux import IsExtensionSupported,ReSizeGLScene, GlWindow
 from display_element import DsElement, DsRobot, DsScript, DsGenericObject
+import display_element
 import re,imp
 from camera import Camera
 import pickle
@@ -19,6 +20,7 @@ import time
 import subprocess
 import code
 ESCAPE = 27
+import version
 
 logger = logging.getLogger("robotviewer.displayserver")
 class NullHandler(logging.Handler):
@@ -38,6 +40,12 @@ def updateView(camera):
     glLoadIdentity()
     gluLookAt(p[0],p[1],p[2],f[0],f[1],f[2],u[0],u[1],u[2])
 
+class CustomConfigParser(ConfigParser.ConfigParser):
+    def get(self,*args, **kwargs ):
+        try:
+            return ConfigParser.ConfigParser.get(self, *args, **kwargs)
+        except ConfigParser.NoOptionError:
+            return None
 
 class DisplayServer(object):
     """OpenGL server
@@ -130,27 +138,111 @@ class DisplayServer(object):
                 correct_joint_dict[m.group(1)] = int(m.group(2)) -6
                 logger.info( m.group(1)+ "\t" + m.group(2))
 
-        for joint in self._element_dict[robot_name]._obj.joint_list:
+        for joint in self._element_dict[robot_name].obj.joint_list:
             if correct_joint_dict.has_key(joint.name):
                 joint.id = correct_joint_dict[joint.name]
 
-        self._element_dict[robot_name]._obj.update_joint_dict()
+        self._element_dict[robot_name].obj.update_joint_dict()
         return True
 
-    def parseConfig(self):
-        def replace_env_var(s):
-            matches = re.findall(r'\$(\w+)',s)
-            for m in matches:
-                var = m
-                val = os.environ[var]
-                s = s.replace(var,val)
-            s = s.replace('$','')
-            return s
 
-        config = ConfigParser.ConfigParser()
+    def _replace_env_var(self,s):
+        matches = re.findall(r'\$(\w+)',s)
+        for m in matches:
+            var = m
+            val = os.environ[var]
+            s = s.replace(var,val)
+        s = s.replace('$','')
+        return s
+
+    def parseConfig(self):
+        prog_version = float(version.__version__)
+        config = CustomConfigParser()
         config.read(self.config_file)
         logger.info( 'parsed_config %s'%config)
 
+        if not config.has_section('global'):
+            self.parseConfigLegacy(config)
+            return
+
+        for section in config.sections():
+            for options in config.options(section):
+                value = self._replace_env_var(config.get(section,options))
+                config.set(section, options, value)
+
+        conf_version = float(config.get('global','version'))
+        if prog_version < conf_version:
+            raise Exception("Your config version ({0}) is newer than program version ({1})".
+                            format(conf_version, prog_version))
+
+        value =  config.get('global','background')
+        if value:
+            value = [float(e) for e in value.split(",")]
+            glClearColor (value[0], value[1], value[2], 0.5);
+
+        sections = config.sections()
+        join_pairs = []
+
+        for section in sections:
+            words = section.split()
+            otype = words[0]
+
+            if otype in ["robot", "object"]:
+                oname = words[1]
+                if not words[1:]:
+                    raise Exception("All robots must have a name.")
+
+                geometry = config.get(section, 'geometry')
+                if not geometry:
+                    raise Exception("missing geometry section for {0}".format(section))
+                scale = config.get(section, 'scale')
+                if not scale:
+                    scale = [1,1,1]
+
+                joint_rank = config.get(section, 'joint_rank')
+                if otype == "robot" and joint_rank:
+                    self.setRobotJointRank( oname, joint_rank)
+
+                position = config.get(section, 'position')
+                if not position:
+                    postion = 6*[0.0]
+                else:
+                    position = [float(e) for e in position.split()]
+
+                self._create_element(otype, oname,
+                                     geometry, scale)
+                if position:
+                    self.updateElementConfig(oname, position)
+                self.enableElement(oname)
+                parent = config.get(section, 'parent')
+
+                if parent:
+                    parent_name = parent.split(",")[0]
+                    parent_joint_ids = parent.split(",")[1:]
+
+                    for parent_joint_id in parent_joint_ids:
+                        if parent_joint_id != "":
+                            parent_joint_id = int(parent_joint_id)
+                        else:
+                            parent_joint_id = None
+                        name = "{0}_{1}_{2}".format(oname,parent_name, parent_joint_id)
+                        join_pairs.append((oname, name, parent_name, parent_joint_id))
+
+        for pair in join_pairs:
+            orig_name = pair[0]
+            child_name = pair[1]
+            parent_name = pair[2]
+            parent_joint_id = pair[3]
+            parent_obj = self._element_dict[parent_name].obj
+            new_el = DsElement(obj = parent_obj.get_op_point(parent_joint_id))
+            display_element.obj_primitives[new_el.obj] = display_element.obj_primitives[
+                self._element_dict[orig_name].obj
+                ]
+            self._element_dict[child_name] = new_el
+            self.enableElement(child_name)
+
+    def parseConfigLegacy(self, config):
+        logger.warning("Entering legacy config parsing")
         for section in config.sections():
             if section not in ['robots','default_configs','objects','joint_rank',
                                'preferences','scales']:
@@ -167,14 +259,13 @@ class DisplayServer(object):
             robot_names = config.options('robots')
             for robot_name in robot_names:
                 robot_config = config.get('robots',robot_name)
-                robot_config = replace_env_var(robot_config)
+                robot_config = self._replace_env_var(robot_config)
                 logger.info( 'robot_config=%s'%robot_config)
                 if not os.path.isfile(robot_config):
                     logger.info( "WARNING: Couldn't load %s. Are you sure %s exists?"\
                         %(robot_name,robot_config))
                     continue
                 self._create_element('robot',robot_name,robot_config, scales.get(robot_name))
-
                 self.enableElement(robot_name)
         else:
             logger.info( """Couldn't any default robots. Loading an empty scene
@@ -185,7 +276,7 @@ class DisplayServer(object):
             robot_names = config.options('joint_ranks')
             for robot_name in robot_names:
                 joint_rank_config = config.get('joint_ranks',robot_name)
-                joint_rank_config = replace_env_var(joint_rank_config)
+                joint_rank_config = self._replace_env_var(joint_rank_config)
                 if not self._element_dict.has_key(robot_name):
                     continue
                 if not os.path.isfile(joint_rank_config):
@@ -196,7 +287,7 @@ class DisplayServer(object):
             object_names = config.options('objects')
             for object_name in object_names:
                 object_file = config.get('objects',object_name)
-                object_file = replace_env_var(object_file)
+                object_file = self._replace_env_var(object_file)
                 if not os.path.isfile(object_file):
                     logger.warning('Could not find %s'%object_file)
                     continue
@@ -216,7 +307,6 @@ class DisplayServer(object):
                     value = [float(e) for e in value.split(",")]
                     glClearColor (value[0], value[1], value[2], 0.5);
 
-
         return
 
 
@@ -230,6 +320,7 @@ class DisplayServer(object):
         - `name`:         string, element name
         - `path`:  string, description  (e.g. wrl path)
         """
+        logger.debug("Creating {0} {1} {2} {3}".format(etype, ename, epath, scale))
         if self._element_dict.has_key(ename):
             logger.exception("Element with that name exists already")
             return
@@ -255,7 +346,7 @@ class DisplayServer(object):
             ext = os.path.splitext(epath)[1].replace(".","")
             if ext == "py":
                 logger.debug("Creating element from python script file %s."%epath)
-                new_element = DsScript(open(epath).read())
+                new_element = DsScript(script = open(epath).read())
             elif ext in ml_parser.supported_extensions:
                 logger.debug("Creating element from supported markup language file %s."%epath)
                 objs = ml_parser.parse(epath, not self.no_cache)
@@ -274,7 +365,7 @@ class DisplayServer(object):
                 new_element = DsGenericObject(group)
             else:
                 logger.debug("Creating element from raw script")
-                new_element = DsScript(epath)
+                new_element = DsScript(script = epath)
             if not new_element:
                 raise Exception("creation of element from {0} failed".format(epath))
             logger.debug("Adding %s to internal dictionay"%(new_element))
@@ -375,7 +466,7 @@ class DisplayServer(object):
         if not isinstance( self._element_dict[ename], DsGenericObject):
             return l
 
-        obj = self._element_dict[ename]._obj
+        obj = self._element_dict[ename].obj
         if not isinstance(obj, kinematic_chain.Robot):
             return l
         for j in obj.moving_joint_list:

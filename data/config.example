@@ -1,12 +1,16 @@
-[robots]
-hrp=$ROBOTPKG_BASE/OpenHRP/Controller/IOserver/robot/HRP2JRL/model/HRP2JRLmain.wrl
+[global]
+version: 1.6
+background: 1,1,1
 
-[joint_rank]
-hrp=$ROBOTPKG_BASE/share/hrp2_14/HRP2LinkJointRank.xml
+[robot hrp]
+geometry: $HOME/licenses/HRP2JRL/model/HRP2JRLmain.wrl
+joint_rank: $HOME/licenses/HRP2LinkJointRank.xml
+position: 0 0 0.6487 0 0 0 0.0 0.0 -0.453785605519 0.872664625997 -0.418879020479 0.0 0.0 0.0 -0.453785605519 0.872664625997 -0.418879020479 0.0 0.0 0.0 0.0 0.0 0.261799387799 -0.174532925199 0.0 -0.523598775598 0.0 0.0 0.174532925199 0.261799387799 0.174532925199 0.0 -0.523598775598 0.0 0.0 0.174532925199 -0.174532925199 0.174532925199 -0.174532925199 0.174532925199 -0.174532925199 -0.174532925199 0.174532925199 -0.174532925199 0.174532925199 -0.174532925199
 
-[objects]
-floor=$HOME/.robotviewer/floor.py
-chair=$HOME/chairlayaletest332.wrl
+[object floor]
+geometry: $HOME/.robotviewer/floor.py
 
-[default_configs]
-chair=-1 0 1 0 0 0
+[object coord]
+geometry: $HOME/.robotviewer/coord.py
+parent: hrp,,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39
+position: 0 0 0 0 0 0

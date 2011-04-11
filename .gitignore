@@ -8,3 +8,4 @@ MANIFEST
 dist/*
 robot_viewer.egg-info
 */?core.*
+*.pye

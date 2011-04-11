@@ -86,7 +86,7 @@ def main():
                       help="be verbose")
 
     (options, args) = parser.parse_args(sys.argv[1:])
-
+    patt = args[0]
 
 
     window = gtk.Window (gtk.WINDOW_TOPLEVEL)
@@ -98,6 +98,8 @@ def main():
     print notebook
     for obj in clt.listElements():
         tab = ControllerWidget(obj)
+        if not re.match(r"%s"%patt, obj):
+            continue
         notebook.append_page(tab, gtk.Label(obj))
 
     window.show_all()
