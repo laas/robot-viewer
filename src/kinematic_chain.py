@@ -27,6 +27,7 @@ class GenericObject(object):
         self.name=None
         self.jointType=""
         self.translation=[0,0,0]
+        self.rpy=[0,0,0]
         self.rotation=[1,0,0,0]
         self.center=[0,0,0]
         self.parent=None
@@ -47,12 +48,15 @@ class GenericObject(object):
         else:
             return self.moving_joint_list[id]
 
-    def update_kinematics(self, config):
-        self.translation = config[0:3]
-        self.rotation = config[3:6]
+    def update_config(self,config):
+        self.translation = config[:3]
+        self.rpy = config[3:6]
+        self.rotation = euleur2AxisAngle(self.rpy)
         self.initLocalTransformation()
         self.update()
 
+    def get_config(self):
+        return self.translation + rot2rpy(self.globalTransformation)
 
     def __str__(self):
         s= "%s \t= %s\n"%(self.type,self.name)
@@ -259,7 +263,6 @@ class Joint(GenericObject):
         self.type= "joint"
         self.jointType=None
         self.isRobot=False
-        self.rpy=[0,0,0]
         self.angle=0
         self.axis=""
         self.localR1=np.eye(3)  # due to cordinate offset
@@ -326,14 +329,12 @@ class Robot(Joint):
         s += "\nNumber meshes: %d"%len(self.mesh_list)
         return s
 
-
-    def update_kinematics(self, config):
-        self.waist.translation = config[0:3]
-        self.waist.rotation = config[3:6]
+    def update_config(self, config):
         self.setAngles(config[6:])
+        self.waist.translation = config[0:3]
+        self.waist.rotation = euleur2AxisAngle(config[3:6])
         self.initLocalTransformation()
         self.update()
-
 
     def setAngles(self,angles):
         """
@@ -355,7 +356,7 @@ class Robot(Joint):
         for joint in self.joint_list:
             print "\n====\n",joint
 
-    def getConfig(self):
+    def get_config(self):
         vec = self.waist.translation
         vec += self.waist.rpy
         for i in range(len(self.joint_list)):

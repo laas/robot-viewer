@@ -20,45 +20,62 @@ class NullHandler(logging.Handler):
 logger.addHandler(NullHandler())
 
 
-obj_primitives = {}
 glList_joint_sphere_mat = None
 glList_link_mat = None
 
-class GlPrimitive(object):
+def ifenabled(meth):
+    def new_meth(cls, *kargs, **kwargs):
+        if cls.enabled:
+            return meth(cls, *kargs, **kwargs)
+        else:
+            return
+    return new_meth
+
+class GlPrimitive(GenericObject):
     """
     """
     def __init__(self, gl_list_id = None, vbo = None,
-                 mesh = None, script = None):
+                 mesh = None, script = None, parent = None):
         """
 
         Arguments:
         - `glList`:
         - `VBO`:
         """
+        GenericObject.__init__(self)
         self.gl_list_id = gl_list_id
         self.vbo = vbo
-        global obj_primitives
+        self.enabled = True
+        if parent:
+            parent.addChild(self)
+        # global obj_primitives
         if mesh:
             self.vbo = Vbo(mesh)
             self.generate_gl_list(mesh)
-            obj_primitives[mesh] = self
-
+            setattr(mesh, "gl_primitive", self)
         if script:
             self.gl_list_id = glGenLists(1)
             glNewList(self.gl_list_id, GL_COMPILE);
             safe_eval(script, globals())
             glEndList();
+        self.init()
 
+    def set_transparency(self, transparency):
+        pass
 
     def generate_gl_list(self, mesh):
-        self.gl_list_id = glGenLists(1)
+        if not self.gl_list_id:
+            self.gl_list_id = glGenLists(1)
+        else:
+            glDeleteLists(self.gl_list_id, 1)
         app = mesh.app
         glNewList(self.gl_list_id, GL_COMPILE);
         try:
             app.transparency = float(app.transparency)
         except:
             app.transparency = 0
-            logger.exception("Invalid transparency: {0}".format(app.transparency))
+            logger.exception("Invalid transparency: {0}"
+                             .format(app.transparency))
         for (key, value) in [ (GL_SPECULAR,app.specularColor),
                               (GL_EMISSION,app.emissiveColor ),
                               (GL_AMBIENT_AND_DIFFUSE,app.diffuseColor ),
@@ -84,187 +101,315 @@ class GlPrimitive(object):
                                %(mesh.name, joint_name, key.name))
         glEndList();
 
+    @ifenabled
+    def render(self):
+        glEnableClientState(GL_NORMAL_ARRAY);
+        glEnableClientState(GL_VERTEX_ARRAY);
 
-class DsElement(object):
+        Tmatrix = self.globalTransformation
+        R=Tmatrix[0:3,0:3]
+        p=Tmatrix[0:3,3]
+        agax=rot2AngleAxis(R)
+
+        glPushMatrix()
+        glTranslatef(p[0],p[1],p[2])
+        glRotated(agax[0],agax[1],agax[2],agax[3])
+
+        glCallList(self.gl_list_id)
+        if not self.vbo:
+            glPopMatrix()
+            glDisableClientState(GL_VERTEX_ARRAY);  # disable vertex arrays
+            glDisableClientState(GL_NORMAL_ARRAY);
+            return
+
+        # print
+        # self.vbo.ver_vboId,self.vbo.nor_vboId,
+        # self.vbo.idx_vboId
+        # before draw, specify vertex and index arrays with their offsets
+        # Use VBO
+        try:
+            glBindBufferARB(GL_ARRAY_BUFFER_ARB, self.vbo.ver_vboId);
+            glVertexPointer( 3, GL_FLOAT, 0, None );
+
+            glBindBufferARB(GL_ARRAY_BUFFER_ARB, self.vbo.nor_vboId);
+            glNormalPointer(GL_FLOAT, 0,None);
+
+            glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,
+                            self.vbo.tri_idx_vboId);
+            glDrawElements(GL_TRIANGLES, self.vbo.tri_count,
+                           GL_UNSIGNED_SHORT, None);
+
+            glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,
+                            self.vbo.quad_idx_vboId);
+            glDrawElements(GL_QUADS, self.vbo.quad_count,
+                           GL_UNSIGNED_SHORT, None);
+            for i, vboId in enumerate(self.vbo.poly_idx_vboIds):
+                glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, vboId);
+                glDrawElements(GL_POLYGON, len(self.vbo._poly_idxs),
+                               GL_UNSIGNED_SHORT, None);
+        except:
+            logger.exception("Error while drawing parent %s"%obj.aname)
+
+
+        glPopMatrix()
+        glFlush()
+            # end drawing the bot
+        glDisableClientState(GL_VERTEX_ARRAY);  # disable vertex arrays
+        glDisableClientState(GL_NORMAL_ARRAY);
+
+class DisplayObject(object):
     """
     """
 
-    def __init__(self, obj = None, config = 6*[0], enabled = False):
-        self.config = config
-        self.enabled = enabled
+    def __init__(self, obj):
         self.obj = obj
+        for mesh in self.mesh_list:
+            mesh.addChild( GlPrimitive (mesh = mesh) )
+
+    def __getattr__(self, attr):
+        return getattr(self.obj, attr)
 
     def __str__(self):
         return "FIX-ME"
 
+    @ifenabled
     def render(self):
         """Render element and its children in the scene
 
         Arguments:
         - `self`:
         """
-        if isinstance(self, DsRobot):
-            draw_objs = self.obj.mesh_list
-        else:
-            draw_objs = [self.obj]
-        for obj in draw_objs:
-            primitive = obj_primitives.get(obj)
-            if not primitive:
+        for m in self.mesh_list:
+            if not m.gl_primitive:
                 continue
-            glEnableClientState(GL_NORMAL_ARRAY);
-            glEnableClientState(GL_VERTEX_ARRAY);
-
-            Tmatrix = obj.globalTransformation
-            R=Tmatrix[0:3,0:3]
-            p=Tmatrix[0:3,3]
-            agax=rot2AngleAxis(R)
-
-            glPushMatrix()
-            glTranslatef(p[0],p[1],p[2])
-            glRotated(agax[0],agax[1],agax[2],agax[3])
-            glCallList(primitive.gl_list_id)
-            if not primitive.vbo:
-                glPopMatrix()
-                glDisableClientState(GL_VERTEX_ARRAY);  # disable vertex arrays
-                glDisableClientState(GL_NORMAL_ARRAY);
-                continue
-
-            # print
-            # primitive.vbo.ver_vboId,primitive.vbo.nor_vboId,primitive.vbo.idx_vboId
-            # before draw, specify vertex and index arrays with their offsets
-            # Use VBO
-            try:
-                glBindBufferARB(GL_ARRAY_BUFFER_ARB, primitive.vbo.ver_vboId);
-                glVertexPointer( 3, GL_FLOAT, 0, None );
-
-                glBindBufferARB(GL_ARRAY_BUFFER_ARB, primitive.vbo.nor_vboId);
-                glNormalPointer(GL_FLOAT, 0,None);
-
-                glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, primitive.vbo.tri_idx_vboId);
-                glDrawElements(GL_TRIANGLES, primitive.vbo.tri_count,
-                               GL_UNSIGNED_SHORT, None);
-
-                glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,
-                                primitive.vbo.quad_idx_vboId);
-                glDrawElements(GL_QUADS, primitive.vbo.quad_count,
-                               GL_UNSIGNED_SHORT, None);
-                for i, vboId in enumerate(primitive.vbo.poly_idx_vboIds):
-                    glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, vboId);
-                    glDrawElements(GL_POLYGON, len(primitive.vbo._poly_idxs),
-                                   GL_UNSIGNED_SHORT, None);
-            except:
-                logger.exception("Error while drawing obj %s"%obj.aname)
+            m.gl_primitive.render()
 
 
-            glPopMatrix()
-            glFlush()
-                # end drawing the bot
-            glDisableClientState(GL_VERTEX_ARRAY);  # disable vertex arrays
-            glDisableClientState(GL_NORMAL_ARRAY);
+    def set_transparency(self, transparency):
+        for mesh in self.mesh_list:
+            mesh.transparency = transparency
+            mesh.gl_primitive.generate_gl_list(mesh)
 
-    def updateConfig(self,config):
-        self.config = config
 
     def getConfig(self):
         return self.config
 
 
-    def enable(self):
-        """
-        Arguments:
-        - `self`:
-        """
-        self.enabled = True
-
-    def disable(self):
-        """
-        Arguments:
-        - `self`:
-        """
-        self.enabled = False
+class DisplayRobot(DisplayObject):
+    @ifenabled
+    def render(self, mesh_flag, skeleton_flag, skeleton_size):
+        if mesh_flag:
+            DisplayObject.render(self)
+        if skeleton_flag:
+            render_skeleton(self, skeleton_size)
 
 
-    def isEnabled(self):
-        return self.enabled
-
-
-
-class DsGenericObject(DsElement):
-    """Wrapper for kinematic_chain.GenericObject
+class Vbo(object):
+    """
     """
 
-    def __init__(self, obj = None, config = 6*[0], enabled= False):
-        self.config = config
-        self.enabled = enabled
-        self.obj = obj
-        self.kinematics_update_t = 0
-        self.config_update_t = 0
+    def __init__(self, mesh):
+        """
 
-        for mesh in obj.mesh_list:
-            GlPrimitive(mesh = mesh)
+        Arguments:
+        - `mesh`:
+        """
+        self.ver_vboId  = -1
+        self.nor_vboId  = -1
+        self.tri_idx_vboId  = -1
+        self.quad_idx_vboId  = -1
+        self.poly_idx_vboIds  = []
+
+        self.verts = []
+        self.norms = []
+        self.tri_idxs  = []
+        self.quad_idxs = []
+        self.poly_idxs = []
+        self.tri_count  = 0
+        self.quad_count = 0
+
+        logger.debug("Computing normals")
+        self.computeNormals(mesh)
+
+        logger.debug("Loading to GPUs")
+        self.loadGPU(mesh)
+
+    def computeNormals(self, mesh):
+        # TODO glList for colors
+        # copy vertex and normals from mesh
+        self.verts = mesh.geo.coord
+        coord=self.verts
+        idx = mesh.geo.idx
+        npoints=len(coord)/3
+
+        if mesh.geo.norm==[]:
+            normals=[]
+            points=[]
+            for k in range(npoints):
+                normals.append(numpy.array([0.0,0.0,0.0]))
+                points.append(numpy.array([coord[3*k],coord[3*k+1],
+                                           coord[3*k+2]]))
+
+        poly=[]
+        ii=0
+        for a_idx in idx:
+            if a_idx!=-1:
+                poly.append(a_idx)
+                continue
+            # idx=-1
+            num_sides = len(poly)
+            # if num_sides not in (3,4):
+            #     logger.warning("""n=%d.  Only support tri and quad mesh for
+            #                       the moment"""%num_sides)
+            #     poly=[]
+            #     continue
+            # idx=-1 and poly is a triangle
+            if num_sides == 3:
+                self.tri_idxs += poly
+            elif num_sides == 4:
+                self.quad_idxs += poly
+            else:
+                self.poly_idxs.append(poly)
+
+            if mesh.geo.norm == []:
+                # update the norm vector
+                # update the normals using G. Thurmer, C. A. Wuthrich,
+                # "Computing vertex normals from polygonal facets"
+                # Journal of Graphics Tools, 3 1998
+                ids  = (num_sides)*[None]
+                vecs = []
+                for i in range(num_sides):
+                    vecs.append((num_sides)*[None])
+                alphas = (num_sides)*[0]
+                for i, iid in enumerate(poly):
+                    ids[i] = iid
+
+                for i in range(num_sides):
+                    j = i + 1
+                    if j == num_sides:
+                        j = 0
+                    vecs[j][i] = normalized(points[ids[j]] - points[ids[i]])
+
+                try:
+                    for i in range(num_sides):
+                        if i == 0:
+                            alphas[i] = acos(numpy.dot
+                                             (vecs[1][0],vecs[0][num_sides-1]))
+                        elif i == num_sides - 1:
+                            alphas[i] = acos(numpy.dot (
+                                vecs[0][num_sides-1],
+                                vecs[num_sides-1][num_sides-2]))
+                        else:
+                            alphas[i] = acos(numpy.dot(vecs[i][i-1],
+                                                       vecs[i+1][i]))
+                except Exception,error:
+                    s = traceback.format_exc()
+                    logger.warning("Mesh processing error: %s"%s)
+
+                for i,alpha in enumerate(alphas):
+                    if i == 0:
+                        normals[ids[i]] += alpha*normalized(
+                            numpy.cross(vecs[0][num_sides-1],vecs[1][0]))
+                    elif i == num_sides - 1:
+                        normal_i = numpy.cross(vecs[num_sides-1][num_sides-2],
+                                               vecs[0][num_sides-1])
+                        normals[ids[i]] += alpha*normalized(normal_i)
+                    else:
+                        normal_i = numpy.cross(vecs[i][i-1], vecs[i+1][i])
+                        normals[ids[i]] += alpha*normalized(normal_i)
+            poly=[]
+        if mesh.geo.norm!=[]:
+            self.norms = mesh.geo.norm
+        else:
+            for normal in normals:
+                normal                =  normalized(normal)
+                self.norms          += [normal[0],normal[1],normal[2]]
+                # mesh.geo.norm  += self.norms
+
+
+
+    def loadGPU(self, mesh):
+        logger.debug("Creating VBO for mesh %s"%mesh.name)
+        self.tri_count = len(self.tri_idxs)
+        self.quad_count = len(self.quad_idxs)
+        self.ver_vboId = int(glGenBuffersARB(1))
+        logger.debug("Populating VBO for vertices: vboID %d"%self.ver_vboId)
+        glBindBufferARB( GL_ARRAY_BUFFER_ARB,self.ver_vboId );
+        glBufferDataARB( GL_ARRAY_BUFFER_ARB,
+                             numpy.array (self.verts, dtype=numpy.float32),
+                             GL_STATIC_DRAW_ARB );
+        glBindBufferARB( GL_ARRAY_BUFFER_ARB,0 );
+        logger.debug("Generated VBO for vertices: vboID %d"%self.ver_vboId)
+
+        self.nor_vboId = int(glGenBuffersARB(1))
+        logger.debug("Populating VBO for normals: vboID %d"%self.nor_vboId)
+        glBindBufferARB( GL_ARRAY_BUFFER_ARB,self.nor_vboId );
+        glBufferDataARB( GL_ARRAY_BUFFER_ARB,
+                             numpy.array (self.norms, dtype=numpy.float32),
+                             GL_STATIC_DRAW_ARB );
+        glBindBufferARB( GL_ARRAY_BUFFER_ARB,0 );
+        logger.debug("Generated VBO for normals: vboID %d"%self.nor_vboId)
+
+        self.tri_idx_vboId = int(glGenBuffersARB(1))
+        glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,self.tri_idx_vboId );
+        glBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB,
+                             numpy.array (self.tri_idxs, dtype=numpy.uint16),
+                             GL_STATIC_DRAW_ARB );
+        logger.debug("Generated VBO for triangle indices: vboID %d"%
+                     self.tri_idx_vboId)
+        glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,0 );
+        logger.debug("Finished creating VBO for mesh %s"%mesh.name)
+
+        self.quad_idx_vboId = int(glGenBuffersARB(1))
+        glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,self.quad_idx_vboId );
+        glBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB,
+                             numpy.array (self.quad_idxs, dtype=numpy.uint16),
+                             GL_STATIC_DRAW_ARB );
+        logger.debug("Generated VBO for quadangle indices: vboID %d"%
+                     self.quad_idx_vboId)
+        glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,0 );
+
+        for i,poly in enumerate(self.poly_idxs):
+            poly_idx_vboId = int(glGenBuffersARB(1))
+            self.poly_idx_vboIds.append(poly_idx_vboId)
+            glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB, poly_idx_vboId );
+            glBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB,
+                             numpy.array (poly, dtype=numpy.uint16),
+                             GL_STATIC_DRAW_ARB );
+            logger.debug("Generated VBO for poly indices: vboID %d"%
+                         poly_idx_vboId)
+            glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,0 );
+
+        logger.debug("Finished creating VBO for mesh %s"%mesh.name)
 
 
     def __str__(self):
-        s = "  type\t: GenericObject\n"
+        """
+        """
+        s="[Vbo instance:\n"
+        s+="ver_vboId\t=%d\n"%self.ver_vboId
+        s+="nor_vboId\t=%d\n"%self.nor_vboId
+        s+="tri_idx_vboId\t=%d\n"%self.tri_idx_vboId
+        s+="quad_idx_vboId\t=%d\n"%self.quad_tri_idx_vboId
+
+        s+="len (_verts)\t=%d\n"%(len(self.verts))
+        s+="len (_norms)\t=%d\n"%(len(self.norms))
+        s+="len (_idxs)\t=%d\n"%(len(self.tri_idxs))
+        s+="]"
         return s
 
-    def set_transparency(self, transparency):
-        for m in self.obj.mesh_list:
-            m.app.transparency = transparency
-
-        for m in self.obj.mesh_list:
-            obj_primitives[m].generate_gl_list(m)
-
-    def updateKinematics(self):
-        #if self.kinematics_up,date_t < self.config_update_t:
-        self.obj.update_kinematics(self.config)
-
-    def render(self, render_mesh_flag = True):
-        """
-
-        Arguments:
-        - `self`:
-        """
-
-        if not self.enabled:
-            return
-
-        self.updateKinematics()
-        if render_mesh_flag:
-            DsElement.render(self)
 
 
-
-class DsRobot(DsGenericObject):
-    """Display Element for a humanoid robot
-    """
-
-    def __str__(self):
-        s = "  type\t: Robot\n"
-        s += "  config\t: %s\n"%str(self.obj.getConfig())
-        return s
-
-    def render(self, render_mesh_flag = True, render_skeleton_flag = False, size = 1):
-        """
-
-        Arguments:
-        - `self`:
-        """
-        DsGenericObject.render(self, render_mesh_flag)
-
-        if render_skeleton_flag or not self.obj.mesh_list[:]:
-            self.renderSkeleton(size)
-    def renderSkeleton(self, size = 1):
-        # draw_skeleton a sphere at each mobile joint
-        # print "rendering skeleton", self.obj.joint_list
-        for joint in self.obj.joint_list:
-            draw_joint(joint, size)
-            if joint.parent and joint.jointType in ["rotate","revolute","prismatic",
-                                   "rotation", "translation"]:
-                pos=joint.globalTransformation[0:3,3]
-                parent=joint.parent
-                parent_pos=parent.globalTransformation[0:3,3]
-                draw_link(pos,parent_pos,size)
+def render_skeleton(robot, size):
+    for joint in robot.joint_list:
+        draw_joint(joint, size)
+        if joint.parent and joint.jointType in ["rotate","revolute",
+                                                "prismatic","rotation",
+                                                "translation"]:
+            pos=joint.globalTransformation[0:3,3]
+            parent=joint.parent
+            parent_pos=parent.globalTransformation[0:3,3]
+            draw_link(pos,parent_pos,size)
 
 
 def draw_link(p1,p2,size=1):
@@ -350,210 +495,3 @@ def draw_joint(joint, size = 1):
         gluDisk(qua,0,r,10,5)
         glPopMatrix()
 
-
-class DsScript(DsElement):
-    """
-    """
-    def __init__(self, obj = None,
-                 config = 6*[0], enabled = False, script = ""):
-        DsElement.__init__(self, obj, config, enabled)
-        self.script = script
-        global obj_primitives
-        if not obj:
-            self.obj = kinematic_chain.GenericObject()
-            self.obj.init()
-        else:
-            self.obj = obj
-        obj_primitives[self.obj] = GlPrimitive(script = script)
-
-    def __str__(self):
-        s = "  type\t: script\n"
-        s += "  config\t: %s\n"%str(self.config)
-        return s
-
-
-class Vbo(object):
-    """
-    """
-
-    def __init__(self, mesh):
-        """
-
-        Arguments:
-        - `mesh`:
-        """
-        self.ver_vboId  = -1
-        self.nor_vboId  = -1
-        self.tri_idx_vboId  = -1
-        self.quad_idx_vboId  = -1
-        self.poly_idx_vboIds  = []
-
-        self.verts = []
-        self.norms = []
-        self.tri_idxs  = []
-        self.quad_idxs = []
-        self.poly_idxs = []
-        self.tri_count  = 0
-        self.quad_count = 0
-
-        logger.debug("Computing normals")
-        self.computeNormals(mesh)
-
-        logger.debug("Loading to GPUs")
-        self.loadGPU(mesh)
-
-    def computeNormals(self, mesh):
-        # TODO glList for colors
-        # copy vertex and normals from mesh
-        self.verts = mesh.geo.coord
-        coord=self.verts
-        idx = mesh.geo.idx
-        npoints=len(coord)/3
-
-        if mesh.geo.norm==[]:
-            normals=[]
-            points=[]
-            for k in range(npoints):
-                normals.append(numpy.array([0.0,0.0,0.0]))
-                points.append(numpy.array([coord[3*k],coord[3*k+1],coord[3*k+2]]))
-
-        poly=[]
-        ii=0
-        for a_idx in idx:
-            if a_idx!=-1:
-                poly.append(a_idx)
-                continue
-            # idx=-1
-            num_sides = len(poly)
-            # if num_sides not in (3,4):
-            #     logger.warning("""n=%d.
-            #                       Only support tri and quad mesh for the moment"""%num_sides)
-            #     poly=[]
-            #     continue
-            # idx=-1 and poly is a triangle
-            if num_sides == 3:
-                self.tri_idxs += poly
-            elif num_sides == 4:
-                self.quad_idxs += poly
-            else:
-                self.poly_idxs.append(poly)
-
-            if mesh.geo.norm == []:
-                # update the norm vector
-                # update the normals using G. Thurmer, C. A. Wuthrich,
-                # "Computing vertex normals from polygonal facets"
-                # Journal of Graphics Tools, 3 1998
-                ids  = (num_sides)*[None]
-                vecs = []
-                for i in range(num_sides):
-                    vecs.append((num_sides)*[None])
-                alphas = (num_sides)*[0]
-                for i, iid in enumerate(poly):
-                    ids[i] = iid
-
-                for i in range(num_sides):
-                    j = i + 1
-                    if j == num_sides:
-                        j = 0
-                    vecs[j][i] = normalized(points[ids[j]] - points[ids[i]])
-
-                try:
-                    for i in range(num_sides):
-                        if i == 0:
-                            alphas[i] = acos(numpy.dot(vecs[1][0],vecs[0][num_sides-1]))
-                        elif i == num_sides - 1:
-                            alphas[i] = acos(numpy.dot(vecs[0][num_sides-1],
-                                                   vecs[num_sides-1][num_sides-2]))
-                        else:
-                            alphas[i] = acos(numpy.dot(vecs[i][i-1], vecs[i+1][i]))
-                except Exception,error:
-                    s = traceback.format_exc()
-                    logger.warning("Mesh processing error: %s"%s)
-
-                for i,alpha in enumerate(alphas):
-                    if i == 0:
-                        normals[ids[i]] += alpha*normalized(numpy.cross(vecs[0][num_sides-1],
-                                                             vecs[1][0]))
-                    elif i == num_sides - 1:
-                        normals[ids[i]] += alpha*normalized(numpy.cross(vecs[num_sides-1][num_sides-2],
-                                                             vecs[0][num_sides-1]))
-                    else:
-                        normals[ids[i]] += alpha*normalized(numpy.cross(vecs[i][i-1],
-                                                             vecs[i+1][i]))
-            poly=[]
-        if mesh.geo.norm!=[]:
-            self.norms = mesh.geo.norm
-        else:
-            for normal in normals:
-                normal                =  normalized(normal)
-                self.norms          += [normal[0],normal[1],normal[2]]
-                # mesh.geo.norm  += self.norms
-
-
-
-    def loadGPU(self, mesh):
-        logger.debug("Creating VBO for mesh %s"%mesh.name)
-        self.tri_count = len(self.tri_idxs)
-        self.quad_count = len(self.quad_idxs)
-        self.ver_vboId = int(glGenBuffersARB(1))
-        logger.debug("Populating VBO for vertices: vboID %d"%self.ver_vboId)
-        glBindBufferARB( GL_ARRAY_BUFFER_ARB,self.ver_vboId );
-        glBufferDataARB( GL_ARRAY_BUFFER_ARB, \
-                             numpy.array (self.verts, dtype=numpy.float32),\
-                             GL_STATIC_DRAW_ARB );
-        glBindBufferARB( GL_ARRAY_BUFFER_ARB,0 );
-        logger.debug("Generated VBO for vertices: vboID %d"%self.ver_vboId)
-
-        self.nor_vboId = int(glGenBuffersARB(1))
-        logger.debug("Populating VBO for normals: vboID %d"%self.nor_vboId)
-        glBindBufferARB( GL_ARRAY_BUFFER_ARB,self.nor_vboId );
-        glBufferDataARB( GL_ARRAY_BUFFER_ARB, \
-                             numpy.array (self.norms, dtype=numpy.float32),\
-                             GL_STATIC_DRAW_ARB );
-        glBindBufferARB( GL_ARRAY_BUFFER_ARB,0 );
-        logger.debug("Generated VBO for normals: vboID %d"%self.nor_vboId)
-
-        self.tri_idx_vboId = int(glGenBuffersARB(1))
-        glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,self.tri_idx_vboId );
-        glBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB, \
-                             numpy.array (self.tri_idxs, dtype=numpy.uint16),\
-                             GL_STATIC_DRAW_ARB );
-        logger.debug("Generated VBO for triangle indices: vboID %d"%self.tri_idx_vboId)
-        glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,0 );
-        logger.debug("Finished creating VBO for mesh %s"%mesh.name)
-
-        self.quad_idx_vboId = int(glGenBuffersARB(1))
-        glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,self.quad_idx_vboId );
-        glBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB, \
-                             numpy.array (self.quad_idxs, dtype=numpy.uint16),\
-                             GL_STATIC_DRAW_ARB );
-        logger.debug("Generated VBO for quadangle indices: vboID %d"%self.quad_idx_vboId)
-        glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,0 );
-
-        for i,poly in enumerate(self.poly_idxs):
-            poly_idx_vboId = int(glGenBuffersARB(1))
-            self.poly_idx_vboIds.append(poly_idx_vboId)
-            glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB, poly_idx_vboId );
-            glBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB, \
-                             numpy.array (poly, dtype=numpy.uint16),\
-                             GL_STATIC_DRAW_ARB );
-            logger.debug("Generated VBO for poly indices: vboID %d"%poly_idx_vboId)
-            glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB,0 );
-
-        logger.debug("Finished creating VBO for mesh %s"%mesh.name)
-
-
-    def __str__(self):
-        """
-        """
-        s="[Vbo instance:\n"
-        s+="ver_vboId\t=%d\n"%self.ver_vboId
-        s+="nor_vboId\t=%d\n"%self.nor_vboId
-        s+="tri_idx_vboId\t=%d\n"%self.tri_idx_vboId
-        s+="quad_idx_vboId\t=%d\n"%self.quad_tri_idx_vboId
-
-        s+="len (_verts)\t=%d\n"%(len(self.verts))
-        s+="len (_norms)\t=%d\n"%(len(self.norms))
-        s+="len (_idxs)\t=%d\n"%(len(self.tri_idxs))
-        s+="]"
-        return s

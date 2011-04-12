@@ -8,7 +8,7 @@ import kinematic_chain
 import ml_parser
 import pickle
 from openglaux import IsExtensionSupported,ReSizeGLScene, GlWindow
-from display_element import DsElement, DsRobot, DsScript, DsGenericObject
+from display_element import DisplayObject, DisplayRobot, GlPrimitive
 import display_element
 import re,imp
 from camera import Camera
@@ -21,7 +21,7 @@ import subprocess
 import code
 ESCAPE = 27
 import version
-
+import copy
 logger = logging.getLogger("robotviewer.displayserver")
 class NullHandler(logging.Handler):
     def emit(self, record):
@@ -225,21 +225,24 @@ class DisplayServer(object):
                             parent_joint_id = int(parent_joint_id)
                         else:
                             parent_joint_id = None
-                        name = "{0}_{1}_{2}".format(oname,parent_name, parent_joint_id)
-                        join_pairs.append((oname, name, parent_name, parent_joint_id))
+                        name = "{0}_{1}_{2}".format(oname,parent_name,
+                                                    parent_joint_id)
+                        join_pairs.append((oname, name, parent_name,
+                                           parent_joint_id))
 
         for pair in join_pairs:
             orig_name = pair[0]
             child_name = pair[1]
             parent_name = pair[2]
             parent_joint_id = pair[3]
-            parent_obj = self._element_dict[parent_name].obj
-            new_el = DsElement(obj = parent_obj.get_op_point(parent_joint_id))
-            display_element.obj_primitives[new_el.obj] = display_element.obj_primitives[
-                self._element_dict[orig_name].obj
-                ]
+            parent_obj = self._element_dict[parent_name]
+            new_el = copy.deepcopy( self._element_dict[orig_name] )
+            parent_obj.get_op_point(parent_joint_id).addChild(new_el)
             self._element_dict[child_name] = new_el
             self.enableElement(child_name)
+
+        for name, obj in self._element_dict.items():
+            obj.update()
 
     def parseConfigLegacy(self, config):
         logger.warning("Entering legacy config parsing")
@@ -265,7 +268,8 @@ class DisplayServer(object):
                     logger.info( "WARNING: Couldn't load %s. Are you sure %s exists?"\
                         %(robot_name,robot_config))
                     continue
-                self._create_element('robot',robot_name,robot_config, scales.get(robot_name))
+                self._create_element('robot',robot_name,robot_config,
+                                     scales.get(robot_name))
                 self.enableElement(robot_name)
         else:
             logger.info( """Couldn't any default robots. Loading an empty scene
@@ -291,7 +295,8 @@ class DisplayServer(object):
                 if not os.path.isfile(object_file):
                     logger.warning('Could not find %s'%object_file)
                     continue
-                self._create_element('object', object_name, object_file, scales.get(object_name))
+                self._create_element('object', object_name,
+                                     object_file, scales.get(object_name))
                 self.enableElement(object_name)
 
         if config.has_section('default_configs'):
@@ -337,7 +342,7 @@ class DisplayServer(object):
             new_robot = robots[0]
             if scale:
                 new_robot.scale(scale)
-            new_element = DsRobot(new_robot)
+            new_element = DisplayRobot(new_robot)
             self._element_dict[ename] = new_element
 
         elif etype == 'object':
@@ -346,7 +351,7 @@ class DisplayServer(object):
             ext = os.path.splitext(epath)[1].replace(".","")
             if ext == "py":
                 logger.debug("Creating element from python script file %s."%epath)
-                new_element = DsScript(script = open(epath).read())
+                new_element = GlPrimitive(script = open(epath).read())
             elif ext in ml_parser.supported_extensions:
                 logger.debug("Creating element from supported markup language file %s."%epath)
                 objs = ml_parser.parse(epath, not self.no_cache)
@@ -362,10 +367,10 @@ class DisplayServer(object):
                         group.init()
                 if scale:
                     group.scale(scale)
-                new_element = DsGenericObject(group)
+                new_element = DisplayObject(group)
             else:
                 logger.debug("Creating element from raw script")
-                new_element = DsScript(script = epath)
+                new_element = GlPrimitive(script = epath)
             if not new_element:
                 raise Exception("creation of element from {0} failed".format(epath))
             logger.debug("Adding %s to internal dictionay"%(new_element))
@@ -419,7 +424,7 @@ class DisplayServer(object):
         if not self._element_dict.has_key(name):
             return False
 
-        self._element_dict[name].enable()
+        self._element_dict[name].enabled = True
         return True
 
     def disableElement(self,name):
@@ -431,7 +436,7 @@ class DisplayServer(object):
         if not self._element_dict.has_key(name):
             return False
 
-        self._element_dict[name].disable()
+        self._element_dict[name].enabled = False
         return True
 
     def updateElementConfig(self,name,config):
@@ -444,7 +449,7 @@ class DisplayServer(object):
             logger.exception("Element with that name does not exist")
             return False
 
-        self._element_dict[name].updateConfig(config)
+        self._element_dict[name].update_config(config)
         return True
 
     def getElementConfig(self,name):
@@ -456,14 +461,14 @@ class DisplayServer(object):
         if not self._element_dict.has_key(name):
             logger.exception(KeyError,"Element with that name does not exist")
             return []
-        return self._element_dict[name].getConfig()
+        return self._element_dict[name].get_config()
 
     def listElements(self):
         return [name for name in self._element_dict.keys() ]
 
     def listElementDofs(self, ename):
         l = ["X", "Y", "Z", "roll", "pitch", "yaw"]
-        if not isinstance( self._element_dict[ename], DsGenericObject):
+        if not isinstance( self._element_dict[ename], DisplayObject):
             return l
 
         obj = self._element_dict[ename].obj
@@ -505,7 +510,7 @@ class DisplayServer(object):
             ele = item[1]
             #    logger.info( item[0], item[1]._enabled)
             try:
-                if isinstance(ele, DsRobot):
+                if isinstance(ele, DisplayRobot):
                     ele.render(self.render_mesh_flag, self.render_skeleton_flag, self.skeleton_size)
                 else:
                     ele.render()
@@ -569,14 +574,14 @@ class DisplayServer(object):
                 if self.transparency < 1:
                     self.transparency += 0.1
                     for name, e in self._element_dict.items():
-                        if isinstance(e, DsRobot):
+                        if isinstance(e, DisplayRobot):
                             e.set_transparency(self.transparency)
 
             elif args[0] == 'r':
                 if self.transparency > 0:
                     self.transparency -= .1
                     for name, e in self._element_dict.items():
-                        if isinstance(e, DsRobot):
+                        if isinstance(e, DisplayRobot):
                             e.set_transparency(self.transparency)
             elif args[0] == 'l':
                 if self._glwin._modelAmbientLight < 1.0:
