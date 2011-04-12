@@ -1,16 +1,15 @@
 robot-viewer
 ============
 
-This package provides a viewer written in OpenGL.
-
+A vizualization tool for robots using OpenGL and Python.
 
 Setup
 -----
 Make sure you have the following dependency:
  
- * python 2.6
+ * python 2.6 or 2.7.
 
- * pyopengl, numpy, python-numeric
+ * pyopengl, numpy
 
  * [SimpleParse 2.1](http://simpleparse.sourceforge.net/)
 
