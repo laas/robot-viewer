@@ -166,6 +166,30 @@ class GenericObject(object):
             except Exception, error:
                 print error, "on object %s"%child.name
 
+        self.remove_generic_objects()
+
+    def remove_generic_objects(self):
+        for child in self.children:
+            if type(child) == GenericObject and child.children[:]:
+                for grandchild in child.children[:]:
+                    grandchild.localTransformation = np.dot(child.localTransformation,
+                                                              grandchild.localTransformation)
+                    grandchild.translation =  grandchild.localTransformation[:3,3]
+                    grandchild.localR = grandchild.localTransformation[:3,:3]
+                    grandchild.rotaion = rot2AxisAngle(grandchild.localR)
+                    grandchild.rpy = rot2rpy(grandchild.localR)
+                    self.addChild(grandchild)
+
+                self.children.remove(child)
+                del child
+
+
+        for child in self.children:
+            child.remove_generic_objects()
+
+
+
+
     def update(self):
         """ Do the following initializations in order:
 
@@ -332,7 +356,7 @@ class Robot(Joint):
     def update_config(self, config):
         self.setAngles(config[6:])
         self.waist.translation = config[0:3]
-        self.waist.rotation = euleur2AxisAngle(config[3:6])
+        self.waist.rpy = config[3:6]
         self.initLocalTransformation()
         self.update()
 
