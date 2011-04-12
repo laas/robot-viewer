@@ -149,11 +149,9 @@ class GlPrimitive(GenericObject):
                                GL_UNSIGNED_SHORT, None);
         except:
             logger.exception("Error while drawing parent %s"%obj.aname)
-
-
         glPopMatrix()
         glFlush()
-            # end drawing the bot
+        # end drawing the bot
         glDisableClientState(GL_VERTEX_ARRAY);  # disable vertex arrays
         glDisableClientState(GL_NORMAL_ARRAY);
 
@@ -233,6 +231,12 @@ class Vbo(object):
 
         logger.debug("Loading to GPUs")
         self.loadGPU(mesh)
+
+    def __del__(self):
+        for vboid in [self.tri_idx_vboId, self.quad_idx_vboId] + self.poly_idx_vboIds:
+            glDeleteBuffersARB(1, vboid)
+        object.__del__(self)
+
 
     def computeNormals(self, mesh):
         # TODO glList for colors
