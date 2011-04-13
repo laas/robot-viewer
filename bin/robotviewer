@@ -48,6 +48,11 @@ def main():
                       action="store_true", dest="version", default=False,
                       help="Print version and exit")
 
+    parser.add_option("--off-screen",
+                      action="store_true", dest="off_screen", default=False,
+                      help="offscreen mode")
+
+
     (options, args) = parser.parse_args()
     global ch
     if options.version:

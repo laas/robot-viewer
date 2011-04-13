@@ -132,7 +132,7 @@ class GlWindow(object):
         self._lightAttenuation = 0.2
         # # Check for VBOs Supported
         self._VBOSupported = IsExtensionSupported ("GL_ARB_vertex_buffer_object")
-
+        self.extra_info = None
         # ------------------------------
         #         init window
         # ------------------------------
@@ -285,7 +285,9 @@ class GlWindow(object):
             self._g_nFrames = 0;
             # # Reset The FPS Counter
 
-        szTitle = "%s %s fps"%(self._title,self._fps)
+        szTitle = "%s %sfps"%(self._title,self._fps)
+        if self.extra_info:
+            szTitle += self.extra_info
 
         if ( self._VBOSupported ):
             # # Include A Notice About VBOs

@@ -4,6 +4,8 @@ import OpenGL
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
+from OpenGL.GLX import *
+from OpenGL.GL.EXT.framebuffer_object import *
 import kinematic_chain
 import ml_parser
 import pickle
@@ -16,13 +18,20 @@ import pickle
 config_dir = os.environ['HOME']+'/.robotviewer/'
 import logging
 import ConfigParser
-import time
+import time, datetime
 import subprocess
 import code
 ESCAPE = 27
 import version
-import copy
+import copy, threading
 logger = logging.getLogger("robotviewer.displayserver")
+
+try:
+    from opencv import highgui, cv, adaptors
+except ImportError:
+    highgui = None
+    adaptors = None
+    cv = None
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass
@@ -71,6 +80,19 @@ class DisplayServer(object):
         if options:
             self.strict = options.strict
 
+        self.off_screen = False
+        if options:
+            self.off_screen = options.off_screen
+
+        self.fbo_id = -1
+        self.rbo_id = -1
+
+        self.video_fps = 30
+        self.recording = False
+        self.video_fn = None
+        self.video_writer = None
+        self.capture_images = []
+
         logger.debug("Initializing OpenGL")
         self.initGL()
         self.pendingObjects=[]
@@ -95,28 +117,44 @@ class DisplayServer(object):
         glutInit(sys.argv)
         logger.debug("Setting glut DisplayMode")
 
-        intel_card = False
-        if os.name == 'posix':
-            rt = subprocess.call("lspci | grep VGA | grep Intel", shell= True)
-            if rt == 0:
-                intel_card = True
-        # Hack to catch segfaut on intel cards
-        if intel_card:
-            dummy_win = glutCreateWindow("Initializing...")
-        glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
-        if intel_card:
-            glutDestroyWindow(dummy_win)
-        logger.debug("Setting glut WindowSize")
-        glutInitWindowSize(640, 480)
-        glutInitWindowPosition(0, 0)
-        logger.debug("Creating glutWindow")
-        self.window = glutCreateWindow("Robotviewer Server")
+        if not self.off_screen:
+            intel_card = False
+            if os.name == 'posix':
+                rt = subprocess.call("lspci | grep VGA | grep Intel", shell= True)
+                if rt == 0:
+                    intel_card = True
+            # Hack to catch segfaut on intel cards
+            if intel_card:
+                dummy_win = glutCreateWindow("Initializing...")
+            glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
+            if intel_card:
+                glutDestroyWindow(dummy_win)
+            logger.debug("Setting glut WindowSize")
+            glutInitWindowSize(640, 480)
+            glutInitWindowPosition(0, 0)
+            logger.debug("Creating glutWindow")
+            self.window = glutCreateWindow("Robotviewer Server")
+        else:
+            glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
+            self.create_render_buffer()
+            self.window = None
+
         glutDisplayFunc(self.DrawGLScene)
         glutIdleFunc(self.DrawGLScene)
         glutReshapeFunc(ReSizeGLScene)
         self._glwin=GlWindow(640, 480, "Robotviewer Server")
         self.usage = ""
         self.bindEvents()
+
+    def create_render_buffer(self):
+        self.fbo_id = glGenFramebuffersEXT(1)
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, self.fbo_id)
+
+        self.rbo_id = glGenRenderbuffersEXT(1)
+        glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, self.rbo_id)
+        glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_RGB, 640, 480)
+        glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
+                                     GL_RENDERBUFFER_EXT, self.rbo_id)
 
     def setRobotJointRank(self,robot_name, joint_rank_xml):
         """
@@ -487,6 +525,13 @@ class DisplayServer(object):
         return "pong"
 
     def DrawGLScene(self):
+        try:
+            return self._draw_gl_scene()
+        except KeyboardInterrupt:
+            glutDestroyWindow(self.window)
+            return False
+
+    def _draw_gl_scene(self):
         #if glGetError() > 0:
 
         if len(self.pendingObjects) > 0:
@@ -511,7 +556,8 @@ class DisplayServer(object):
             #    logger.info( item[0], item[1]._enabled)
             try:
                 if isinstance(ele, DisplayRobot):
-                    ele.render(self.render_mesh_flag, self.render_skeleton_flag, self.skeleton_size)
+                    ele.render(self.render_mesh_flag,
+                               self.render_skeleton_flag, self.skeleton_size)
                 else:
                     ele.render()
             except:
@@ -521,8 +567,14 @@ class DisplayServer(object):
                     logger.exception("Failed to render element {0}".format(ele))
 
         glutSwapBuffers()
-
-
+        if self.recording:
+            w = glutGet(GLUT_WINDOW_WIDTH)
+            h = glutGet(GLUT_WINDOW_HEIGHT)
+            import PIL.Image
+            pixels = glReadPixels(0,0,w ,h ,GL_RGB, GL_UNSIGNED_BYTE)
+            im = (PIL.Image.fromstring("RGB",(w ,h),pixels).
+                  transpose(PIL.Image.FLIP_TOP_BOTTOM))
+            self.capture_images.append(im)
         return True
 
     def bindEvents(self):
@@ -538,7 +590,9 @@ class DisplayServer(object):
                             ("o", "light ATTENUATION down"),
                             ("e", "light ATTENUATION up"),
                             ("t", "transparency up"),
-                            ("r", "transparency down")
+                            ("r", "transparency down"),
+                            ("c", "screen capture")
+
                             ]:
 
             self.usage += "%.20s: %s\n"%(key, effect)
@@ -604,6 +658,63 @@ class DisplayServer(object):
                 if self._glwin._lightAttenuation > 0.1 :
                     self._glwin._lightAttenuation -= 0.1
                     glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self._glwin._lightAttenuation)
+
+            elif args[0] == 'c':
+                w = glutGet(GLUT_WINDOW_WIDTH)
+                h = glutGet(GLUT_WINDOW_HEIGHT)
+                import PIL.Image
+                pixels = glReadPixels(0,0,w ,h ,GL_RGB, GL_UNSIGNED_BYTE)
+                im = (PIL.Image.fromstring("RGB",(w ,h),pixels).
+                      transpose(PIL.Image.FLIP_TOP_BOTTOM))
+                imsuff = datetime.datetime.now().strftime("%Y%m%d%H%M")
+                imname = None
+                imname = "/tmp/robotviewer_{0}.png".format(imsuff)
+                i = 0
+                while not imname or os.path.isfile(imname):
+                    i += 1
+                    imname = "/tmp/robotviewer_{0}_{1}.png".format(imsuff, i)
+                logger.info("Saved to {0}".format(imname))
+                im.save(imname)
+
+            elif args[0] == 'v':
+                if not self.recording:
+                    self.capture_images = []
+                    self.recording = True
+                    suffix = datetime.datetime.now().strftime("%Y%m%d%H%M")
+                    self.video_fn = None
+                    self.video_fn = "/tmp/robotviewer_{0}.avi".format(suffix)
+                    i = 0
+                    w = glutGet(GLUT_WINDOW_WIDTH)
+                    h = glutGet(GLUT_WINDOW_HEIGHT)
+                    while not self.video_fn or os.path.isfile(self.video_fn):
+                        i += 1
+                        self.video_fn = ("/tmp/robotviewer_{0}_{1}.avi".
+                                           format(suffix, i))
+                    self.video_writer = highgui.cvCreateVideoWriter(self.video_fn,
+                                                                    highgui.CV_FOURCC('P','I',
+                                                                                      'M','1'),
+                                                                    self.video_fps,
+                                                                    cv.cvSize(w,h),
+                                                                    True)
+                    logger.info("recording to {0}".format(self.video_fn))
+                    self._glwin.extra_info = " (Recording to {0})".format(self.video_fn)
+
+                else:
+                    self._glwin.extra_info = None
+                    self.recording = False
+
+                    def flush():
+                        for im in self.capture_images:
+                            cv_im = adaptors.PIL2Ipl(im)
+                            highgui.cvWriteFrame( self.video_writer, cv_im)
+                        highgui.cvReleaseVideoWriter(self.video_writer)
+                        logger.info("saved to {0}".format(self.video_fn))
+                        self.video_writer = None
+
+                    t = threading.Thread()
+                    t.run = flush
+                    t.start()
+
 
             return
 
