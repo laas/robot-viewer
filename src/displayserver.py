@@ -23,7 +23,9 @@ import subprocess
 import code
 ESCAPE = 27
 import version
-import copy, threading
+import copy
+import threading
+import math
 logger = logging.getLogger("robotviewer.displayserver")
 
 try:
@@ -111,6 +113,11 @@ class DisplayServer(object):
             self.render_skeleton_flag = False
         self.skeleton_size = 1
         self.transparency = 0
+
+    def __del__(self):
+        if self.recording:
+            self.stop_record()
+        object.__del__(self)
 
     def initGL(self):
         logger.debug("Initializing glut")
@@ -574,8 +581,54 @@ class DisplayServer(object):
             pixels = glReadPixels(0,0,w ,h ,GL_RGB, GL_UNSIGNED_BYTE)
             im = (PIL.Image.fromstring("RGB",(w ,h),pixels).
                   transpose(PIL.Image.FLIP_TOP_BOTTOM))
-            self.capture_images.append(im)
+            self.capture_images.append((time.time(),im))
         return True
+
+    def stop_record(self):
+        self._glwin.extra_info = None
+        self.recording = False
+
+        def flush():
+            t0 = self.capture_images[0][0]
+            frame_no = 0
+            for t, im in self.capture_images:
+                t -= t0
+                cv_im = adaptors.PIL2Ipl(im)
+                no_needed_frames = math.floor( t*self.video_fps) - frame_no
+                for j in range(no_needed_frames):
+                    highgui.cvWriteFrame( self.video_writer, cv_im)
+                    frame_no += 1
+            highgui.cvReleaseVideoWriter(self.video_writer)
+            logger.info("saved to {0}".format(self.video_fn))
+            self.video_writer = None
+
+        t = threading.Thread()
+        t.run = flush
+        t.start()
+
+    def start_record(self):
+        self.capture_images = []
+        self.recording = True
+        suffix = datetime.datetime.now().strftime("%Y%m%d%H%M")
+        self.video_fn = None
+        self.video_fn = "/tmp/robotviewer_{0}.avi".format(suffix)
+        i = 0
+        w = glutGet(GLUT_WINDOW_WIDTH)
+        h = glutGet(GLUT_WINDOW_HEIGHT)
+        while not self.video_fn or os.path.isfile(self.video_fn):
+            i += 1
+            self.video_fn = ("/tmp/robotviewer_{0}_{1}.avi".
+                               format(suffix, i))
+        self.video_writer = highgui.cvCreateVideoWriter(self.video_fn,
+                                                        highgui.CV_FOURCC('P','I',
+                                                                          'M','1'),
+                                                        self.video_fps,
+                                                        cv.cvSize(w,h),
+                                                        True)
+        logger.info("recording to {0}".format(self.video_fn))
+        self._glwin.extra_info = " (Recording to {0})".format(self.video_fn)
+
+
 
     def bindEvents(self):
         self.usage="Keyboard shortcuts:\n"
@@ -591,8 +644,8 @@ class DisplayServer(object):
                             ("e", "light ATTENUATION up"),
                             ("t", "transparency up"),
                             ("r", "transparency down"),
-                            ("c", "screen capture")
-
+                            ("c", "screen capture"),
+                            ("v", "start/stop video recording")
                             ]:
 
             self.usage += "%.20s: %s\n"%(key, effect)
@@ -675,48 +728,12 @@ class DisplayServer(object):
                     imname = "/tmp/robotviewer_{0}_{1}.png".format(imsuff, i)
                 logger.info("Saved to {0}".format(imname))
                 im.save(imname)
-
             elif args[0] == 'v':
                 if not self.recording:
-                    self.capture_images = []
-                    self.recording = True
-                    suffix = datetime.datetime.now().strftime("%Y%m%d%H%M")
-                    self.video_fn = None
-                    self.video_fn = "/tmp/robotviewer_{0}.avi".format(suffix)
-                    i = 0
-                    w = glutGet(GLUT_WINDOW_WIDTH)
-                    h = glutGet(GLUT_WINDOW_HEIGHT)
-                    while not self.video_fn or os.path.isfile(self.video_fn):
-                        i += 1
-                        self.video_fn = ("/tmp/robotviewer_{0}_{1}.avi".
-                                           format(suffix, i))
-                    self.video_writer = highgui.cvCreateVideoWriter(self.video_fn,
-                                                                    highgui.CV_FOURCC('P','I',
-                                                                                      'M','1'),
-                                                                    self.video_fps,
-                                                                    cv.cvSize(w,h),
-                                                                    True)
-                    logger.info("recording to {0}".format(self.video_fn))
-                    self._glwin.extra_info = " (Recording to {0})".format(self.video_fn)
-
+                    self.start_record()
                 else:
-                    self._glwin.extra_info = None
-                    self.recording = False
+                    self.stop_record()
 
-                    def flush():
-                        for im in self.capture_images:
-                            cv_im = adaptors.PIL2Ipl(im)
-                            highgui.cvWriteFrame( self.video_writer, cv_im)
-                        highgui.cvReleaseVideoWriter(self.video_writer)
-                        logger.info("saved to {0}".format(self.video_fn))
-                        self.video_writer = None
-
-                    t = threading.Thread()
-                    t.run = flush
-                    t.start()
-
-
-            return
 
         def mouseButtonFunc( button, mode, x, y ):
             """Callback function (mouse button pressed or released).
