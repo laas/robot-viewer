@@ -9,7 +9,7 @@ from OpenGL.GL.EXT.framebuffer_object import *
 import kinematic_chain
 import ml_parser
 import pickle
-from openglaux import IsExtensionSupported,ReSizeGLScene, GlWindow
+from openglaux import IsExtensionSupported, GlWindow
 from display_element import DisplayObject, DisplayRobot, GlPrimitive
 import display_element
 import re,imp
@@ -103,16 +103,22 @@ class DisplayServer(object):
         self.recording = False
         self.video_fn = None
         self.video_writer = None
+        self.record_saved = False
+
         self.capture_images = []
         self.refresh_rate = None
         self.last_refreshed = None
         if options:
             self.refresh_rate = options.refresh_rate
+
+        self.win_w = 640
+        self.win_h = 480
         logger.debug("Initializing OpenGL")
         self.initGL()
         self.pendingObjects=[]
         self.parseConfig()
         self.camera = Camera()
+        updateView(self.camera)
         self._mouseButton = None
         self._oldMousePos = [ 0, 0 ]
 
@@ -138,63 +144,8 @@ class DisplayServer(object):
             self.stop_record()
         del self
 
-    def initGL(self):
-        logger.debug("Initializing glut")
-        glutInit(sys.argv)
-        logger.debug("Setting glut DisplayMode")
-
-        # if not self.off_screen:
-        #     intel_card = False
-        #     if os.name == 'posix':
-        #         rt = subprocess.call("lspci | grep VGA | grep Intel", shell= True)
-        #         if rt == 0:
-        #             intel_card = True
-        #     # Hack to catch segfaut on intel cards
-        #     if intel_card:
-        #         dummy_win = glutCreateWindow("Initializing...")
-        #     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
-        #     if intel_card:
-        #         glutDestroyWindow(dummy_win)
-        #     logger.debug("Setting glut WindowSize")
-        #     glutInitWindowSize(640, 480)
-        #     glutInitWindowPosition(0, 0)
-        #     logger.debug("Creating glutWindow")
-        #     self.window = glutCreateWindow("Robotviewer Server")
-        # else:
-        #     def c_wrap(pyobj):
-        #         return (c_int * len(pyobj))(*pyobj)
-
-        #     from Xlib import X, display
-        #     dpy = display.Display()
-        #     scrnum = dpy.screen()
-        #     FBRC = glXGetCurrentContext()
-        #     FBDC = glXGetCurrentDrawable()
-        #     count = 0
-        #     attrs = [  GLX_DRAWABLE_TYPE, GLX_PBUFFER_BIT,
-        #                GLX_PBUFFER_WIDTH, 640,
-        #                GLX_PBUFFER_HEIGHT, 480,
-        #                GLX_DOUBLEBUFFER, False,
-        #                GLX_RED_SIZE, 8,
-        #                GLX_GREEN_SIZE, 8,
-        #                GLX_BLUE_SIZE, 8,
-        #                GLX_ALPHA_SIZE, 8,
-        #                GLX_DEPTH_SIZE, 8,
-        #                0,0
-        #              ]
-        #     PBattrs = [ GLX_PBUFFER_WIDTH,   640,
-        #                 GLX_PBUFFER_HEIGHT,  480,
-        #                 GLX_LARGEST_PBUFFER, False,
-        #                 0, 0
-        #                 ]
-        #     attrib = c_wrap(attrs)
-        #     elements = c_int()
-        #     configs = glXChooseFBConfig( POINTER(dpy),
-        #                                 scrnum, attrib, byref(elements))
-        #     glXCreatePbuffer(dpy, configs, attrib)
-        #     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
-        #     self.create_render_buffer()
-        #     self.window = None
-
+    def create_window(self):
+        logger.info("Creating window")
         intel_card = False
         if os.name == 'posix':
             rt = subprocess.call("lspci | grep VGA | grep Intel", shell= True)
@@ -207,21 +158,56 @@ class DisplayServer(object):
         if intel_card:
             glutDestroyWindow(dummy_win)
         logger.debug("Setting glut WindowSize")
-        glutInitWindowSize(640, 480)
+        glutInitWindowSize(self.win_w, self.win_h)
         glutInitWindowPosition(0, 0)
         logger.debug("Creating glutWindow")
         self.window = glutCreateWindow("Robotviewer Server")
 
-        if self.off_screen:
-            glutHideWindow(self.window)
-            self.create_render_buffer()
+    def initGL(self):
+        logger.debug("Initializing glut")
+        glutInit(sys.argv)
+        logger.debug("Setting glut DisplayMode")
 
-        # glutDisplayFunc(self.DrawGLScene)
+        if not self.off_screen:
+        #if True:
+            self.create_window()
+        else:
+            #import oglc
+            #oglc.create_gl_context()
+            self.create_window()
+            glutHideWindow(self.window)
+
+            logger.info("Creating context")
+            self.create_render_buffer()
+            self.window = None
+
         glutIdleFunc(self.DrawGLScene)
-        glutReshapeFunc(ReSizeGLScene)
-        self._glwin=GlWindow(640, 480, "Robotviewer Server")
+        glutReshapeFunc(self.ReSizeGLScene)
+        self._glwin=GlWindow(self.win_w, self.win_h, "Robotviewer Server")
         self.usage = ""
         self.bindEvents()
+
+
+    # The function called when our window is resized (which shouldn't happen if you
+    # enable fullscreen, below)
+    def ReSizeGLScene(self, Width, Height):
+        self.win_w = Width
+        self.win_h = Height
+        if Height == 0:
+            # Prevent A Divide By Zero If The Window Is Too Small
+            Height = 1
+
+        glViewport(0, 0, Width, Height)
+
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        # # field of view, aspect ratio, near and far
+        # This will squash and stretch our objects as the window is resized.
+        gluPerspective(45.0, float(Width)/float(Height), 0.1, 1000.0)
+
+        glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()
+
 
     def create_render_buffer(self):
         self.fbo_id = glGenFramebuffersEXT(1)
@@ -229,7 +215,7 @@ class DisplayServer(object):
 
         self.rbo_id = glGenRenderbuffersEXT(1)
         glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, self.rbo_id)
-        glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_RGB, 640, 480)
+        glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_RGB, self.win_w, self.win_h)
         glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
                                      GL_RENDERBUFFER_EXT, self.rbo_id)
 
@@ -603,17 +589,20 @@ class DisplayServer(object):
                 threading.Thread.__init__(self, *args, **kwargs )
 
             def run(self):
-                from getch import getch
                 while not self.app.quit:
                     try:
-                        key = getch()
-                        self.app.queued_keys.append(key)
+                        self.interact()
                     except KeyboardInterrupt:
                         self.app.quit = True
+            def interact(self):
+                from getch import getch
+                key = getch()
+                print("\r")
+                self.app.queued_keys.append(key)
 
-        # if self.off_screen:
-            # t = InteractThread(self)
-            # t.start()
+        if self.off_screen:
+            t = InteractThread(self)
+            t.start()
         glutMainLoop()
 
 
@@ -652,12 +641,12 @@ class DisplayServer(object):
         # # Reset The Modelview Matrix
         # # Get FPS
         # milliseconds = win32api.GetTickCount()
+        updateView(self.camera)
 
-        if hasattr(self, '_glwin'):
+
+        if (not self.off_screen) and hasattr(self, '_glwin'):
             self._glwin.updateFPS()
             self._glwin._g_nFrames += 1
-            updateView(self.camera)
-
         for item in self._element_dict.items():
             ele = item[1]
             #    logger.info( item[0], item[1]._enabled)
@@ -674,32 +663,34 @@ class DisplayServer(object):
                     logger.exception("Failed to render element {0}".format(ele))
 
         glutSwapBuffers()
-        w = glutGet(GLUT_WINDOW_WIDTH)
-        h = glutGet(GLUT_WINDOW_HEIGHT)
-        import PIL.Image
-        pixels = glReadPixels(0,0,w ,h ,GL_RGB, GL_UNSIGNED_BYTE)
-        img = (PIL.Image.fromstring("RGB",(w ,h),pixels).
-               transpose(PIL.Image.FLIP_TOP_BOTTOM))
 
         if self.recording:
+            import PIL.Image
+            pixels = glReadPixels(0,0,self.win_w ,self.win_h ,GL_RGB, GL_UNSIGNED_BYTE)
+            img = (PIL.Image.fromstring("RGB",(self.win_w ,self.win_h),pixels).
+                   transpose(PIL.Image.FLIP_TOP_BOTTOM))
             self.capture_images.append((time.time(),img))
-        if self.off_screen:
-            import caca
-            from caca.canvas import Canvas, CanvasError
-            from caca.dither import Dither, DitherError
-            canvas = Canvas(100, 70)
-            img = img.convert('RGBA')
 
-            dit = Dither(BPP, img.size[0], img.size[1], DEPTH * img.size[0],
-                         RMASK, GMASK, BMASK, AMASK)
-            s = canvas.export_to_memory('ansi')
+        # if self.off_screen:
+        #     import caca
+        #     from caca.canvas import Canvas, CanvasError
+        #     from caca.dither import Dither, DitherError
+        #     canvas = Canvas(100, 70)
+        #     img = img.convert('RGBA')
+
+        #     dit = Dither(BPP, img.size[0], img.size[1], DEPTH * img.size[0],
+        #                  RMASK, GMASK, BMASK, AMASK)
+        #     s = canvas.export_to_memory('ansi')
             # sys.stdout.write("%s" %s)
         return True
 
     def stop_record(self):
         self._glwin.extra_info = None
         self.recording = False
-
+        self.record_saved = False
+        if not self.capture_images[:]:
+            logger.info("No images have been capture for video.")
+            return
         def flush():
             t0 = self.capture_images[0][0]
             frame_no = 0
@@ -713,6 +704,7 @@ class DisplayServer(object):
             highgui.cvReleaseVideoWriter(self.video_writer)
             logger.info("saved to {0}".format(self.video_fn))
             self.video_writer = None
+            self.record_saved = True
 
         t = threading.Thread()
         t.run = flush
@@ -725,8 +717,6 @@ class DisplayServer(object):
         self.video_fn = None
         self.video_fn = "/tmp/robotviewer_{0}.avi".format(suffix)
         i = 0
-        w = glutGet(GLUT_WINDOW_WIDTH)
-        h = glutGet(GLUT_WINDOW_HEIGHT)
         while not self.video_fn or os.path.isfile(self.video_fn):
             i += 1
             self.video_fn = ("/tmp/robotviewer_{0}_{1}.avi".
@@ -735,7 +725,7 @@ class DisplayServer(object):
                                                         highgui.CV_FOURCC('P','I',
                                                                           'M','1'),
                                                         self.video_fps,
-                                                        cv.cvSize(w,h),
+                                                        cv.cvSize(self.win_w, self.win_h),
                                                         True)
         logger.info("recording to {0}".format(self.video_fn))
         self._glwin.extra_info = " (Recording to {0})".format(self.video_fn)
@@ -808,11 +798,9 @@ class DisplayServer(object):
                 glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self._glwin._lightAttenuation)
 
         elif args[0] == 'c':
-            w = glutGet(GLUT_WINDOW_WIDTH)
-            h = glutGet(GLUT_WINDOW_HEIGHT)
             import PIL.Image
-            pixels = glReadPixels(0,0,w ,h ,GL_RGB, GL_UNSIGNED_BYTE)
-            im = (PIL.Image.fromstring("RGB",(w ,h),pixels).
+            pixels = glReadPixels(0,0,self.win_w ,self.win_h ,GL_RGB, GL_UNSIGNED_BYTE)
+            im = (PIL.Image.fromstring("RGB",(self.win_w ,self.win_h),pixels).
                   transpose(PIL.Image.FLIP_TOP_BOTTOM))
             imsuff = datetime.datetime.now().strftime("%Y%m%d%H%M")
             imname = None

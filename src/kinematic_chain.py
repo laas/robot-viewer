@@ -188,9 +188,6 @@ class GenericObject(object):
         for child in self.children:
             child.remove_generic_objects()
 
-
-
-
     def update(self):
         """ Do the following initializations in order:
 

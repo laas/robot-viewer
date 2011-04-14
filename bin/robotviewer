@@ -48,9 +48,9 @@ def main():
                       action="store_true", dest="version", default=False,
                       help="Print version and exit")
 
-    # parser.add_option("--off-screen",
-    #                   action="store_true", dest="off_screen", default=False,
-    #                   help="offscreen mode")
+    parser.add_option("--off-screen",
+                       action="store_true", dest="off_screen", default=False,
+                       help="offscreen mode")
 
     parser.add_option("-r", "--refresh-rate",
                       action="store", dest="refresh_rate", type = "int", default = 1000,

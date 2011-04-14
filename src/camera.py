@@ -23,6 +23,10 @@ class Camera(object):
         self._cam_right = None
         self._cam_up = None
 
+    def __str__(self):
+        s = object.__str__(self)
+        s += "position = {0}\nlookat = {1}\nup={2}".format(self.position, self.lookat, self.up)
+        return s
 
     def computeUnitVectors(self):
 
@@ -30,8 +34,6 @@ class Camera(object):
         self._cam_distance = norm(self._cam_ray)
         self._cam_right = normalized(numpy.cross(self._cam_ray,self.up))
         self._cam_up    = normalized(numpy.cross(self._cam_right,self._cam_ray))
-
-
 
     def rotate(self,dx,dy):
         """Move camera but keep orientation
@@ -57,8 +59,9 @@ class Camera(object):
         self._cam_ray += dup*self._cam_up + dright*self._cam_right
         self._cam_ray = normalized(self._cam_ray)
         self.position = self.lookat + self._cam_ray*self._cam_distance
-
         return
+
+
 
     def moveSideway(self,dx,dy):
         """Move camera but keep orientation
