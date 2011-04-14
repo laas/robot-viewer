@@ -26,6 +26,9 @@ import version
 import copy
 import threading
 import math
+import collections
+
+from ctypes import *
 logger = logging.getLogger("robotviewer.displayserver")
 
 try:
@@ -38,6 +41,14 @@ class NullHandler(logging.Handler):
     def emit(self, record):
         pass
 logger.addHandler(NullHandler())
+
+
+RMASK = 0x00ff0000
+GMASK = 0x0000ff00
+BMASK = 0x000000ff
+AMASK = 0xff000000
+BPP = 32
+DEPTH = 4
 
 def updateView(camera):
     """
@@ -67,7 +78,6 @@ class DisplayServer(object):
 
         Arguments:
         """
-
         if options and options.config_file:
             self.config_file = options.config_file
         else:
@@ -83,7 +93,7 @@ class DisplayServer(object):
             self.strict = options.strict
 
         self.off_screen = False
-        if options:
+        if options and options.__dict__.has_key("off_screen"):
             self.off_screen = options.off_screen
 
         self.fbo_id = -1
@@ -94,6 +104,12 @@ class DisplayServer(object):
         self.video_fn = None
         self.video_writer = None
         self.capture_images = []
+        self.refresh_rate = None
+        self.last_refreshed = None
+        if options:
+            self.refresh_rate = options.refresh_rate
+
+
 
         logger.debug("Initializing OpenGL")
         self.initGL()
@@ -114,39 +130,96 @@ class DisplayServer(object):
         self.skeleton_size = 1
         self.transparency = 0
 
+        # key interaction from console
+        self.queued_keys = collections.deque()
+        self.quit = False
+
+
+
     def __del__(self):
         if self.recording:
             self.stop_record()
-        object.__del__(self)
+        del self
 
     def initGL(self):
         logger.debug("Initializing glut")
         glutInit(sys.argv)
         logger.debug("Setting glut DisplayMode")
 
-        if not self.off_screen:
-            intel_card = False
-            if os.name == 'posix':
-                rt = subprocess.call("lspci | grep VGA | grep Intel", shell= True)
-                if rt == 0:
-                    intel_card = True
-            # Hack to catch segfaut on intel cards
-            if intel_card:
-                dummy_win = glutCreateWindow("Initializing...")
-            glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
-            if intel_card:
-                glutDestroyWindow(dummy_win)
-            logger.debug("Setting glut WindowSize")
-            glutInitWindowSize(640, 480)
-            glutInitWindowPosition(0, 0)
-            logger.debug("Creating glutWindow")
-            self.window = glutCreateWindow("Robotviewer Server")
-        else:
-            glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
-            self.create_render_buffer()
-            self.window = None
+        # if not self.off_screen:
+        #     intel_card = False
+        #     if os.name == 'posix':
+        #         rt = subprocess.call("lspci | grep VGA | grep Intel", shell= True)
+        #         if rt == 0:
+        #             intel_card = True
+        #     # Hack to catch segfaut on intel cards
+        #     if intel_card:
+        #         dummy_win = glutCreateWindow("Initializing...")
+        #     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
+        #     if intel_card:
+        #         glutDestroyWindow(dummy_win)
+        #     logger.debug("Setting glut WindowSize")
+        #     glutInitWindowSize(640, 480)
+        #     glutInitWindowPosition(0, 0)
+        #     logger.debug("Creating glutWindow")
+        #     self.window = glutCreateWindow("Robotviewer Server")
+        # else:
+        #     def c_wrap(pyobj):
+        #         return (c_int * len(pyobj))(*pyobj)
 
-        glutDisplayFunc(self.DrawGLScene)
+        #     from Xlib import X, display
+        #     dpy = display.Display()
+        #     scrnum = dpy.screen()
+        #     FBRC = glXGetCurrentContext()
+        #     FBDC = glXGetCurrentDrawable()
+        #     count = 0
+        #     attrs = [  GLX_DRAWABLE_TYPE, GLX_PBUFFER_BIT,
+        #                GLX_PBUFFER_WIDTH, 640,
+        #                GLX_PBUFFER_HEIGHT, 480,
+        #                GLX_DOUBLEBUFFER, False,
+        #                GLX_RED_SIZE, 8,
+        #                GLX_GREEN_SIZE, 8,
+        #                GLX_BLUE_SIZE, 8,
+        #                GLX_ALPHA_SIZE, 8,
+        #                GLX_DEPTH_SIZE, 8,
+        #                0,0
+        #              ]
+        #     PBattrs = [ GLX_PBUFFER_WIDTH,   640,
+        #                 GLX_PBUFFER_HEIGHT,  480,
+        #                 GLX_LARGEST_PBUFFER, False,
+        #                 0, 0
+        #                 ]
+        #     attrib = c_wrap(attrs)
+        #     elements = c_int()
+        #     configs = glXChooseFBConfig( POINTER(dpy),
+        #                                 scrnum, attrib, byref(elements))
+        #     glXCreatePbuffer(dpy, configs, attrib)
+        #     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
+        #     self.create_render_buffer()
+        #     self.window = None
+
+        intel_card = False
+        if os.name == 'posix':
+            rt = subprocess.call("lspci | grep VGA | grep Intel", shell= True)
+            if rt == 0:
+                intel_card = True
+        # Hack to catch segfaut on intel cards
+        if intel_card:
+            dummy_win = glutCreateWindow("Initializing...")
+        glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
+        if intel_card:
+            glutDestroyWindow(dummy_win)
+        logger.debug("Setting glut WindowSize")
+        glutInitWindowSize(640, 480)
+        glutInitWindowPosition(0, 0)
+        logger.debug("Creating glutWindow")
+        self.window = glutCreateWindow("Robotviewer Server")
+
+        if self.off_screen:
+            glutHideWindow(self.window)
+            self.create_render_buffer()
+
+        # glutDisplayFunc(self.DrawGLScene)
         glutIdleFunc(self.DrawGLScene)
         glutReshapeFunc(ReSizeGLScene)
         self._glwin=GlWindow(640, 480, "Robotviewer Server")
@@ -523,24 +596,55 @@ class DisplayServer(object):
             l += [j.name]
         return l
 
+
+
     def run(self):
         logger.info(self.usage)
+        class InteractThread(threading.Thread):
+            def __init__(self, app, *args, **kwargs):
+                self.app = app
+                threading.Thread.__init__(self, *args, **kwargs )
+
+            def run(self):
+                from getch import getch
+                while not self.app.quit:
+                    try:
+                        key = getch()
+                        self.app.queued_keys.append(key)
+                    except KeyboardInterrupt:
+                        self.app.quit = True
+
+        # if self.off_screen:
+            # t = InteractThread(self)
+            # t.start()
         glutMainLoop()
 
 
     def Ping(self):
         return "pong"
 
-    def DrawGLScene(self):
+    def DrawGLScene(self, *arg):
+        if self.quit:
+            glutDestroyWindow(self.window)
+            return False
         try:
-            return self._draw_gl_scene()
+            while len(self.queued_keys) > 0:
+                key = self.queued_keys.popleft()
+                self.keyPressedFunc(key)
+            current_t = glutGet( GLUT_ELAPSED_TIME )
+            if ((not self.last_refreshed)
+                or current_t - self.last_refreshed >= 1000/self.refresh_rate):
+                res = self._draw_gl_scene()
+                self.last_refreshed = current_t
+                return res
+            else:
+                return True
         except KeyboardInterrupt:
             glutDestroyWindow(self.window)
             return False
 
     def _draw_gl_scene(self):
         #if glGetError() > 0:
-
         if len(self.pendingObjects) > 0:
             obj = self.pendingObjects.pop()
             logger.info( "creating %s %s %s"%( obj[0], obj[1], obj[2]))
@@ -555,7 +659,6 @@ class DisplayServer(object):
         if hasattr(self, '_glwin'):
             self._glwin.updateFPS()
             self._glwin._g_nFrames += 1
-
             updateView(self.camera)
 
         for item in self._element_dict.items():
@@ -574,14 +677,26 @@ class DisplayServer(object):
                     logger.exception("Failed to render element {0}".format(ele))
 
         glutSwapBuffers()
+        w = glutGet(GLUT_WINDOW_WIDTH)
+        h = glutGet(GLUT_WINDOW_HEIGHT)
+        import PIL.Image
+        pixels = glReadPixels(0,0,w ,h ,GL_RGB, GL_UNSIGNED_BYTE)
+        img = (PIL.Image.fromstring("RGB",(w ,h),pixels).
+               transpose(PIL.Image.FLIP_TOP_BOTTOM))
+
         if self.recording:
-            w = glutGet(GLUT_WINDOW_WIDTH)
-            h = glutGet(GLUT_WINDOW_HEIGHT)
-            import PIL.Image
-            pixels = glReadPixels(0,0,w ,h ,GL_RGB, GL_UNSIGNED_BYTE)
-            im = (PIL.Image.fromstring("RGB",(w ,h),pixels).
-                  transpose(PIL.Image.FLIP_TOP_BOTTOM))
-            self.capture_images.append((time.time(),im))
+            self.capture_images.append((time.time(),img))
+        if self.off_screen:
+            import caca
+            from caca.canvas import Canvas, CanvasError
+            from caca.dither import Dither, DitherError
+            canvas = Canvas(100, 70)
+            img = img.convert('RGBA')
+
+            dit = Dither(BPP, img.size[0], img.size[1], DEPTH * img.size[0],
+                         RMASK, GMASK, BMASK, AMASK)
+            s = canvas.export_to_memory('ansi')
+            # sys.stdout.write("%s" %s)
         return True
 
     def stop_record(self):
@@ -630,9 +745,134 @@ class DisplayServer(object):
 
 
 
+
+
+    def keyPressedFunc(self, *args):
+        # If escape is pressed, kill everything.
+        if args[0] == "q" : # exit when ESCAPE is pressed
+            self.quit = True
+            glutDestroyWindow(self.window)
+
+        elif args[0] == 'm':
+            self.render_mesh_flag = not self.render_mesh_flag
+            print "render mesh:", self.render_mesh_flag
+        elif args[0] == 's':
+            self.render_skeleton_flag = not self.render_skeleton_flag
+            print "render skeleton:", self.render_skeleton_flag
+
+        elif args[0] == 'w':
+            self.wired_frame_flag = not self.wired_frame_flag
+            print "render mesh:", self.wired_frame_flag
+            if self.wired_frame_flag:
+                glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+            else:
+                glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+
+        elif args[0] == '+':
+            self.skeleton_size += 1
+
+        elif args[0] == '-':
+            if self.skeleton_size >1:
+                self.skeleton_size -= 1
+
+        elif args[0] == 't':
+            if self.transparency < 1:
+                self.transparency += 0.1
+                for name, e in self._element_dict.items():
+                    if isinstance(e, DisplayRobot):
+                        e.set_transparency(self.transparency)
+
+        elif args[0] == 'r':
+            if self.transparency > 0:
+                self.transparency -= .1
+                for name, e in self._element_dict.items():
+                    if isinstance(e, DisplayRobot):
+                        e.set_transparency(self.transparency)
+        elif args[0] == 'l':
+            if self._glwin._modelAmbientLight < 1.0:
+                self._glwin._modelAmbientLight += 0.1
+                glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [self._glwin._modelAmbientLight,
+                                                        self._glwin._modelAmbientLight,
+                                                        self._glwin._modelAmbientLight,1])
+        elif args[0] == 'd':
+            if self._glwin._modelAmbientLight >0 :
+                self._glwin._modelAmbientLight -= 0.1
+                glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [self._glwin._modelAmbientLight,
+                                                        self._glwin._modelAmbientLight,
+                                                        self._glwin._modelAmbientLight,1])
+
+        elif args[0] == 'e':
+            if self._glwin._lightAttenuation < 1.0:
+                self._glwin._lightAttenuation += 0.1
+                glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self._glwin._lightAttenuation)
+        elif args[0] == 'o':
+            if self._glwin._lightAttenuation > 0.1 :
+                self._glwin._lightAttenuation -= 0.1
+                glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self._glwin._lightAttenuation)
+
+        elif args[0] == 'c':
+            w = glutGet(GLUT_WINDOW_WIDTH)
+            h = glutGet(GLUT_WINDOW_HEIGHT)
+            import PIL.Image
+            pixels = glReadPixels(0,0,w ,h ,GL_RGB, GL_UNSIGNED_BYTE)
+            im = (PIL.Image.fromstring("RGB",(w ,h),pixels).
+                  transpose(PIL.Image.FLIP_TOP_BOTTOM))
+            imsuff = datetime.datetime.now().strftime("%Y%m%d%H%M")
+            imname = None
+            imname = "/tmp/robotviewer_{0}.png".format(imsuff)
+            i = 0
+            while not imname or os.path.isfile(imname):
+                i += 1
+                imname = "/tmp/robotviewer_{0}_{1}.png".format(imsuff, i)
+            logger.info("Saved to {0}".format(imname))
+            im.save(imname)
+        elif args[0] == 'v':
+            if not self.recording:
+                self.start_record()
+            else:
+                self.stop_record()
+
+
+    def mouseButtonFunc( self, button, mode, x, y ):
+        """Callback function (mouse button pressed or released).
+
+        The current and old mouse positions are stored in
+        a	global renderParam and a global list respectively"""
+
+        if mode == GLUT_DOWN:
+                self._mouseButton = button
+        else:
+                self._mouseButton = None
+        self._oldMousePos[0], self._oldMousePos[1] = x, y
+        glutPostRedisplay( )
+
+    def mouseMotionFunc( self, x, y ):
+        """Callback function (mouse moved while button is pressed).
+
+        The current and old mouse positions are stored in
+        a	global renderParam and a global list respectively.
+        The global translation vector is updated according to
+        the movement of the mouse pointer."""
+        dx = x - self._oldMousePos[ 0 ]
+        dy = y - self._oldMousePos[ 1 ]
+
+        if ( glutGetModifiers() == GLUT_ACTIVE_SHIFT and\
+               self._mouseButton == GLUT_LEFT_BUTTON  ):
+            self.camera.moveBackForth(dy)
+
+        elif self._mouseButton == GLUT_LEFT_BUTTON:
+            self.camera.rotate(dx,dy)
+
+        elif self._mouseButton == GLUT_RIGHT_BUTTON:
+            self.camera.moveSideway(dx,dy)
+
+        self._oldMousePos[0], self._oldMousePos[1] = x, y
+
+        glutPostRedisplay( )
+
     def bindEvents(self):
         self.usage="Keyboard shortcuts:\n"
-        for key, effect in [("ESCAPE", "Quit the program"),
+        for key, effect in [("q", "Quit the program"),
                             ("m", "Turn meshes on/off"),
                             ("s", "Turn skeletons on/off"),
                             ("w", "Turn wireframe on/off"),
@@ -650,130 +890,8 @@ class DisplayServer(object):
 
             self.usage += "%.20s: %s\n"%(key, effect)
 
-        def keyPressedFunc(*args):
-            # If escape is pressed, kill everything.
-            if args[0] == ESCAPE : # exit when ESCAPE is pressed
-                sys.exit ()
-
-            elif args[0] == 'm':
-                self.render_mesh_flag = not self.render_mesh_flag
-                print "render mesh:", self.render_mesh_flag
-            elif args[0] == 's':
-                self.render_skeleton_flag = not self.render_skeleton_flag
-                print "render skeleton:", self.render_skeleton_flag
-
-            elif args[0] == 'w':
-                self.wired_frame_flag = not self.wired_frame_flag
-                print "render mesh:", self.wired_frame_flag
-                if self.wired_frame_flag:
-                    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-                else:
-                    glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-
-            elif args[0] == '+':
-                self.skeleton_size += 1
-
-            elif args[0] == '-':
-                if self.skeleton_size >1:
-                    self.skeleton_size -= 1
-
-            elif args[0] == 't':
-                if self.transparency < 1:
-                    self.transparency += 0.1
-                    for name, e in self._element_dict.items():
-                        if isinstance(e, DisplayRobot):
-                            e.set_transparency(self.transparency)
-
-            elif args[0] == 'r':
-                if self.transparency > 0:
-                    self.transparency -= .1
-                    for name, e in self._element_dict.items():
-                        if isinstance(e, DisplayRobot):
-                            e.set_transparency(self.transparency)
-            elif args[0] == 'l':
-                if self._glwin._modelAmbientLight < 1.0:
-                    self._glwin._modelAmbientLight += 0.1
-                    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [self._glwin._modelAmbientLight,
-                                                            self._glwin._modelAmbientLight,
-                                                            self._glwin._modelAmbientLight,1])
-            elif args[0] == 'd':
-                if self._glwin._modelAmbientLight >0 :
-                    self._glwin._modelAmbientLight -= 0.1
-                    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [self._glwin._modelAmbientLight,
-                                                            self._glwin._modelAmbientLight,
-                                                            self._glwin._modelAmbientLight,1])
-
-            elif args[0] == 'e':
-                if self._glwin._lightAttenuation < 1.0:
-                    self._glwin._lightAttenuation += 0.1
-                    glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self._glwin._lightAttenuation)
-            elif args[0] == 'o':
-                if self._glwin._lightAttenuation > 0.1 :
-                    self._glwin._lightAttenuation -= 0.1
-                    glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self._glwin._lightAttenuation)
-
-            elif args[0] == 'c':
-                w = glutGet(GLUT_WINDOW_WIDTH)
-                h = glutGet(GLUT_WINDOW_HEIGHT)
-                import PIL.Image
-                pixels = glReadPixels(0,0,w ,h ,GL_RGB, GL_UNSIGNED_BYTE)
-                im = (PIL.Image.fromstring("RGB",(w ,h),pixels).
-                      transpose(PIL.Image.FLIP_TOP_BOTTOM))
-                imsuff = datetime.datetime.now().strftime("%Y%m%d%H%M")
-                imname = None
-                imname = "/tmp/robotviewer_{0}.png".format(imsuff)
-                i = 0
-                while not imname or os.path.isfile(imname):
-                    i += 1
-                    imname = "/tmp/robotviewer_{0}_{1}.png".format(imsuff, i)
-                logger.info("Saved to {0}".format(imname))
-                im.save(imname)
-            elif args[0] == 'v':
-                if not self.recording:
-                    self.start_record()
-                else:
-                    self.stop_record()
-
-
-        def mouseButtonFunc( button, mode, x, y ):
-            """Callback function (mouse button pressed or released).
-
-            The current and old mouse positions are stored in
-            a	global renderParam and a global list respectively"""
-
-            if mode == GLUT_DOWN:
-                    self._mouseButton = button
-            else:
-                    self._mouseButton = None
-            self._oldMousePos[0], self._oldMousePos[1] = x, y
-            glutPostRedisplay( )
-
-        def mouseMotionFunc( x, y ):
-            """Callback function (mouse moved while button is pressed).
-
-            The current and old mouse positions are stored in
-            a	global renderParam and a global list respectively.
-            The global translation vector is updated according to
-            the movement of the mouse pointer."""
-            dx = x - self._oldMousePos[ 0 ]
-            dy = y - self._oldMousePos[ 1 ]
-
-            if ( glutGetModifiers() == GLUT_ACTIVE_SHIFT and\
-                   self._mouseButton == GLUT_LEFT_BUTTON  ):
-                self.camera.moveBackForth(dy)
-
-            elif self._mouseButton == GLUT_LEFT_BUTTON:
-                self.camera.rotate(dx,dy)
-
-            elif self._mouseButton == GLUT_RIGHT_BUTTON:
-                self.camera.moveSideway(dx,dy)
-
-            self._oldMousePos[0], self._oldMousePos[1] = x, y
-
-            glutPostRedisplay( )
-
-        glutMouseFunc( mouseButtonFunc )
-        glutMotionFunc( mouseMotionFunc )
-        glutSpecialFunc(keyPressedFunc)
-        glutKeyboardFunc(keyPressedFunc)
+        glutMouseFunc( self.mouseButtonFunc )
+        glutMotionFunc( self.mouseMotionFunc )
+        glutSpecialFunc(self.keyPressedFunc)
+        glutKeyboardFunc(self.keyPressedFunc)
 
