@@ -53,7 +53,7 @@ def main():
     #                   help="offscreen mode")
 
     parser.add_option("-r", "--refresh-rate",
-                      action="store", dest="refresh_rate", type = "int",
+                      action="store", dest="refresh_rate", type = "int", default = 1000,
                       help="specify refresh rate")
 
     (options, args) = parser.parse_args()

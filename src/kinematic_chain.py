@@ -169,8 +169,10 @@ class GenericObject(object):
         self.remove_generic_objects()
 
     def remove_generic_objects(self):
-        for child in self.children:
-            if type(child) == GenericObject and child.children[:]:
+        generic_children = [child for child in self.children
+                          if (type(child) == GenericObject and child.children[:])]
+        while generic_children[:]:
+            for child in generic_children:
                 for grandchild in child.children[:]:
                     grandchild.localTransformation = np.dot(child.localTransformation,
                                                               grandchild.localTransformation)
@@ -179,11 +181,10 @@ class GenericObject(object):
                     grandchild.rotaion = rot2AxisAngle(grandchild.localR)
                     grandchild.rpy = rot2rpy(grandchild.localR)
                     self.addChild(grandchild)
-
                 self.children.remove(child)
                 del child
-
-
+            generic_children = [child for child in self.children
+                                if (type(child) == GenericObject and child.children[:])]
         for child in self.children:
             child.remove_generic_objects()
 

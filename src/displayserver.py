@@ -108,9 +108,6 @@ class DisplayServer(object):
         self.last_refreshed = None
         if options:
             self.refresh_rate = options.refresh_rate
-
-
-
         logger.debug("Initializing OpenGL")
         self.initGL()
         self.pendingObjects=[]
