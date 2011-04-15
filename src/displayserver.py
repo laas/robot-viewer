@@ -27,6 +27,7 @@ import copy
 import threading
 import math
 import collections
+import StringIO, socket
 
 from ctypes import *
 logger = logging.getLogger("robotviewer.displayserver")
@@ -104,6 +105,10 @@ class DisplayServer(object):
         self.video_fn = None
         self.video_writer = None
         self.record_saved = False
+        self.stream = None
+        if options and options.__dict__.has_key('stream'):
+            self.stream = options.stream
+        self.udp_sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 
         self.capture_images = []
         self.refresh_rate = None
@@ -172,10 +177,10 @@ class DisplayServer(object):
         #if True:
             self.create_window()
         else:
-            #import oglc
-            #oglc.create_gl_context()
-            self.create_window()
-            glutHideWindow(self.window)
+            import oglc
+            oglc.create_osmesa_context()
+            #self.create_window()
+            #glutHideWindow(self.window)
 
             logger.info("Creating context")
             self.create_render_buffer()
@@ -458,7 +463,7 @@ class DisplayServer(object):
                 objs = ml_parser.parse(epath, not self.no_cache)
                 objs = [ o for o in objs if isinstance(o, kinematic_chain.GenericObject)]
                 if len(objs) == 0:
-                    raise Exception('Found no object in file %s %d'%len(objs,epath))
+                    raise Exception('Found no object in file %s'%epath)
                 elif len(objs) == 1:
                     group = objs[0]
                 else:
@@ -603,6 +608,7 @@ class DisplayServer(object):
         if self.off_screen:
             t = InteractThread(self)
             t.start()
+
         glutMainLoop()
 
 
@@ -611,7 +617,8 @@ class DisplayServer(object):
 
     def DrawGLScene(self, *arg):
         if self.quit:
-            glutDestroyWindow(self.window)
+            glutLeaveMainLoop()
+            #glutDestroyWindow(self.window)
             return False
         try:
             while len(self.queued_keys) > 0:
@@ -626,7 +633,7 @@ class DisplayServer(object):
             else:
                 return True
         except KeyboardInterrupt:
-            glutDestroyWindow(self.window)
+            glutLeaveMainLoop()
             return False
 
     def _draw_gl_scene(self):
@@ -658,30 +665,26 @@ class DisplayServer(object):
                     ele.render()
             except:
                 if self.strict:
-                    glutDestroyWindow(self.window)
+                    glutLeaveMainLoop()
+                    #glutDestroyWindow(self.window)
                 else:
                     logger.exception("Failed to render element {0}".format(ele))
 
         glutSwapBuffers()
 
-        if self.recording:
+        if self.recording or self.stream:
             import PIL.Image
             pixels = glReadPixels(0,0,self.win_w ,self.win_h ,GL_RGB, GL_UNSIGNED_BYTE)
             img = (PIL.Image.fromstring("RGB",(self.win_w ,self.win_h),pixels).
                    transpose(PIL.Image.FLIP_TOP_BOTTOM))
-            self.capture_images.append((time.time(),img))
+            if self.recording:
+                self.capture_images.append((time.time(),img))
+            if self.stream:
+                s = StringIO.StringIO()
+                im.save(s, "PNG")
+                self.udp_sock.sendto(s.getvalue(), "localhost:{0}".
+                                     format(self.stream))
 
-        # if self.off_screen:
-        #     import caca
-        #     from caca.canvas import Canvas, CanvasError
-        #     from caca.dither import Dither, DitherError
-        #     canvas = Canvas(100, 70)
-        #     img = img.convert('RGBA')
-
-        #     dit = Dither(BPP, img.size[0], img.size[1], DEPTH * img.size[0],
-        #                  RMASK, GMASK, BMASK, AMASK)
-        #     s = canvas.export_to_memory('ansi')
-            # sys.stdout.write("%s" %s)
         return True
 
     def stop_record(self):
@@ -738,7 +741,8 @@ class DisplayServer(object):
         # If escape is pressed, kill everything.
         if args[0] == "q" : # exit when ESCAPE is pressed
             self.quit = True
-            glutDestroyWindow(self.window)
+            glutLeaveMainLoop()
+
 
         elif args[0] == 'm':
             self.render_mesh_flag = not self.render_mesh_flag

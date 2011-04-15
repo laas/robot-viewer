@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from distutils.core import setup, Extension
 import os
 execfile('src/version.py')
 home_dir = os.environ['HOME']
@@ -24,7 +24,12 @@ setup(name='robot-viewer',
       package_dir={'robotviewer':'src'},
       requires=['sphinx (>=0.6)','pyopengl'],
       data_files=[('bin',['bin/robotviewer','bin/robotviewer-gtk']),
-                  (config_dir,['data/floor.py','data/config.example'])
-                  ]
+                  (config_dir,['data/floor.py',
+                               'data/config.example','data/sample.wrl'])
+                  ],
+      # ext_modules = [Extension("robotviewer.oglc",
+      #                          sources = ["src/oglc.cc"],
+      #                          libraries = ['GL','GLU'],
+      #                          )]
       )
 

@@ -70,12 +70,11 @@ class GlPrimitive(GenericObject):
             glDeleteLists(self.gl_list_id, 1)
         app = mesh.app
         glNewList(self.gl_list_id, GL_COMPILE);
-        try:
-            app.transparency = float(app.transparency)
-        except:
+        if not app.transparency:
             app.transparency = 0
-            logger.exception("Invalid transparency: {0}"
-                             .format(app.transparency))
+        elif type(app.transparency) == list:
+            app.transparency = app.transparency[0]
+
         for (key, value) in [ (GL_SPECULAR,app.specularColor),
                               (GL_EMISSION,app.emissiveColor ),
                               (GL_AMBIENT_AND_DIFFUSE,app.diffuseColor ),
@@ -198,7 +197,7 @@ class DisplayRobot(DisplayObject):
     def render(self, mesh_flag, skeleton_flag, skeleton_size):
         if mesh_flag:
             DisplayObject.render(self)
-        if skeleton_flag:
+        if skeleton_flag or not self.mesh_list[:]:
             render_skeleton(self, skeleton_size)
 
 
@@ -450,8 +449,8 @@ def draw_link(p1,p2,size=1):
     glTranslated(0.0,0.0,-h)
     glRotated(180,1,0,0)
     gluDisk(qua,0,r,10,5)
-
     glPopMatrix()
+    gluDeleteQuadric(qua)
 
 
 def draw_joint(joint, size = 1):
@@ -479,6 +478,8 @@ def draw_joint(joint, size = 1):
         sphere = gluNewQuadric()
         gluSphere(sphere,0.01*size,10,10)
         glPopMatrix()
+        gluDeleteQuadric(sphere)
+
     else:
         glPushMatrix()
         glTranslatef(pos[0], pos[1], pos[2])
@@ -498,4 +499,5 @@ def draw_joint(joint, size = 1):
         glRotated(180,1,0,0)
         gluDisk(qua,0,r,10,5)
         glPopMatrix()
+        gluDeleteQuadric(qua)
 

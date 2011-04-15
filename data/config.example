@@ -7,8 +7,13 @@ geometry: $HOME/licenses/HRP2JRL/model/HRP2JRLmain.wrl
 joint_rank: $HOME/licenses/HRP2LinkJointRank.xml
 position: 0 0 0.6487 0 0 0 0.0 0.0 -0.453785605519 0.872664625997 -0.418879020479 0.0 0.0 0.0 -0.453785605519 0.872664625997 -0.418879020479 0.0 0.0 0.0 0.0 0.0 0.261799387799 -0.174532925199 0.0 -0.523598775598 0.0 0.0 0.174532925199 0.261799387799 0.174532925199 0.0 -0.523598775598 0.0 0.0 0.174532925199 -0.174532925199 0.174532925199 -0.174532925199 0.174532925199 -0.174532925199 -0.174532925199 0.174532925199 -0.174532925199 0.174532925199 -0.174532925199
 
+[robot example]
+geometry: $HOME/.robotviewer/sample.wrl
+position: 0 1 0.7 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
 [object floor]
-geometry: $HOME/.robotviewer/danceFloor.wrl
+#geometry: $HOME/.robotviewer/danceFloor.wrl
+geometry: $HOME/.robotviewer/floor.py
 
 # [object coord]
 # geometry: $HOME/.robotviewer/coord.py

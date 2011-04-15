@@ -56,6 +56,10 @@ def main():
                       action="store", dest="refresh_rate", type = "int", default = 1000,
                       help="specify refresh rate")
 
+    parser.add_option("--stream",
+                      action="store", dest="port", type = "int",
+                      help="specify refresh rate")
+
     (options, args) = parser.parse_args()
     global ch
     if options.version:

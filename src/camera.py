@@ -11,8 +11,6 @@ def normalized(v):
 
 
 class Camera(object):
-
-
     def __init__(self, p=[3.5,0,1.0],l=[0,0,0.7], u=[0,0,1]):
         self.position=numpy.array(p)
         self.lookat=numpy.array(l)
