@@ -182,6 +182,8 @@ class DisplayObject(object):
 
     def __init__(self, obj):
         self.obj = obj
+        self.pending_update = False
+        self.config = None
         for mesh in self.mesh_list:
             mesh.addChild( GlPrimitive (mesh = mesh) )
 
@@ -198,6 +200,10 @@ class DisplayObject(object):
         Arguments:
         - `self`:
         """
+        if self.pending_update:
+            self.pending_update = False
+            self.obj.update_config(self.config)
+
         for m in self.mesh_list:
             if not m.gl_primitive:
                 continue
@@ -212,6 +218,11 @@ class DisplayObject(object):
 
     def getConfig(self):
         return self.config
+
+
+    def update_config(self, config):
+        self.pending_update = True
+        self.config = config
 
 
 class DisplayRobot(DisplayObject):

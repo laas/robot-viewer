@@ -209,7 +209,8 @@ class DisplayServer(object):
                             ("t", "transparency up"),
                             ("r", "transparency down"),
                             ("c", "screen capture"),
-                            ("v", "start/stop video recording")
+                            ("v", "start/stop video recording"),
+                            ("x", "change camera"),
                             ]:
 
             self.usage += "%.20s: %s\n"%(key, effect)
@@ -450,9 +451,7 @@ class DisplayServer(object):
                 continue
             new_el = copy.deepcopy( self._element_dict[orig_name] )
             parent_obj.get_op_point(parent_joint_id).addChild(new_el)
-            print parent_obj.get_op_point(parent_joint_id)
             parent_obj.init()
-            print new_el.globalTransformation
             self._element_dict[child_name] = new_el
             self.enableElement(child_name)
 
@@ -804,7 +803,7 @@ class DisplayServer(object):
         return True
 
     def stop_record(self):
-        for id, window in self.windows:
+        for id, window in self.windows.items():
             window.extra_info = None
         self.recording = False
         self.record_saved = False
@@ -850,9 +849,6 @@ class DisplayServer(object):
         logger.info("recording to {0}".format(self.video_fn))
         for id, window in self.windows.items():
             window.extra_info = " (Recording to {0})".format(self.video_fn)
-
-
-
 
 
     def keyPressedFunc(self, *args):
