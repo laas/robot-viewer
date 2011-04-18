@@ -167,6 +167,7 @@ class GenericObject(object):
                 print error, "on object %s"%child.name
 
         self.remove_generic_objects()
+        self.update()
 
     def remove_generic_objects(self):
         generic_children = [child for child in self.children

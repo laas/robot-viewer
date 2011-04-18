@@ -9,7 +9,7 @@ from OpenGL.GL.EXT.framebuffer_object import *
 import kinematic_chain
 import ml_parser
 import pickle
-from openglaux import IsExtensionSupported, GlWindow
+from openglaux import IsExtensionSupported
 from display_element import DisplayObject, DisplayRobot, GlPrimitive
 import display_element
 import re,imp
@@ -28,7 +28,9 @@ import threading
 import math
 import collections
 import StringIO, socket
-
+import distutils.version
+import numpy
+from mathaux import *
 from ctypes import *
 logger = logging.getLogger("robotviewer.displayserver")
 
@@ -57,11 +59,13 @@ def updateView(camera):
     Arguments:
     - `camera`:
     """
-    p=camera.position
-    f=camera.lookat
-    u=camera.up
+    p = camera.cam_position()
+    f = camera.lookat
+    u = camera.cam_up()
     glLoadIdentity()
     gluLookAt(p[0],p[1],p[2],f[0],f[1],f[2],u[0],u[1],u[2])
+
+
 
 class CustomConfigParser(ConfigParser.ConfigParser):
     def get(self,*args, **kwargs ):
@@ -69,6 +73,46 @@ class CustomConfigParser(ConfigParser.ConfigParser):
             return ConfigParser.ConfigParser.get(self, *args, **kwargs)
         except ConfigParser.NoOptionError:
             return None
+
+class GlWindow(object):
+    def __init__(self, title = "Robotviewer Server"):
+        self.id = glutCreateWindow(title)
+        self._g_dwLastFPS = 0
+        self._fps = 0
+        self._g_dwLastFPS = 0
+        self._g_nFrames = 0
+        self.title = title
+        self.cameras = []
+        self.active_camera = 0
+        self.extra_info = ""
+
+    @property
+    def camera(self):
+        return self.cameras[0]
+
+    def updateFPS(self):
+        """
+        Arguments:
+        - `self`:
+        """
+        milliseconds = time.clock () * 1000.0
+        if (milliseconds - self._g_dwLastFPS >= 1000):
+            # # When A Second Has Passed...
+            # g_dwLastFPS = win32api.GetTickCount();
+            # # Update Our Time Variable
+            self._g_dwLastFPS = time.clock () * 1000.0
+            self._fps = self._g_nFrames;
+            # # Save The FPS
+            self._g_nFrames = 0;
+            # # Reset The FPS Counter
+        szTitle = "%d %s %sfps"%(self.id, self.title,self._fps)
+
+        if self.extra_info:
+            szTitle += self.extra_info
+
+        glutSetWindowTitle ( szTitle );
+        self._g_nFrames += 1
+
 
 class DisplayServer(object):
     """OpenGL server
@@ -79,23 +123,20 @@ class DisplayServer(object):
 
         Arguments:
         """
-        if options and options.config_file:
-            self.config_file = options.config_file
-        else:
+        self.config_file = None
+        self.no_cache = False
+        self.strict = False
+        self.off_screen = False
+        self.stream = None
+        self.refresh_rate = None
+        self.num_windows = 1
+
+        self.__dict__.update(options.__dict__)
+
+        if not self.config_file:
             self.config_file = os.path.join(config_dir,"config")
 
-        self.no_cache = False
-        if options and options.no_cache:
-            self.no_cache = True
-
         self._element_dict = dict()
-
-        if options:
-            self.strict = options.strict
-
-        self.off_screen = False
-        if options and options.__dict__.has_key("off_screen"):
-            self.off_screen = options.off_screen
 
         self.fbo_id = -1
         self.rbo_id = -1
@@ -105,28 +146,25 @@ class DisplayServer(object):
         self.video_fn = None
         self.video_writer = None
         self.record_saved = False
-        self.stream = None
-        if options and options.__dict__.has_key('stream'):
-            self.stream = options.stream
         self.udp_sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 
         self.capture_images = []
-        self.refresh_rate = None
-        self.last_refreshed = None
-        if options:
-            self.refresh_rate = options.refresh_rate
+        self.last_refreshed = {}
 
         self.win_w = 640
         self.win_h = 480
+
+        self.modelAmbientLight = 0.3
+        self.lightAttenuation = 0.2
+        self.active_cameras = {}
+        self.world_cameras = []
+
         logger.debug("Initializing OpenGL")
         self.initGL()
         self.pendingObjects=[]
         self.parseConfig()
-        self.camera = Camera()
-        updateView(self.camera)
         self._mouseButton = None
         self._oldMousePos = [ 0, 0 ]
-
         self.wired_frame_flag = False
 
         if options and options.skeleton:
@@ -135,12 +173,31 @@ class DisplayServer(object):
         else:
             self.render_mesh_flag = True
             self.render_skeleton_flag = False
+
         self.skeleton_size = 1
         self.transparency = 0
 
         # key interaction from console
         self.queued_keys = collections.deque()
         self.quit = False
+        self.usage="Keyboard shortcuts:\n"
+        for key, effect in [("q", "Quit the program"),
+                            ("m", "Turn meshes on/off"),
+                            ("s", "Turn skeletons on/off"),
+                            ("w", "Turn wireframe on/off"),
+                            ("+", "Skeleton size up"),
+                            ("-", "Skeleton size down"),
+                            ("l", "lighter scene"),
+                            ("d", "dimmer scene"),
+                            ("o", "light ATTENUATION down"),
+                            ("e", "light ATTENUATION up"),
+                            ("t", "transparency up"),
+                            ("r", "transparency down"),
+                            ("c", "screen capture"),
+                            ("v", "start/stop video recording")
+                            ]:
+
+            self.usage += "%.20s: %s\n"%(key, effect)
 
 
 
@@ -148,6 +205,18 @@ class DisplayServer(object):
         if self.recording:
             self.stop_record()
         del self
+
+    def enter_leave_cb(self, state):
+        message = ""
+        if state == GLUT_LEFT:
+            message += "Left"
+        else:
+            message += "Entered"
+        message += " window {0}".format(glutGetWindow())
+        logger.debug(message)
+
+    def visible_cb(self, status):
+        logger.debug("visible: {0}".format(status == GLUT_VISIBLE))
 
     def create_window(self):
         logger.info("Creating window")
@@ -164,9 +233,35 @@ class DisplayServer(object):
             glutDestroyWindow(dummy_win)
         logger.debug("Setting glut WindowSize")
         glutInitWindowSize(self.win_w, self.win_h)
-        glutInitWindowPosition(0, 0)
         logger.debug("Creating glutWindow")
-        self.window = glutCreateWindow("Robotviewer Server")
+        self.windows = {}
+        # self.windows.append(glutCreateWindow("Robotviewer Server"))
+        for i in range(self.num_windows):
+            window = GlWindow()
+            self.windows[window.id] = window
+            glutEntryFunc(self.enter_leave_cb);
+            glutVisibilityFunc(self.visible_cb);
+            glutDisplayFunc(self.draw_cb)
+            glutReshapeFunc(self.resize_cb)
+            self.bindEvents()
+            glutPositionWindow(i*self.win_w,20);
+            self.init_lights()
+            cam = Camera()
+            self._element_dict["camera%d"%window.id] = cam
+            self.world_cameras.append(cam)
+            window.cameras.append(cam)
+            if window.id == 2:
+                cam.translation = [0,0,1]
+                cam.localR = numpy.array([ [ 0 , 0 , -1],
+                                           [ -1 , 0 , 0],
+                                           [ 0 , 1 , 0],
+                                           ]
+                                         )
+                cam.rotation = rot2AxisAngle(cam.localR)
+                cam.init()
+
+
+        glutIdleFunc(self.refresh_cb)
 
     def initGL(self):
         logger.debug("Initializing glut")
@@ -184,18 +279,12 @@ class DisplayServer(object):
 
             logger.info("Creating context")
             self.create_render_buffer()
-            self.window = None
-
-        glutIdleFunc(self.DrawGLScene)
-        glutReshapeFunc(self.ReSizeGLScene)
-        self._glwin=GlWindow(self.win_w, self.win_h, "Robotviewer Server")
-        self.usage = ""
-        self.bindEvents()
+            self.window = []
 
 
     # The function called when our window is resized (which shouldn't happen if you
     # enable fullscreen, below)
-    def ReSizeGLScene(self, Width, Height):
+    def resize_cb(self, Width, Height):
         self.win_w = Width
         self.win_h = Height
         if Height == 0:
@@ -262,7 +351,7 @@ class DisplayServer(object):
         return s
 
     def parseConfig(self):
-        prog_version = float(version.__version__)
+        prog_version = distutils.version.StrictVersion(version.__version__)
         config = CustomConfigParser()
         config.read(self.config_file)
         logger.info( 'parsed_config %s'%config)
@@ -276,7 +365,7 @@ class DisplayServer(object):
                 value = self._replace_env_var(config.get(section,options))
                 config.set(section, options, value)
 
-        conf_version = float(config.get('global','version'))
+        conf_version = distutils.version.StrictVersion(config.get('global','version'))
         if prog_version < conf_version:
             raise Exception("Your config version ({0}) is newer than program version ({1})".
                             format(conf_version, prog_version))
@@ -284,7 +373,9 @@ class DisplayServer(object):
         value =  config.get('global','background')
         if value:
             value = [float(e) for e in value.split(",")]
-            glClearColor (value[0], value[1], value[2], 0.5);
+            for win in self.windows:
+                glutSetWindow(win)
+                glClearColor (value[0], value[1], value[2], 0.5);
 
         sections = config.sections()
         join_pairs = []
@@ -341,9 +432,16 @@ class DisplayServer(object):
             child_name = pair[1]
             parent_name = pair[2]
             parent_joint_id = pair[3]
-            parent_obj = self._element_dict[parent_name]
+            try:
+                parent_obj = self._element_dict[parent_name]
+            except KeyError:
+                logger.warning("Parent {0} does not exist. Skipping".format(parent_name))
+                continue
             new_el = copy.deepcopy( self._element_dict[orig_name] )
             parent_obj.get_op_point(parent_joint_id).addChild(new_el)
+            print parent_obj.get_op_point(parent_joint_id)
+            parent_obj.init()
+            print new_el.globalTransformation
             self._element_dict[child_name] = new_el
             self.enableElement(child_name)
 
@@ -416,7 +514,9 @@ class DisplayServer(object):
             for key, value in config.items('preferences'):
                 if key == 'background':
                     value = [float(e) for e in value.split(",")]
-                    glClearColor (value[0], value[1], value[2], 0.5);
+                    for win in self.windows:
+                        glutSetWindow(win)
+                        glClearColor (value[0], value[1], value[2], 0.5);
 
         return
 
@@ -615,7 +715,7 @@ class DisplayServer(object):
     def Ping(self):
         return "pong"
 
-    def DrawGLScene(self, *arg):
+    def draw_cb(self, *arg):
         if self.quit:
             glutLeaveMainLoop()
             #glutDestroyWindow(self.window)
@@ -625,10 +725,12 @@ class DisplayServer(object):
                 key = self.queued_keys.popleft()
                 self.keyPressedFunc(key)
             current_t = glutGet( GLUT_ELAPSED_TIME )
-            if ((not self.last_refreshed)
-                or current_t - self.last_refreshed >= 1000/self.refresh_rate):
-                res = self._draw_gl_scene()
-                self.last_refreshed = current_t
+            win = glutGetWindow()
+            if ((not self.last_refreshed.get(win))
+                or (current_t - self.last_refreshed.get(win)
+                    >= 1000/self.refresh_rate)):
+                res = self._draw_cb()
+                self.last_refreshed[win] = current_t
                 return res
             else:
                 return True
@@ -636,7 +738,7 @@ class DisplayServer(object):
             glutLeaveMainLoop()
             return False
 
-    def _draw_gl_scene(self):
+    def _draw_cb(self):
         #if glGetError() > 0:
         if len(self.pendingObjects) > 0:
             obj = self.pendingObjects.pop()
@@ -648,14 +750,12 @@ class DisplayServer(object):
         # # Reset The Modelview Matrix
         # # Get FPS
         # milliseconds = win32api.GetTickCount()
-        updateView(self.camera)
+        win = glutGetWindow()
+        updateView(self.windows[win].camera)
 
-
-        if (not self.off_screen) and hasattr(self, '_glwin'):
-            self._glwin.updateFPS()
-            self._glwin._g_nFrames += 1
-        for item in self._element_dict.items():
-            ele = item[1]
+        if not self.off_screen:
+            self.windows[win].updateFPS()
+        for name,ele in self._element_dict.items():
             #    logger.info( item[0], item[1]._enabled)
             try:
                 if isinstance(ele, DisplayRobot):
@@ -670,11 +770,10 @@ class DisplayServer(object):
                 else:
                     logger.exception("Failed to render element {0}".format(ele))
 
-        glutSwapBuffers()
-
         if self.recording or self.stream:
             import PIL.Image
-            pixels = glReadPixels(0,0,self.win_w ,self.win_h ,GL_RGB, GL_UNSIGNED_BYTE)
+            pixels = glReadPixels(0,0,self.win_w ,self.win_h ,
+                                  GL_RGB, GL_UNSIGNED_BYTE)
             img = (PIL.Image.fromstring("RGB",(self.win_w ,self.win_h),pixels).
                    transpose(PIL.Image.FLIP_TOP_BOTTOM))
             if self.recording:
@@ -685,6 +784,7 @@ class DisplayServer(object):
                 self.udp_sock.sendto(s.getvalue(), "localhost:{0}".
                                      format(self.stream))
 
+        glutSwapBuffers()
         return True
 
     def stop_record(self):
@@ -842,45 +942,81 @@ class DisplayServer(object):
         a	global renderParam and a global list respectively.
         The global translation vector is updated according to
         the movement of the mouse pointer."""
+        win = glutGetWindow()
+        camera = self.windows[win].camera
+
+        if not camera in self.world_cameras:
+            return
+
         dx = x - self._oldMousePos[ 0 ]
         dy = y - self._oldMousePos[ 1 ]
 
         if ( glutGetModifiers() == GLUT_ACTIVE_SHIFT and\
                self._mouseButton == GLUT_LEFT_BUTTON  ):
-            self.camera.moveBackForth(dy)
+            camera.moveBackForth(dy)
 
         elif self._mouseButton == GLUT_LEFT_BUTTON:
-            self.camera.rotate(dx,dy)
+            camera.rotate(dx,dy)
 
         elif self._mouseButton == GLUT_RIGHT_BUTTON:
-            self.camera.moveSideway(dx,dy)
+            camera.moveSideway(dx,dy)
 
         self._oldMousePos[0], self._oldMousePos[1] = x, y
 
         glutPostRedisplay( )
 
     def bindEvents(self):
-        self.usage="Keyboard shortcuts:\n"
-        for key, effect in [("q", "Quit the program"),
-                            ("m", "Turn meshes on/off"),
-                            ("s", "Turn skeletons on/off"),
-                            ("w", "Turn wireframe on/off"),
-                            ("+", "Skeleton size up"),
-                            ("-", "Skeleton size down"),
-                            ("l", "lighter scene"),
-                            ("d", "dimmer scene"),
-                            ("o", "light ATTENUATION down"),
-                            ("e", "light ATTENUATION up"),
-                            ("t", "transparency up"),
-                            ("r", "transparency down"),
-                            ("c", "screen capture"),
-                            ("v", "start/stop video recording")
-                            ]:
-
-            self.usage += "%.20s: %s\n"%(key, effect)
-
         glutMouseFunc( self.mouseButtonFunc )
         glutMotionFunc( self.mouseMotionFunc )
         glutSpecialFunc(self.keyPressedFunc)
         glutKeyboardFunc(self.keyPressedFunc)
+
+
+    def init_lights(self, bg = [0,0,0]):
+        glClearColor (bg[0], bg[1], bg[2], 0.5);
+        # # Black Background
+        glClearDepth (1.0);
+        # # Depth Buffer Setup
+        glDepthFunc (GL_LEQUAL);
+        # # The Type Of Depth Testing
+        glEnable (GL_DEPTH_TEST);
+        # # Enable Depth Testing
+        glShadeModel (GL_SMOOTH);
+        # # Select Smooth Shading
+        glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+        # # Set Perspective Calculations To Most Accurate
+        glEnable(GL_TEXTURE_2D);
+        # # Enable Texture Mapping
+        glColor4f (1.0, 6.0, 6.0, 1.0)
+
+        glClearColor(0.,0.,0.,1.)
+        glShadeModel(GL_SMOOTH)
+        glEnable(GL_CULL_FACE)
+        glEnable(GL_DEPTH_TEST)
+        glEnable(GL_LIGHTING)
+
+        glEnable (GL_BLEND)
+        glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        lightZeroPosition = [-3.0,3.0,3.0,1.0]
+        lightZeroColor = [1.0,1.0,1.0,1.0] #green tinged
+        glLightfv(GL_LIGHT0, GL_POSITION, lightZeroPosition)
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, lightZeroColor)
+        glLightfv(GL_LIGHT0, GL_SPECULAR, lightZeroColor)
+        glLightfv(GL_LIGHT0, GL_AMBIENT, [0,0,0,1])
+        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [self.modelAmbientLight,
+                                                self.modelAmbientLight,
+                                                self.modelAmbientLight,1])
+
+        # glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, )
+        glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self.lightAttenuation)
+        # glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.03)
+
+        glEnable(GL_LIGHT0)
+
+
+    def refresh_cb (self):
+        for win in self.windows.keys():
+            glutSetWindow(win)
+            glutPostRedisplay()
 

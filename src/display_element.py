@@ -20,8 +20,8 @@ class NullHandler(logging.Handler):
 logger.addHandler(NullHandler())
 
 
-glList_joint_sphere_mat = None
-glList_link_mat = None
+glList_joint_sphere_mat = {}
+glList_link_mat = {}
 
 def ifenabled(meth):
     def new_meth(cls, *kargs, **kwargs):
@@ -31,10 +31,11 @@ def ifenabled(meth):
             return
     return new_meth
 
+
 class GlPrimitive(GenericObject):
     """
     """
-    def __init__(self, gl_list_id = None, vbo = None,
+    def __init__(self, gl_list_ids = None, vbos = None,
                  mesh = None, script = None, parent = None):
         """
 
@@ -43,33 +44,48 @@ class GlPrimitive(GenericObject):
         - `VBO`:
         """
         GenericObject.__init__(self)
-        self.gl_list_id = gl_list_id
-        self.vbo = vbo
+        self.gl_list_ids = {}
+        self.vbos = {}
         self.enabled = True
+        self.script = script
+        self.mesh = mesh
         if parent:
             parent.addChild(self)
         # global obj_primitives
         if mesh:
-            self.vbo = Vbo(mesh)
-            self.generate_gl_list(mesh)
             setattr(mesh, "gl_primitive", self)
-        if script:
-            self.gl_list_id = glGenLists(1)
-            glNewList(self.gl_list_id, GL_COMPILE);
-            safe_eval(script, globals())
-            glEndList();
+            mesh.addChild(self)
+        if gl_list_ids:
+            self.gl_list_ids = gl_list_ids
+        if vbos:
+            self.vbos = vbos
         self.init()
 
     def set_transparency(self, transparency):
         pass
 
-    def generate_gl_list(self, mesh):
-        if not self.gl_list_id:
-            self.gl_list_id = glGenLists(1)
+    def generate_gl_list(self):
+        if self.mesh:
+            self.generate_gl_list_mesh()
+        if self.script:
+            self.generate_gl_list_script()
+
+    def generate_gl_list_script(self):
+        win = glutGetWindow()
+        self.gl_list_ids[win] = glGenLists(1)
+        glNewList(self.gl_list_ids[win], GL_COMPILE);
+        safe_eval(self.script, globals())
+        glEndList();
+
+
+    def generate_gl_list_mesh(self):
+        win = glutGetWindow()
+        if not self.gl_list_ids.get(win):
+            self.gl_list_ids[win] = glGenLists(1)
         else:
-            glDeleteLists(self.gl_list_id, 1)
-        app = mesh.app
-        glNewList(self.gl_list_id, GL_COMPILE);
+            glDeleteLists(self.gl_list_ids[win], 1)
+        app = self.mesh.app
+        glNewList(self.gl_list_ids[win], GL_COMPILE);
         if not app.transparency:
             app.transparency = 0
         elif type(app.transparency) == list:
@@ -94,57 +110,63 @@ class GlPrimitive(GenericObject):
                                      format(key,value))
             else:
                 joint_name = "None"
-                if mesh.getParentJoint():
-                    joint_name = mesh.getParentJoint().name
-                logger.debug("Mesh %s of joint %s: Missing %s in material"
-                               %(mesh.name, joint_name, key.name))
+                if self.mesh.getParentJoint():
+                    joint_name = self.mesh.getParentJoint().name
+                logger.debug("Self.Mesh %s of joint %s: Missing %s in material"
+                               %(self.mesh.name, joint_name, key.name))
         glEndList();
 
     @ifenabled
     def render(self):
-        glEnableClientState(GL_NORMAL_ARRAY);
-        glEnableClientState(GL_VERTEX_ARRAY);
+        win = glutGetWindow()
+        if not self.gl_list_ids.get(win):
+            self.generate_gl_list()
+
+        glPushMatrix()
 
         Tmatrix = self.globalTransformation
         R=Tmatrix[0:3,0:3]
         p=Tmatrix[0:3,3]
         agax=rot2AngleAxis(R)
-
-        glPushMatrix()
         glTranslatef(p[0],p[1],p[2])
         glRotated(agax[0],agax[1],agax[2],agax[3])
+        glCallList(self.gl_list_ids[win])
 
-        glCallList(self.gl_list_id)
-        if not self.vbo:
+        if not self.mesh:
             glPopMatrix()
-            glDisableClientState(GL_VERTEX_ARRAY);  # disable vertex arrays
-            glDisableClientState(GL_NORMAL_ARRAY);
             return
+        if not self.vbos.get(win):
+            self.vbos[win] = Vbo(self.mesh)
 
+        vbo = self.vbos[win]
+
+
+        glEnableClientState(GL_NORMAL_ARRAY);
+        glEnableClientState(GL_VERTEX_ARRAY);
         # print
         # self.vbo.ver_vboId,self.vbo.nor_vboId,
         # self.vbo.idx_vboId
         # before draw, specify vertex and index arrays with their offsets
         # Use VBO
         try:
-            glBindBufferARB(GL_ARRAY_BUFFER_ARB, self.vbo.ver_vboId);
+            glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbo.ver_vboId);
             glVertexPointer( 3, GL_FLOAT, 0, None );
 
-            glBindBufferARB(GL_ARRAY_BUFFER_ARB, self.vbo.nor_vboId);
+            glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbo.nor_vboId);
             glNormalPointer(GL_FLOAT, 0,None);
 
             glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,
-                            self.vbo.tri_idx_vboId);
-            glDrawElements(GL_TRIANGLES, self.vbo.tri_count,
+                            vbo.tri_idx_vboId);
+            glDrawElements(GL_TRIANGLES, vbo.tri_count,
                            GL_UNSIGNED_SHORT, None);
 
             glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,
-                            self.vbo.quad_idx_vboId);
-            glDrawElements(GL_QUADS, self.vbo.quad_count,
+                            vbo.quad_idx_vboId);
+            glDrawElements(GL_QUADS, vbo.quad_count,
                            GL_UNSIGNED_SHORT, None);
-            for i, vboId in enumerate(self.vbo.poly_idx_vboIds):
+            for i, vboId in enumerate(vbo.poly_idx_vboIds):
                 glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, vboId);
-                glDrawElements(GL_POLYGON, len(self.vbo._poly_idxs),
+                glDrawElements(GL_POLYGON, len(vbo._poly_idxs),
                                GL_UNSIGNED_SHORT, None);
         except:
             logger.exception("Error while drawing parent %s"%obj.aname)
@@ -393,7 +415,7 @@ class Vbo(object):
         s+="ver_vboId\t=%d\n"%self.ver_vboId
         s+="nor_vboId\t=%d\n"%self.nor_vboId
         s+="tri_idx_vboId\t=%d\n"%self.tri_idx_vboId
-        s+="quad_idx_vboId\t=%d\n"%self.quad_tri_idx_vboId
+        s+="quad_idx_vboId\t=%d\n"%self.quad_idx_vboId
 
         s+="len (_verts)\t=%d\n"%(len(self.verts))
         s+="len (_norms)\t=%d\n"%(len(self.norms))
@@ -417,9 +439,10 @@ def render_skeleton(robot, size):
 
 def draw_link(p1,p2,size=1):
     global glList_link_mat
-    if not glList_link_mat:
-        glList_link_mat = glGenLists(1)
-        glNewList(glList_link_mat, GL_COMPILE);
+    win = glutGetWindow()
+    if not glList_link_mat.get(win):
+        glList_link_mat[win] = glGenLists(1)
+        glNewList(glList_link_mat[win], GL_COMPILE);
         for (key, value) in [ (GL_SPECULAR, [1,1,1,1]),
                               (GL_EMISSION, [0,1,0,1]),
                               (GL_AMBIENT_AND_DIFFUSE, [0,1,0,1]),
@@ -429,7 +452,7 @@ def draw_link(p1,p2,size=1):
         glEndList()
 
     r = 0.01*size/4
-    glCallList(glList_link_mat)
+    glCallList(glList_link_mat[win])
     p = p2-p1
     n_p = normalized(p)
     h = norm(p)
@@ -455,9 +478,10 @@ def draw_link(p1,p2,size=1):
 
 def draw_joint(joint, size = 1):
     global glList_joint_sphere_mat
-    if not glList_joint_sphere_mat:
-        glList_joint_sphere_mat = glGenLists(1)
-        glNewList(glList_joint_sphere_mat, GL_COMPILE);
+    win = glutGetWindow()
+    if not glList_joint_sphere_mat.get(win):
+        glList_joint_sphere_mat[win] = glGenLists(1)
+        glNewList(glList_joint_sphere_mat[win], GL_COMPILE);
         for (key, value) in [ (GL_SPECULAR, [1,1,1,1]),
                       (GL_EMISSION, [0.5,0,0,1]),
                       (GL_AMBIENT_AND_DIFFUSE, [0.5,0,0,1]),
@@ -468,7 +492,7 @@ def draw_joint(joint, size = 1):
     r = 0.01*size
     h = r/2
     pos=joint.globalTransformation[0:3,3]
-    glCallList(glList_joint_sphere_mat)
+    glCallList(glList_joint_sphere_mat[win])
 
     if joint.jointType in ["free", "freeflyer"]:
         glPushMatrix()
