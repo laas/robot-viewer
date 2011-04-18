@@ -46,22 +46,15 @@ class NullHandler(logging.Handler):
 logger.addHandler(NullHandler())
 
 
-RMASK = 0x00ff0000
-GMASK = 0x0000ff00
-BMASK = 0x000000ff
-AMASK = 0xff000000
-BPP = 32
-DEPTH = 4
-
 def updateView(camera):
     """
 
     Arguments:
     - `camera`:
     """
-    p = camera.cam_position()
+    p = camera.cam_position
     f = camera.lookat
-    u = camera.cam_up()
+    u = camera.cam_up
     glLoadIdentity()
     gluLookAt(p[0],p[1],p[2],f[0],f[1],f[2],u[0],u[1],u[2])
 
@@ -426,6 +419,7 @@ class DisplayServer(object):
                 parent = config.get(section, 'parent')
 
                 if parent:
+                    self.disableElement(oname)
                     parent_name = parent.split(",")[0]
                     parent_joint_ids = parent.split(",")[1:]
 
@@ -447,7 +441,8 @@ class DisplayServer(object):
             try:
                 parent_obj = self._element_dict[parent_name]
             except KeyError:
-                logger.warning("Parent {0} does not exist. Skipping".format(parent_name))
+                logger.warning("Parent {0} does not exist. Skipping".
+                               format(parent_name))
                 continue
             new_el = copy.deepcopy( self._element_dict[orig_name] )
             parent_obj.get_op_point(parent_joint_id).addChild(new_el)
@@ -463,7 +458,8 @@ class DisplayServer(object):
         for section in config.sections():
             if section not in ['robots','default_configs','objects','joint_rank',
                                'preferences','scales']:
-                raise Exception("Invalid section {0} in {1}".format(sec,self.config_file))
+                raise Exception("Invalid section {0} in {1}".
+                                format(sec,self.config_file))
 
         scales = {}
         if config.has_section('scales'):
@@ -571,7 +567,8 @@ class DisplayServer(object):
             elif ext in ml_parser.supported_extensions:
                 logger.debug("Creating element from supported markup language file %s."%epath)
                 objs = ml_parser.parse(epath, not self.no_cache)
-                objs = [ o for o in objs if isinstance(o, kinematic_chain.GenericObject)]
+                objs = [ o for o in objs
+                         if isinstance(o, kinematic_chain.GenericObject)]
                 if len(objs) == 0:
                     raise Exception('Found no object in file %s'%epath)
                 elif len(objs) == 1:
@@ -844,7 +841,8 @@ class DisplayServer(object):
                                                         highgui.CV_FOURCC('P','I',
                                                                           'M','1'),
                                                         self.video_fps,
-                                                        cv.cvSize(self.win_w, self.win_h),
+                                                        cv.cvSize(self.win_w,
+                                                                  self.win_h),
                                                         True)
         logger.info("recording to {0}".format(self.video_fn))
         for id, window in self.windows.items():
@@ -917,7 +915,8 @@ class DisplayServer(object):
 
         elif args[0] == 'c':
             import PIL.Image
-            pixels = glReadPixels(0,0,self.win_w ,self.win_h ,GL_RGB, GL_UNSIGNED_BYTE)
+            pixels = glReadPixels(0,0,self.win_w ,
+                                  self.win_h ,GL_RGB, GL_UNSIGNED_BYTE)
             im = (PIL.Image.fromstring("RGB",(self.win_w ,self.win_h),pixels).
                   transpose(PIL.Image.FLIP_TOP_BOTTOM))
             imsuff = datetime.datetime.now().strftime("%Y%m%d%H%M")

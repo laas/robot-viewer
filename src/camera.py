@@ -49,23 +49,26 @@ class Camera(kinematic_chain.GenericObject):
                             lookatRel)
         self.lookat = lookatT[:3,3]
 
+    @property
     def cam_up(self):
         return self.globalTransformation[:3,1]
 
+
+    @property
     def cam_position(self):
         return self.globalTransformation[:3,3]
-
+    @property
     def cam_ray(self):
         return self.globalTransformation[:3,2]
-
+    @property
     def cam_right(self):
         return - self.globalTransformation[:3,0]
 
 
     def __str__(self):
         s = object.__str__(self)
-        s += "position = {0}\nlookat = {1}\nup={2}".format(self.cam_position(),
-                                                           self.lookat, self.cam_up())
+        s += "position = {0}\nlookat = {1}\nup={2}".format(self.cam_position,
+                                                           self.lookat, self.cam_up)
         return s
 
     def rotate(self,dx,dy):
@@ -77,17 +80,16 @@ class Camera(kinematic_chain.GenericObject):
         - `dy`:
         """
         factor = 0.002
-        dup    = -dy*factor
-        dright = -dx*factor
+        dup    = dy*factor
+        dright = dx*factor*abs(self.cam_up[2])
 
-        # print self.localTransformation
-        # print trans
-        new_z = self.cam_ray()
-        new_z -= dup*self.cam_up() + dright*self.cam_right()
-        new_z = normalized(new_z)
+        if abs(self.cam_ray[2]) > 0.9 and dup*self.cam_ray[2] > 0:
+            dup = 0
+
+        new_z = self.cam_ray + dup*self.cam_up + dright*self.cam_right
         new_pos = self.lookat + new_z*self.focal
 
-        # trans = new_pos - self.cam_position()
+        # trans = new_pos - self.cam_position
         new_x = - normalized(numpy.cross(new_z, numpy.array([0,0,1])))
         new_y = numpy.cross(new_z, new_x)
         new_R = numpy.eye(3)
@@ -111,7 +113,7 @@ class Camera(kinematic_chain.GenericObject):
 
         #self.update()
         #print self.globalTransformation
-        #print self.cam_position()
+        #print self.cam_position
         #print self.lookat
         self.update()
         return
@@ -129,7 +131,7 @@ class Camera(kinematic_chain.GenericObject):
         dup    = dy*factor
         dright = dx*factor
 
-        d = self.cam_right()*dright + self.cam_up()*dup
+        d = self.cam_right*dright + self.cam_up*dup
         for i in range(3):
             self.translation[i] += d[i]
         self.globalTransformation[:3,3] =  self.translation
@@ -147,7 +149,7 @@ class Camera(kinematic_chain.GenericObject):
         if self.focal < 0.01 and dy <=0:
             return
         factor = 0.02*0.1
-        d = self.cam_ray()*dy*factor
+        d = self.cam_ray*dy*factor
         self.focal += dy*factor
         for i in range(3):
             self.translation[i] += d[i]
