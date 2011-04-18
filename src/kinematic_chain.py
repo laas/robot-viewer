@@ -36,8 +36,21 @@ class GenericObject(object):
         self.globalTransformation = None
         self.localR=np.eye(3)
         self.id=None
-        self.mesh_list=[]
-        self.joint_list= []
+        self.list_by_type = {}
+
+    def get_list(self, type):
+        try:
+            return self.list_by_type[type]
+        except KeyError:
+            return []
+
+    @property
+    def mesh_list(self):
+        return self.get_list(Mesh)
+
+    @property
+    def joint_list(self):
+        return self.get_list(Joint)
 
     def get_op_point(self, id):
         if not isinstance(self, Robot):
@@ -152,17 +165,16 @@ class GenericObject(object):
         def _union(l1, l2):
             return list(set(l1).union(set(l2)))
 
-        if isinstance(self, Mesh):
-            self.mesh_list = [self]
-        if isinstance(self, Joint):
-            self.joint_list = [self]
-
+        self.list_by_type[type(self)] = [ self ]
         for child in self.children:
             try:
                 child.init()
-                self.mesh_list  = _union(child.mesh_list,self.mesh_list)
-                self.joint_list = _union(child.joint_list,self.joint_list)
-
+                for key in child.list_by_type.keys():
+                    if key not in self.list_by_type.keys():
+                        self.list_by_type[key] = child.list_by_type[key]
+                    else:
+                        self.list_by_type[key] = _union(child.list_by_type[key],
+                                                        self.list_by_type[key],)
             except Exception, error:
                 print error, "on object %s"%child.name
 

@@ -88,7 +88,7 @@ class GlWindow(object):
 
     @property
     def camera(self):
-        return self.cameras[0]
+        return self.cameras[self.active_camera]
 
     def updateFPS(self):
         """
@@ -105,7 +105,14 @@ class GlWindow(object):
             # # Save The FPS
             self._g_nFrames = 0;
             # # Reset The FPS Counter
-        szTitle = "%d %s %sfps"%(self.id, self.title,self._fps)
+        szTitle = ""
+        if self.id > 1:
+            szTitle += "%d "%self.id
+        szTitle += "%s "%self.title
+        if self.camera.name:
+            szTitle += "[%s] "%self.camera.name
+
+        szTitle += "%sfps"%(self._fps)
 
         if self.extra_info:
             szTitle += self.extra_info
@@ -113,6 +120,13 @@ class GlWindow(object):
         glutSetWindowTitle ( szTitle );
         self._g_nFrames += 1
 
+    def change_camera(self):
+        if self.active_camera == len(self.cameras) - 1:
+            self.active_camera = 0
+        else:
+            self.active_camera += 1
+        logger.info("Change camera to %d %s"%(self.active_camera,
+                                              self.camera.name))
 
 class DisplayServer(object):
     """OpenGL server
@@ -163,6 +177,7 @@ class DisplayServer(object):
         self.initGL()
         self.pendingObjects=[]
         self.parseConfig()
+        self.add_cameras()
         self._mouseButton = None
         self._oldMousePos = [ 0, 0 ]
         self.wired_frame_flag = False
@@ -199,7 +214,12 @@ class DisplayServer(object):
 
             self.usage += "%.20s: %s\n"%(key, effect)
 
-
+    def add_cameras(self):
+        for key, value in self._element_dict.items():
+            if isinstance(value, DisplayObject):
+                cameras = value.get_list(Camera)
+                for id, window in self.windows.items():
+                    window.cameras += cameras
 
     def __del__(self):
         if self.recording:
@@ -250,15 +270,6 @@ class DisplayServer(object):
             self._element_dict["camera%d"%window.id] = cam
             self.world_cameras.append(cam)
             window.cameras.append(cam)
-            if window.id == 2:
-                cam.translation = [0,0,1]
-                cam.localR = numpy.array([ [ 0 , 0 , -1],
-                                           [ -1 , 0 , 0],
-                                           [ 0 , 1 , 0],
-                                           ]
-                                         )
-                cam.rotation = rot2AxisAngle(cam.localR)
-                cam.init()
 
 
         glutIdleFunc(self.refresh_cb)
@@ -667,7 +678,12 @@ class DisplayServer(object):
         if not self._element_dict.has_key(name):
             logger.exception(KeyError,"Element with that name does not exist")
             return []
-        return self._element_dict[name].get_config()
+        cfg = self._element_dict[name].get_config()
+        if not isinstance(cfg, list):
+            return []
+        else:
+            return cfg
+
 
     def listElements(self):
         return [name for name in self._element_dict.keys() ]
@@ -788,7 +804,8 @@ class DisplayServer(object):
         return True
 
     def stop_record(self):
-        self._glwin.extra_info = None
+        for id, window in self.windows:
+            window.extra_info = None
         self.recording = False
         self.record_saved = False
         if not self.capture_images[:]:
@@ -831,7 +848,8 @@ class DisplayServer(object):
                                                         cv.cvSize(self.win_w, self.win_h),
                                                         True)
         logger.info("recording to {0}".format(self.video_fn))
-        self._glwin.extra_info = " (Recording to {0})".format(self.video_fn)
+        for id, window in self.windows.items():
+            window.extra_info = " (Recording to {0})".format(self.video_fn)
 
 
 
@@ -880,26 +898,26 @@ class DisplayServer(object):
                     if isinstance(e, DisplayRobot):
                         e.set_transparency(self.transparency)
         elif args[0] == 'l':
-            if self._glwin._modelAmbientLight < 1.0:
-                self._glwin._modelAmbientLight += 0.1
-                glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [self._glwin._modelAmbientLight,
-                                                        self._glwin._modelAmbientLight,
-                                                        self._glwin._modelAmbientLight,1])
+            if self.modelAmbientLight < 1.0:
+                self.modelAmbientLight += 0.1
+                glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [self.modelAmbientLight,
+                                                        self.modelAmbientLight,
+                                                        self.modelAmbientLight,1])
         elif args[0] == 'd':
-            if self._glwin._modelAmbientLight >0 :
-                self._glwin._modelAmbientLight -= 0.1
-                glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [self._glwin._modelAmbientLight,
-                                                        self._glwin._modelAmbientLight,
-                                                        self._glwin._modelAmbientLight,1])
+            if self.modelAmbientLight >0 :
+                self.modelAmbientLight -= 0.1
+                glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [self.modelAmbientLight,
+                                                        self.modelAmbientLight,
+                                                        self.modelAmbientLight,1])
 
         elif args[0] == 'e':
-            if self._glwin._lightAttenuation < 1.0:
-                self._glwin._lightAttenuation += 0.1
-                glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self._glwin._lightAttenuation)
+            if self.lightAttenuation < 1.0:
+                self.lightAttenuation += 0.1
+                glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self.lightAttenuation)
         elif args[0] == 'o':
-            if self._glwin._lightAttenuation > 0.1 :
-                self._glwin._lightAttenuation -= 0.1
-                glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self._glwin._lightAttenuation)
+            if self.lightAttenuation > 0.1 :
+                self.lightAttenuation -= 0.1
+                glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self.lightAttenuation)
 
         elif args[0] == 'c':
             import PIL.Image
@@ -921,6 +939,10 @@ class DisplayServer(object):
             else:
                 self.stop_record()
 
+        elif args[0] == 'x':
+            win = glutGetWindow()
+            self.windows[win].change_camera()
+            glutPostRedisplay( )
 
     def mouseButtonFunc( self, button, mode, x, y ):
         """Callback function (mouse button pressed or released).

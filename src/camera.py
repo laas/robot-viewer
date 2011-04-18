@@ -19,11 +19,12 @@ class Camera(kinematic_chain.GenericObject):
     def __init__(self):
         kinematic_chain.GenericObject.__init__(self)
 
-        self.front_clip_distance = 0.01
-        self.back_clip_distance = 100
+        self.frontClipDistance = 0.01
+        self.backClipDistance = 100
         self.width = 320
         self.height = 240
-
+        self.type = "COLOR"
+        self.fieldOfView = None
         self.translation = [3.5,0,1]
         self.focal = 3.5
         self.localR = numpy.array([ [ 0 , 0 , 1],
@@ -76,8 +77,8 @@ class Camera(kinematic_chain.GenericObject):
         - `dy`:
         """
         factor = 0.002
-        dup    = dy*factor
-        dright = dx*factor
+        dup    = -dy*factor
+        dright = -dx*factor
 
         # print self.localTransformation
         # print trans

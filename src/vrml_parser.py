@@ -13,6 +13,7 @@ import pprint
 
 from kinematic_chain import Mesh, Appearance, Geometry
 from kinematic_chain import GenericObject, Joint, Robot
+from camera import Camera
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass
@@ -129,7 +130,7 @@ class VrmlProcessor(DispatchProcessor):
             else:
                 logger.exception("Couldnt find %s"%(vrml_path))
 
-        elif vrml_node.name in  [ "ForceSensor", "VisionSensor"]:
+        elif vrml_node.name in  [ "ForceSensor"]:
             processed_node = GenericObject()
 
         elif vrml_node.name == "Joint":
@@ -152,6 +153,10 @@ class VrmlProcessor(DispatchProcessor):
                     child.parent = processed_node
                 else:
                     logger.debug("Ignoring child %s"%str(child))
+
+        elif vrml_node.name == "VisionSensor":
+            processed_node = Camera()
+            processed_node.__dict__.update(vrml_node)
 
         if defname:
             self.def_dict[defname] = processed_node
