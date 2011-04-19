@@ -1,11 +1,13 @@
 from __future__ import division
 import kinematic_chain
-from math import sqrt,sin,cos,atan2
+from math import sqrt,sin,cos,atan2, pi
 import numpy
 from mathaux import *
 import display_element
 def norm(a):
     return sqrt(numpy.dot(a,a))
+from OpenGL.GL import *
+from OpenGL.GLU import *
 
 def normalized(v):
     return v/norm(v)
@@ -24,7 +26,7 @@ class Camera(kinematic_chain.GenericObject):
         self.width = 320
         self.height = 240
         self.type = "COLOR"
-        self.fieldOfView = None
+        self.fieldOfView = 45*pi/180
         self.translation = [3.5,0,1]
         self.focal = 3.5
         self.localR = numpy.array([ [ 0 , 0 , 1],
@@ -155,3 +157,35 @@ class Camera(kinematic_chain.GenericObject):
             self.translation[i] += d[i]
         self.globalTransformation[:3,3] =  self.translation
         self.update()
+
+
+    def update_view(self):
+        """
+
+        Arguments:
+        - `camera`:
+        """
+        p = self.cam_position
+        f = self.lookat
+        u = self.cam_up
+        glLoadIdentity()
+        gluLookAt(p[0],p[1],p[2],f[0],f[1],f[2],u[0],u[1],u[2])
+
+    def update_perspective(self):
+        if self.height == 0:
+            # Prevent A Divide By Zero If The Window Is Too Small
+            self.height = 1
+
+        glViewport(0, 0, self.width, self.height)
+
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        # # field of view, aspect ratio, near and far
+        # This will squash and stretch our objects as the window is resized.
+        gluPerspective( self.fieldOfView*180/pi,
+                        float(self.width)/float(self.height),
+                        self.frontClipDistance,
+                        self.backClipDistance)
+
+        glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()

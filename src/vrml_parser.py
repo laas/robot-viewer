@@ -9,6 +9,7 @@ from simpleparse.common import numbers, strings, comments
 from simpleparse.parser import Parser
 from simpleparse.dispatchprocessor import *
 from vrml_grammar import VRMLPARSERDEF
+from numbers import Number
 import pprint
 
 from kinematic_chain import Mesh, Appearance, Geometry
@@ -122,7 +123,7 @@ class VrmlProcessor(DispatchProcessor):
                         logger.debug("Ignoring segment child %s"%str(child))
 
         elif vrml_node.name == "Inline":
-            vrml_path = vrml_node['url'][0]
+            vrml_path = vrml_node['url']
             if self.root_path:
                 vrml_path = os.path.join(self.root_path, vrml_path)
             if os.path.isfile(vrml_path):
@@ -141,11 +142,11 @@ class VrmlProcessor(DispatchProcessor):
                     processed_node.__dict__[key] = vrml_node[key]
 
             if 'jointId' in vrml_node.keys():
-                processed_node.id = vrml_node['jointId'][0]
+                processed_node.id = vrml_node['jointId']
             if 'jointType' in vrml_node.keys():
-                processed_node.jointType = vrml_node['jointType'][0]
+                processed_node.jointType = vrml_node['jointType']
             if 'jointAxis' in vrml_node.keys():
-                processed_node.axis = vrml_node['jointAxis'][0]
+                processed_node.axis = vrml_node['jointAxis']
 
             for child in children:
                 if isinstance(child, GenericObject):
@@ -176,7 +177,13 @@ class VrmlProcessor(DispatchProcessor):
         return name
 
     def Field(self,(tag,start,stop,subtags), buffer ):
-        return dispatchList(self, subtags, buffer)
+        l =  dispatchList(self, subtags, buffer)
+        if ( len(l) == 1 and (isinstance(l[0], Number)
+                              or isinstance(l[0],basestring) )):
+            return l[0]
+        else:
+            return l
+
 
     def SFNumber(self,(tag,start,stop,subtags), buffer ):
         s = buffer[start:stop]

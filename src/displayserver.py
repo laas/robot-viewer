@@ -46,20 +46,6 @@ class NullHandler(logging.Handler):
 logger.addHandler(NullHandler())
 
 
-def updateView(camera):
-    """
-
-    Arguments:
-    - `camera`:
-    """
-    p = camera.cam_position
-    f = camera.lookat
-    u = camera.cam_up
-    glLoadIdentity()
-    gluLookAt(p[0],p[1],p[2],f[0],f[1],f[2],u[0],u[1],u[2])
-
-
-
 class CustomConfigParser(ConfigParser.ConfigParser):
     def get(self,*args, **kwargs ):
         try:
@@ -98,6 +84,7 @@ class GlWindow(object):
             # # Save The FPS
             self._g_nFrames = 0;
             # # Reset The FPS Counter
+            glutReshapeWindow(self.camera.width, self.camera.height)
         szTitle = ""
         if self.id > 1:
             szTitle += "%d "%self.id
@@ -118,6 +105,8 @@ class GlWindow(object):
             self.active_camera = 0
         else:
             self.active_camera += 1
+        glutReshapeWindow(self.camera.width, self.camera.height)
+        self.camera.update_perspective()
         logger.info("Change camera to %d %s"%(self.active_camera,
                                               self.camera.name))
 
@@ -125,6 +114,8 @@ class DisplayServer(object):
     """OpenGL server
     """
 
+    WIDTH = 640
+    HEIGHT = 480
     def __init__(self,options = None, args = None):
         """
 
@@ -157,9 +148,6 @@ class DisplayServer(object):
 
         self.capture_images = []
         self.last_refreshed = {}
-
-        self.win_w = 640
-        self.win_h = 480
 
         self.modelAmbientLight = 0.3
         self.lightAttenuation = 0.2
@@ -246,7 +234,7 @@ class DisplayServer(object):
         if intel_card:
             glutDestroyWindow(dummy_win)
         logger.debug("Setting glut WindowSize")
-        glutInitWindowSize(self.win_w, self.win_h)
+        glutInitWindowSize(self.WIDTH, self.HEIGHT)
         logger.debug("Creating glutWindow")
         self.windows = {}
         # self.windows.append(glutCreateWindow("Robotviewer Server"))
@@ -258,9 +246,11 @@ class DisplayServer(object):
             glutDisplayFunc(self.draw_cb)
             glutReshapeFunc(self.resize_cb)
             self.bindEvents()
-            glutPositionWindow(i*self.win_w,20);
+            glutPositionWindow(i*self.WIDTH,20);
             self.init_lights()
             cam = Camera()
+            cam.width = self.WIDTH
+            cam.height = self.HEIGHT
             self._element_dict["camera%d"%window.id] = cam
             self.world_cameras.append(cam)
             window.cameras.append(cam)
@@ -289,23 +279,16 @@ class DisplayServer(object):
 
     # The function called when our window is resized (which shouldn't happen if you
     # enable fullscreen, below)
-    def resize_cb(self, Width, Height):
-        self.win_w = Width
-        self.win_h = Height
-        if Height == 0:
-            # Prevent A Divide By Zero If The Window Is Too Small
-            Height = 1
+    def resize_cb(self, width, height):
+        win = glutGetWindow()
+        camera = self.windows[win].camera
 
-        glViewport(0, 0, Width, Height)
-
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        # # field of view, aspect ratio, near and far
-        # This will squash and stretch our objects as the window is resized.
-        gluPerspective(45.0, float(Width)/float(Height), 0.1, 1000.0)
-
-        glMatrixMode(GL_MODELVIEW)
-        glLoadIdentity()
+        if not camera in self.world_cameras:
+            glutReshapeWindow(camera.width, camera.height)
+            return
+        camera.width = width
+        camera.height = height
+        camera.update_perspective()
 
 
     def create_render_buffer(self):
@@ -763,7 +746,7 @@ class DisplayServer(object):
         # # Get FPS
         # milliseconds = win32api.GetTickCount()
         win = glutGetWindow()
-        updateView(self.windows[win].camera)
+        self.windows[win].camera.update_view()
 
         if not self.off_screen:
             self.windows[win].updateFPS()
@@ -784,9 +767,13 @@ class DisplayServer(object):
 
         if self.recording or self.stream:
             import PIL.Image
-            pixels = glReadPixels(0,0,self.win_w ,self.win_h ,
+            win = glutGetWindow()
+            pixels = glReadPixels(0,0,self.windows[win].camera.width ,
+                                  self.windows[win].camera.height ,
                                   GL_RGB, GL_UNSIGNED_BYTE)
-            img = (PIL.Image.fromstring("RGB",(self.win_w ,self.win_h),pixels).
+            img = (PIL.Image.fromstring("RGB",(self.windows[win].camera.width ,
+                                               self.windows[win].camera.height)
+                                        ,pixels).
                    transpose(PIL.Image.FLIP_TOP_BOTTOM))
             if self.recording:
                 self.capture_images.append((time.time(),img))
@@ -837,9 +824,9 @@ class DisplayServer(object):
             i += 1
             self.video_fn = ("/tmp/robotviewer_{0}_{1}.avi".
                                format(suffix, i))
+        fourcc = highgui.CV_FOURCC('P','I','M','1')
         self.video_writer = highgui.cvCreateVideoWriter(self.video_fn,
-                                                        highgui.CV_FOURCC('P','I',
-                                                                          'M','1'),
+                                                        fourcc,
                                                         self.video_fps,
                                                         cv.cvSize(self.win_w,
                                                                   self.win_h),
@@ -896,28 +883,37 @@ class DisplayServer(object):
                 self.modelAmbientLight += 0.1
                 glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [self.modelAmbientLight,
                                                         self.modelAmbientLight,
-                                                        self.modelAmbientLight,1])
+                                                        self.modelAmbientLight,
+                                                        1])
         elif args[0] == 'd':
             if self.modelAmbientLight >0 :
                 self.modelAmbientLight -= 0.1
                 glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [self.modelAmbientLight,
                                                         self.modelAmbientLight,
-                                                        self.modelAmbientLight,1])
+                                                        self.modelAmbientLight,
+                                                        1])
 
         elif args[0] == 'e':
             if self.lightAttenuation < 1.0:
                 self.lightAttenuation += 0.1
-                glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self.lightAttenuation)
+                glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION,
+                         self.lightAttenuation)
         elif args[0] == 'o':
             if self.lightAttenuation > 0.1 :
                 self.lightAttenuation -= 0.1
-                glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self.lightAttenuation)
+                glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION,
+                         self.lightAttenuation)
 
         elif args[0] == 'c':
             import PIL.Image
-            pixels = glReadPixels(0,0,self.win_w ,
-                                  self.win_h ,GL_RGB, GL_UNSIGNED_BYTE)
-            im = (PIL.Image.fromstring("RGB",(self.win_w ,self.win_h),pixels).
+            win = glutGetWindow()
+            pixels = glReadPixels(0,0,self.windows[win].camera.width ,
+                                  self.windows[win].camera.height ,
+                                  GL_RGB, GL_UNSIGNED_BYTE)
+            im = (PIL.Image.fromstring("RGB",
+                                       (self.windows[win].camera.width,
+                                        self.windows[win].camera.height ),
+                                       pixels).
                   transpose(PIL.Image.FLIP_TOP_BOTTOM))
             imsuff = datetime.datetime.now().strftime("%Y%m%d%H%M")
             imname = None
