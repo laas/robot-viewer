@@ -1,20 +1,31 @@
-This package was debianized by Duong Dang
+This package was debianized by Duong Dang <dang.duong@gmail.com>
 
 It was downloaded from https://github.com/laas/robot-viewer
 
-Upstream Author:
+Upstream Author:   Duong Dang<dang.duong@gmail.com>
 
-    Duong Dang
 
 Files: *
 Copyright:
-    20010-2011, Duong Dang
-License: GPL
+    20010-2011, Duong Dang<dang.duong@gmail.com>
+License: LGPL-3
 
 Files: debian/*
 Copyright:
-    2010-2011, Duong Dang
+    2010-2011, Duong Dang<dang.duong@gmail.com>
 License: LGPL-3
+    This package is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-License: LGPL-3
+    This package is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with this package.  If not, see <http://www.gnu.org/licenses/>.
+
+Public License can be found in `/usr/share/common-licenses/LGPL-3'.
                  

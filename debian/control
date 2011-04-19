@@ -1,10 +1,10 @@
 Source: robot-viewer
 Section: python
 Priority: optional
-Maintainer: Duong Dang
-Build-Depends: python-simpleparse (>=2.1), python-opengl, python-numpy
+Maintainer: Duong Dang <dang.duong@gmail.com>
+Build-Depends: python (>=2.6), cdbs, python-support, python-simpleparse (>=2.1), python-opengl, python-numpy, debhelper
 XS-Python-Version: >=2.6
-Standards-Version: 1.6
+Standards-Version: 3.9.1
 
 Package: robot-viewer
 Architecture: all
