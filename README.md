@@ -3,6 +3,13 @@ robot-viewer
 
 A vizualization tool for robots using OpenGL and Python.
 
+Main features:
+
+  *  render a extensible scene with multiple robots and objects.
+  *  simulate robots' cameras.
+  *  screen/screen capture builtin.
+  *  server-client design.
+
 Setup
 -----
 Make sure you have the following dependency:
@@ -37,6 +44,7 @@ Usage
    previous step. (i.e. "CORBA" or "XML-RPC")
 
   The following functions are available for the client:
+
      * createElement(type, name, description)
      * destroyElement(element_name)
      * enableElement(element_name)
