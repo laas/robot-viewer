@@ -114,8 +114,8 @@ class DisplayServer(object):
     """OpenGL server
     """
 
-    WIDTH = 640
-    HEIGHT = 480
+    width = 640
+    height = 480
     def __init__(self,options = None, args = None):
         """
 
@@ -236,7 +236,7 @@ class DisplayServer(object):
         if intel_card:
             glutDestroyWindow(dummy_win)
         logger.debug("Setting glut WindowSize")
-        glutInitWindowSize(self.WIDTH, self.HEIGHT)
+        glutInitWindowSize(self.width, self.height)
         logger.debug("Creating glutWindow")
         self.windows = {}
         # self.windows.append(glutCreateWindow("Robotviewer Server"))
@@ -248,11 +248,11 @@ class DisplayServer(object):
             glutDisplayFunc(self.draw_cb)
             glutReshapeFunc(self.resize_cb)
             self.bindEvents()
-            glutPositionWindow(i*self.WIDTH,20);
+            glutPositionWindow(i*self.width,20);
             self.init_lights()
             cam = Camera()
-            cam.width = self.WIDTH
-            cam.height = self.HEIGHT
+            cam.width = self.width
+            cam.height = self.height
             self._element_dict["camera%d"%window.id] = cam
             self.world_cameras.append(cam)
             window.cameras.append(cam)
@@ -300,7 +300,7 @@ class DisplayServer(object):
         self.rbo_id = glGenRenderbuffersEXT(1)
         glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, self.rbo_id)
         glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
-                                 GL_RGB, self.WIDTH, self.HEIGHT)
+                                 GL_RGB, self.width, self.height)
         glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
                                      GL_COLOR_ATTACHMENT0_EXT,
                                      GL_RENDERBUFFER_EXT, self.rbo_id)
@@ -801,16 +801,29 @@ class DisplayServer(object):
             window.extra_info = None
         self.recording = False
         self.record_saved = False
+
         if not self.capture_images[:]:
             logger.info("No images have been capture for video.")
             return
+
+        im0 = self.capture_images[0][1]
+        fourcc = highgui.CV_FOURCC('P','I','M','1')
+        width = im0.size[0]
+        height = im0.size[1]
+        cvsize = cv.cvSize(width, height)
+        self.video_writer = highgui.cvCreateVideoWriter(self.video_fn,
+                                                        fourcc,
+                                                        self.video_fps,
+                                                        cvsize,
+                                                        True)
+
         def flush():
             t0 = self.capture_images[0][0]
             frame_no = 0
             for t, im in self.capture_images:
                 t -= t0
                 cv_im = adaptors.PIL2Ipl(im)
-                no_needed_frames = math.floor( t*self.video_fps) - frame_no
+                no_needed_frames = int(math.floor( t*self.video_fps) - frame_no)
                 for j in range(no_needed_frames):
                     highgui.cvWriteFrame( self.video_writer, cv_im)
                     frame_no += 1
@@ -834,16 +847,6 @@ class DisplayServer(object):
             i += 1
             self.video_fn = ("/tmp/robotviewer_{0}_{1}.avi".
                                format(suffix, i))
-        fourcc = highgui.CV_FOURCC('P','I','M','1')
-        win = glutGetWindow()
-        width = self.windows[win].camera.width
-        height = self.windows[win].camera.height
-        cvsize = cv.cvSize(width, height)
-        self.video_writer = highgui.cvCreateVideoWriter(self.video_fn,
-                                                        fourcc,
-                                                        self.video_fps,
-                                                        cvsize,
-                                                        True)
         logger.info("recording to {0}".format(self.video_fn))
         for id, window in self.windows.items():
             window.extra_info = " (Recording to {0})".format(self.video_fn)
