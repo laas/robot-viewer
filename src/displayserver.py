@@ -300,7 +300,7 @@ class DisplayServer(object):
         self.rbo_id = glGenRenderbuffersEXT(1)
         glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, self.rbo_id)
         glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
-                                 GL_RGB, self.win_w, self.win_h)
+                                 GL_RGB, self.WIDTH, self.HEIGHT)
         glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
                                      GL_COLOR_ATTACHMENT0_EXT,
                                      GL_RENDERBUFFER_EXT, self.rbo_id)
@@ -835,7 +835,10 @@ class DisplayServer(object):
             self.video_fn = ("/tmp/robotviewer_{0}_{1}.avi".
                                format(suffix, i))
         fourcc = highgui.CV_FOURCC('P','I','M','1')
-        cvszie = cv.cvSize(self.win_w, self.win_h)
+        win = glutGetWindow()
+        width = self.windows[win].camera.width
+        height = self.windows[win].camera.height
+        cvsize = cv.cvSize(width, height)
         self.video_writer = highgui.cvCreateVideoWriter(self.video_fn,
                                                         fourcc,
                                                         self.video_fps,
