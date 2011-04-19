@@ -1,0 +1,19 @@
+Source: robot-viewer
+Section: python
+Priority: optional
+Maintainer: Duong Dang
+Build-Depends: python-simpleparse (>=2.1), python-opengl, python-numpy
+XS-Python-Version: >=2.6
+Standards-Version: 1.6
+
+Package: robot-viewer
+Architecture: all
+Homepage: https://github.com/laas/robot-viewer
+XB-Python-Version: ${python:Versions}
+Depends: ${misc:Depends}, ${python:Depends}
+Description: A vizualization tool for robots using OpenGL and Python.
+ Main features:
+ * render a extensible scene with multiple robots and objects.
+ * simulate robots' cameras.
+ * screen/screen capture builtin.
+ * server-client design.
