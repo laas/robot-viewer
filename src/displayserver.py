@@ -224,13 +224,15 @@ class DisplayServer(object):
         logger.info("Creating window")
         intel_card = False
         if os.name == 'posix':
-            rt = subprocess.call("lspci | grep VGA | grep Intel", shell= True)
+            rt = subprocess.call("lspci | grep VGA | grep Intel",
+                                 shell= True)
             if rt == 0:
                 intel_card = True
         # Hack to catch segfaut on intel cards
         if intel_card:
             dummy_win = glutCreateWindow("Initializing...")
-        glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
+        glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA
+                            | GLUT_DEPTH)
         if intel_card:
             glutDestroyWindow(dummy_win)
         logger.debug("Setting glut WindowSize")
@@ -277,8 +279,8 @@ class DisplayServer(object):
             self.window = []
 
 
-    # The function called when our window is resized (which shouldn't happen if you
-    # enable fullscreen, below)
+    # The function called when our window is resized (which shouldn't happen if
+    # you enable fullscreen, below)
     def resize_cb(self, width, height):
         win = glutGetWindow()
         camera = self.windows[win].camera
@@ -297,8 +299,10 @@ class DisplayServer(object):
 
         self.rbo_id = glGenRenderbuffersEXT(1)
         glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, self.rbo_id)
-        glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_RGB, self.win_w, self.win_h)
-        glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
+        glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
+                                 GL_RGB, self.win_w, self.win_h)
+        glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
+                                     GL_COLOR_ATTACHMENT0_EXT,
                                      GL_RENDERBUFFER_EXT, self.rbo_id)
 
     def setRobotJointRank(self,robot_name, joint_rank_xml):
@@ -379,7 +383,8 @@ class DisplayServer(object):
 
                 geometry = config.get(section, 'geometry')
                 if not geometry:
-                    raise Exception("missing geometry section for {0}".format(section))
+                    raise Exception("missing geometry section for {0}"
+                                    .format(section))
                 scale = config.get(section, 'scale')
                 if not scale:
                     scale = [1,1,1]
@@ -439,7 +444,8 @@ class DisplayServer(object):
     def parseConfigLegacy(self, config):
         logger.warning("Entering legacy config parsing")
         for section in config.sections():
-            if section not in ['robots','default_configs','objects','joint_rank',
+            if section not in ['robots','default_configs',
+                               'objects','joint_rank',
                                'preferences','scales']:
                 raise Exception("Invalid section {0} in {1}".
                                 format(sec,self.config_file))
@@ -465,9 +471,10 @@ class DisplayServer(object):
                                      scales.get(robot_name))
                 self.enableElement(robot_name)
         else:
-            logger.info( """Couldn't any default robots. Loading an empty scene
-    You might need to load some robots yourself.
-    See documentation""")
+            logger.info( """Couldn't any default robots.
+            Loading an empty scene
+            You might need to load some robots yourself.
+            See documentation""")
 
         if config.has_section('joint_ranks'):
             robot_names = config.options('joint_ranks')
@@ -655,14 +662,14 @@ class DisplayServer(object):
         - `name`:         string, element name
         """
         if not self._element_dict.has_key(name):
-            logger.exception(KeyError,"Element with that name does not exist")
+            logger.exception(KeyError,
+                             "Element with that name does not exist")
             return []
         cfg = self._element_dict[name].get_config()
         if not isinstance(cfg, list):
             return []
         else:
             return cfg
-
 
     def listElements(self):
         return [name for name in self._element_dict.keys() ]
@@ -755,7 +762,8 @@ class DisplayServer(object):
             try:
                 if isinstance(ele, DisplayRobot):
                     ele.render(self.render_mesh_flag,
-                               self.render_skeleton_flag, self.skeleton_size)
+                               self.render_skeleton_flag,
+                               self.skeleton_size)
                 else:
                     ele.render()
             except:
@@ -763,7 +771,8 @@ class DisplayServer(object):
                     glutLeaveMainLoop()
                     #glutDestroyWindow(self.window)
                 else:
-                    logger.exception("Failed to render element {0}".format(ele))
+                    logger.exception("Failed to render element {0}"
+                                     .format(ele))
 
         if self.recording or self.stream:
             import PIL.Image
@@ -771,8 +780,9 @@ class DisplayServer(object):
             pixels = glReadPixels(0,0,self.windows[win].camera.width ,
                                   self.windows[win].camera.height ,
                                   GL_RGB, GL_UNSIGNED_BYTE)
-            img = (PIL.Image.fromstring("RGB",(self.windows[win].camera.width ,
-                                               self.windows[win].camera.height)
+            img = (PIL.Image.fromstring("RGB",
+                                        (self.windows[win].camera.width ,
+                                         self.windows[win].camera.height)
                                         ,pixels).
                    transpose(PIL.Image.FLIP_TOP_BOTTOM))
             if self.recording:
@@ -825,11 +835,11 @@ class DisplayServer(object):
             self.video_fn = ("/tmp/robotviewer_{0}_{1}.avi".
                                format(suffix, i))
         fourcc = highgui.CV_FOURCC('P','I','M','1')
+        cvszie = cv.cvSize(self.win_w, self.win_h)
         self.video_writer = highgui.cvCreateVideoWriter(self.video_fn,
                                                         fourcc,
                                                         self.video_fps,
-                                                        cv.cvSize(self.win_w,
-                                                                  self.win_h),
+                                                        cvsize,
                                                         True)
         logger.info("recording to {0}".format(self.video_fn))
         for id, window in self.windows.items():
@@ -881,17 +891,19 @@ class DisplayServer(object):
         elif args[0] == 'l':
             if self.modelAmbientLight < 1.0:
                 self.modelAmbientLight += 0.1
-                glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [self.modelAmbientLight,
-                                                        self.modelAmbientLight,
-                                                        self.modelAmbientLight,
-                                                        1])
+                glLightModelfv(GL_LIGHT_MODEL_AMBIENT,
+                               [self.modelAmbientLight,
+                                self.modelAmbientLight,
+                                self.modelAmbientLight,
+                                1])
         elif args[0] == 'd':
             if self.modelAmbientLight >0 :
                 self.modelAmbientLight -= 0.1
-                glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [self.modelAmbientLight,
-                                                        self.modelAmbientLight,
-                                                        self.modelAmbientLight,
-                                                        1])
+                glLightModelfv(GL_LIGHT_MODEL_AMBIENT,
+                               [self.modelAmbientLight,
+                                self.modelAmbientLight,
+                                self.modelAmbientLight,
+                                1])
 
         elif args[0] == 'e':
             if self.lightAttenuation < 1.0:
@@ -912,7 +924,7 @@ class DisplayServer(object):
                                   GL_RGB, GL_UNSIGNED_BYTE)
             im = (PIL.Image.fromstring("RGB",
                                        (self.windows[win].camera.width,
-                                        self.windows[win].camera.height ),
+                                        self.windows[win].camera.height),
                                        pixels).
                   transpose(PIL.Image.FLIP_TOP_BOTTOM))
             imsuff = datetime.datetime.now().strftime("%Y%m%d%H%M")
@@ -942,11 +954,13 @@ class DisplayServer(object):
         a	global renderParam and a global list respectively"""
 
         if mode == GLUT_DOWN:
-                self._mouseButton = button
+            self._mouseButton = button
         else:
-                self._mouseButton = None
+            self._mouseButton = None
         self._oldMousePos[0], self._oldMousePos[1] = x, y
         glutPostRedisplay( )
+
+
 
     def mouseMotionFunc( self, x, y ):
         """Callback function (mouse moved while button is pressed).
@@ -974,6 +988,7 @@ class DisplayServer(object):
         elif self._mouseButton == GLUT_RIGHT_BUTTON:
             camera.moveSideway(dx,dy)
 
+
         self._oldMousePos[0], self._oldMousePos[1] = x, y
 
         glutPostRedisplay( )
@@ -983,7 +998,6 @@ class DisplayServer(object):
         glutMotionFunc( self.mouseMotionFunc )
         glutSpecialFunc(self.keyPressedFunc)
         glutKeyboardFunc(self.keyPressedFunc)
-
 
     def init_lights(self, bg = [0,0,0]):
         glClearColor (bg[0], bg[1], bg[2], 0.5);
