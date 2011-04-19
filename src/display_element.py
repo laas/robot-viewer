@@ -231,6 +231,9 @@ class DisplayRobot(DisplayObject):
         if mesh_flag:
             DisplayObject.render(self)
         if skeleton_flag or not self.mesh_list[:]:
+            if self.pending_update:
+                self.pending_update = False
+                self.obj.update_config(self.config)
             render_skeleton(self, skeleton_size)
 
 
