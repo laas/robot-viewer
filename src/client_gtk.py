@@ -6,10 +6,10 @@ __version__ = "0.1"
 import logging, sys, os, re
 import ConfigParser
 from xml.dom.minidom import parse, parseString
-import pygtk, robotviewer, math
+import pygtk, math
 pygtk.require('2.0')
 import gtk
-
+import client
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass
@@ -60,7 +60,7 @@ class RangeWidgets(gtk.Table):
 class ControllerWidget(RangeWidgets):
     def __init__(self, objname):
         self.objname = objname
-        self.clt = robotviewer.client()
+        self.clt = client.client()
         print self.objname
         start_pos = self.clt.getElementConfig(self.objname)
         print start_pos
@@ -109,7 +109,7 @@ def main():
     window = gtk.Window (gtk.WINDOW_TOPLEVEL)
     window.connect("destroy", lambda w: gtk.main_quit())
     window.set_title("Position Control")
-    clt = robotviewer.client()
+    clt = client.client()
     notebook = gtk.Notebook()
     window.add(notebook)
     print notebook
