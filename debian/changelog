@@ -3,8 +3,8 @@ robot-viewer (1.6) UNRELEASED; urgency=low
   [ Duong Dang ]
   * Initial release. (Closes: #XXXXXX)
 
-  [ Ngoc Duong Dang ]
+  [ Duong Dang ]
   * Switch to dpkg-source 3.0 (quilt) format
   * Switch to dpkg-source 3.0 (quilt) format
 
- -- Ngoc Duong Dang <nddang@laas.fr>  Wed, 20 Apr 2011 10:03:07 +0200
+ -- Duong Dang <dang.duong@gmail.com>  Wed, 20 Apr 2011 10:03:07 +0200
