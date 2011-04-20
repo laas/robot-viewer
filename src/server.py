@@ -4,7 +4,8 @@ from optparse import OptionParser
 import logging
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
-__version__ = robotviewer.__version__
+import version
+__version__ = version.__version__
 ch = logging.StreamHandler()
 ch.setLevel(logging.INFO)
 # create formatter and add it to the handlers
