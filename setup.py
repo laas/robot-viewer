@@ -3,9 +3,7 @@
 from distutils.core import setup, Extension
 import os
 execfile('src/version.py')
-home_dir = os.environ['HOME']
-os.system('mkdir -p $HOME/.robotviewer')
-config_dir = home_dir + '/.robotviewer'
+config_dir = os.path.join("share", 'robot-viewer')
 
 setup(name='robot-viewer',
       version=__version__,

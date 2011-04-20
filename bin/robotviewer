@@ -15,6 +15,11 @@ ch.setFormatter(formatter)
 # add the handlers to the logger
 logger.addHandler(ch)
 
+
+os.chmod(os.path.join(os.environ['HOME'], ".robotviewer"),
+         stat.S_IWUSR | stat.S_IRUSR | stat.S_IXUSR)
+
+
 config_file = os.path.join(os.environ['HOME'],'/.robotviewer/config')
 def main():
     """
@@ -79,8 +84,6 @@ def main():
         print __version__
         sys.exit(0)
 
-    os.chmod(os.path.join(os.environ['HOME'], ".robotviewer"),
-             stat.S_IWUSR | stat.S_IRUSR | stat.S_IXUSR)
 
     if options.verbose:
         ch.setLevel(logging.DEBUG)

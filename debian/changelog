@@ -1,5 +1,10 @@
 robot-viewer (1.6) UNRELEASED; urgency=low
 
+  [ Duong Dang ]
   * Initial release. (Closes: #XXXXXX)
 
- -- Duong Dang <dang.duong@gmail.com>  Tue, 19 Apr 2011 16:39:40 +0200
+  [ Ngoc Duong Dang ]
+  * Switch to dpkg-source 3.0 (quilt) format
+  * Switch to dpkg-source 3.0 (quilt) format
+
+ -- Ngoc Duong Dang <nddang@laas.fr>  Wed, 20 Apr 2011 10:03:07 +0200
