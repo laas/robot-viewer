@@ -2,7 +2,7 @@ Source: robot-viewer
 Section: python
 Priority: optional
 Maintainer: Duong Dang <dang.duong@gmail.com>
-Build-Depends: python (>=2.6), cdbs, python-support, python-simpleparse (>=2.1), python-opengl, python-numpy, debhelper (>=7.4), python-opencv, python-imaging
+Build-Depends: python (>=2.6), cdbs, python-support, debhelper (>=7.4), python-sphinx
 XS-Python-Version: >=2.6
 Standards-Version: 3.8.4
 
@@ -10,7 +10,9 @@ Package: robot-viewer
 Architecture: all
 Homepage: https://github.com/laas/robot-viewer
 XB-Python-Version: ${python:Versions}
-Depends: ${misc:Depends}, ${python:Depends}
+Depends: ${misc:Depends}, ${python:Depends}, python-opengl, 
+ python-simpleparse, python-numpy, python-opencv,
+ omniorb4, python-omniorb, python-imaging
 Description: A vizualization tool for robotics
  Main features:
   * render a extensible scene with multiple robots and objects.
