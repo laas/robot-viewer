@@ -6,8 +6,7 @@ __version__ = "0.1"
 import logging, sys, os, re
 import ConfigParser
 from xml.dom.minidom import parse, parseString
-import pygtk, math
-pygtk.require('2.0')
+import math
 import gtk
 import client
 class NullHandler(logging.Handler):
