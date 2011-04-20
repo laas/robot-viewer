@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-import sys,imp, os, stat
+import sys,imp, os, stat, glob
 from optparse import OptionParser
 import logging
 import robotviewer
@@ -15,12 +15,26 @@ ch.setFormatter(formatter)
 # add the handlers to the logger
 logger.addHandler(ch)
 
-
-os.chmod(os.path.join(os.environ['HOME'], ".robotviewer"),
+config_dir = os.path.join(os.environ['HOME'], ".robotviewer")
+if not os.path.isdir(config_dir):
+    os.mkdir(config_dir)
+os.chmod(config_dir,
          stat.S_IWUSR | stat.S_IRUSR | stat.S_IXUSR)
+default_config_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                                  "..","share","robot-viewer")
+
+def visit_cb(arg, dirname, names):
+    for name in names:
+        if not os.path.exists(os.path.join(config_dir,name)):
+            os.symlink(os.path.join(dirname, name),
+                       os.path.join(config_dir,name)
+                       )
+
+os.path.walk(default_config_dir, visit_cb, None)
 
 
-config_file = os.path.join(os.environ['HOME'],'/.robotviewer/config')
+
+config_file = os.path.join(config_dir, 'config')
 def main():
     """
     """
