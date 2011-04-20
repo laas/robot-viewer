@@ -8,6 +8,7 @@ import ConfigParser
 from xml.dom.minidom import parse, parseString
 import math
 import client
+import gtk
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass
