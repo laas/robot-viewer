@@ -23,7 +23,8 @@ setup(name='robot-viewer',
       requires=['sphinx (>=0.6)','pyopengl'],
       data_files=[('bin',['bin/robotviewer','bin/robotviewer-gtk']),
                   (config_dir,['data/floor.py',
-                               'data/config.example','data/sample.wrl'])
+                               'data/config.example','data/sample.wrl',
+                               'data/coord.py'])
                   ],
       # ext_modules = [Extension("robotviewer.oglc",
       #                          sources = ["src/oglc.cc"],
