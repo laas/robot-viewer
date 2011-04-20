@@ -1,7 +1,7 @@
 robot-viewer (1.6) UNRELEASED; urgency=low
 
   [ Duong Dang ]
-  * Initial release. (Closes: #XXXXXX)
+  * Initial release.
 
   [ Duong Dang ]
   * Switch to dpkg-source 3.0 (quilt) format
