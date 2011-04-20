@@ -7,7 +7,6 @@ import logging, sys, os, re
 import ConfigParser
 from xml.dom.minidom import parse, parseString
 import math
-import gtk
 import client
 class NullHandler(logging.Handler):
     def emit(self, record):
@@ -28,6 +27,7 @@ def replace_env_var(s):
     return s
 
 class RangeWidgets(gtk.Table):
+    import gtk
     def __init__(self, names = []):
         self.names = names
         no_cols = 3
@@ -104,7 +104,7 @@ def main():
     patt = options.pattern
     if not patt:
         patt = ".*"
-
+    import gtk
     window = gtk.Window (gtk.WINDOW_TOPLEVEL)
     window.connect("destroy", lambda w: gtk.main_quit())
     window.set_title("Position Control")
