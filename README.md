@@ -1,6 +1,4 @@
-robot-viewer
-============
-
+# robot-viewer
 A vizualization tool for robots using OpenGL and Python.
 
 Main features:
@@ -10,8 +8,15 @@ Main features:
   *  screen/screen capture builtin.
   *  server-client design.
 
-Setup
------
+## Installation
+### Binary package
+Ubuntu:
+
+  apt-add-repository ppa:dang-duong/ppa
+  apt-get update
+  apt-get install robot-viewer
+
+### From source
 Make sure you have the following dependency:
  
  * python 2.6 or 2.7.
@@ -26,9 +31,7 @@ Make sure you have the following dependency:
 To install this package:
     python setup.py install --prefix $YOUR_PREFIX
 
-Usage
------
-
+## Usage
  * Edit $HOME/.robotviewer/config to add your robot. robot-viewer supports vrml and kxml formats for robot representation.
  * Start the server:
         robotviewer -s SERVER_TYPE
