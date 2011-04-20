@@ -3,7 +3,8 @@
 *~
 *lastRobot.pickle
 hrpmodel/*
-*build*
+build/*
+docs/build
 MANIFEST
 dist/*
 robot_viewer.egg-info

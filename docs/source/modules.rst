@@ -5,13 +5,6 @@ Modules
 .. toctree::
    :maxdepth: 3
 
-Server
-======
-
-
-.. automodule:: server
-   :members:
-
 Client
 ======
 
@@ -19,37 +12,42 @@ Client
 .. automodule:: client
    :members:
 
-Display Server Element
-======================
+Kinematics
+==========
+.. automodule:: kinematic_chain
+    :members:
 
-.. automodule:: dsElement
+.. automodule:: camera
+    :members:
+
+
+Display
+==============
+
+.. automodule:: display_element
    :members:
 
+.. automodule:: displayserver
+    :members:
 
-Robot Kinematics
-================
-.. automodule:: robo
+.. automodule:: displayserver_corba
+    :members:
+
+.. automodule:: displayserver_xmlrpc
     :members:
 
 
-OpenGL wrapper
-==============
-.. automodule:: openglaux
+Parsers
+=======
+.. automodule:: vrml_parser
     :members:
 
-VRML/XML/config parsers
-=======================
-.. automodule:: VRMLloader
+.. automodule:: kxml_parser
     :members:
 
-.. automodule:: XMLloader
+.. automodule:: ml_parser
     :members:
 
-.. automodule:: meshLoader
-    :members:
-
-.. automodule:: robotLoader
-    :members:
 
 
 .. automodule:: configparser

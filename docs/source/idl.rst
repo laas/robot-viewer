@@ -6,30 +6,30 @@ Server IDL
 
 .. code-block:: c++
 
-   #ifndef ROBOTVIEWER_IDL
-   #define ROBOTVIEWER_IDL
+    #ifndef ROBOTVIEWER_IDL
+    #define ROBOTVIEWER_IDL
 
-   module hpp {
-     typedef sequence<double> DoubleSeq;
-     typedef sequence<string> ElementList;
+    module robotviewer_corba {
+      typedef sequence<double> DoubleSeq;
+      typedef sequence<string> ElementList;
 
-     interface RobotViewer
-     {
-       // Write functions
-       exception InvalidKey{
-         string reason;
-       };
+      interface RobotViewer
+      {
+	exception InvalidKey{
+	  string reason;
+	};
 
-       void createElement(in string type, in string name, in string description);
+	boolean createElement(in string type, in string name, in string description);
+	boolean setRobotJointRank(in string name, in string path);
+	boolean destroyElement(in string name) raises(InvalidKey);
+	boolean enableElement(in string name) raises(InvalidKey) ;
+	boolean disableElement(in string name) raises(InvalidKey) ;
+	boolean updateElementConfig(in string name, in DoubleSeq config) raises(InvalidKey);
+	void getElementConfig(in string name, out DoubleSeq config) raises(InvalidKey);
 
-       void destroyElement(in string name) raises(InvalidKey);
-       void enableElement(in string name) raises(InvalidKey) ;
-       void disableElement(in string name) raises(InvalidKey) ;
-       void updateElementConfig(in string name, in DoubleSeq config) raises(InvalidKey);
-       void getElementConfig(in string name, out DoubleSeq config) raises(InvalidKey);
-
-       void listElement(out ElementList list);
-       void Ping(out string outstring);
-     };
-   };
-   #endif
+	void listElements(out ElementList list);
+	void listElementDofs(in string element_name, out ElementList list);
+	void Ping(out string outstring);
+      };
+    };
+    #endif

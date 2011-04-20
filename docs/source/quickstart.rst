@@ -21,9 +21,10 @@ Quickstart
 4. Fire up the client. On another terminal, start a python intepreter::
 
      $ python
-     >>> from robotviewer import client
+     >>> import robotviewer
+     >>> client = robotviewer.client()
 
-     >>> client.list()
+     >>> client.listElements()
      ['hrp', 'floor']
 
      >>> angles = [ 0.0, 0.0, -26.0, 50.0, -24.0, 0.0, 0.0, 0.0, -26.0, 50.0,-24.0, 0.0, 0.0, 0.0, 0.0, 0.0, 15.0, -10.0, 0.0, -30.0, 0.0, 0.0, 10.0, 15.0,  10.0, 0.0, -30.0, 0.0, 0.0, 10.0,-10.0, 10.0, -10.0, 10.0, -10.0, -10.0, 10.0, -10.0, 10.0, -10.0 ]
@@ -33,7 +34,7 @@ Quickstart
      >>> waist_rpy = [ 0, 0, 0      ]
      >>> conf = waist_pos + waist_rpy + angles
      >>> client.updateElementConfig('hrp',conf)
-     OK
+     
 
 
    Hopefully, after the last command, you can get HRP2 to "half-sitting"
@@ -43,10 +44,6 @@ Quickstart
 
    Now that you are familiar with ``robotviewer.client``, write your own
    client.
-
-   Some examples, including rv_sot_bridge, are explained
-   :doc:`../example` section of
-   this documentation
 
    Other available commands is described in the :doc:`../idl`
 

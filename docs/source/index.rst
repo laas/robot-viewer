@@ -6,6 +6,8 @@
 robot-viewer's documentation
 ========================================
 
+.. warning:: This documentation is out of date as of 04/20/2011. Please refer to https://github.com/laas/robot-viewer/wiki for updated information
+
 robot-viewer is a tool to display robots' motions, originally written for HRP2
 robot at CNRS-LAAS [#f1]_ laboratory.
 
