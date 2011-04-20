@@ -12,9 +12,9 @@ Main features:
 ### Binary package
 Ubuntu:
 
-  apt-add-repository ppa:dang-duong/ppa
-  apt-get update
-  apt-get install robot-viewer
+    apt-add-repository ppa:dang-duong/ppa
+    apt-get update
+    apt-get install robot-viewer
 
 ### From source
 Make sure you have the following dependency:
