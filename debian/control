@@ -11,8 +11,8 @@ Architecture: all
 Homepage: https://github.com/laas/robot-viewer
 XB-Python-Version: ${python:Versions}
 Depends: ${misc:Depends}, ${python:Depends}, python-opengl, 
- python-simpleparse, python-numpy, python-opencv,
- omniorb4, python-omniorb, python-imaging
+ python-simpleparse, python-numpy, python-numeric, python-opencv,
+ omniorb4, python-omniorb, python-imaging, omniorb-nameserver
 Description: A vizualization tool for robotics
  Main features:
   * render a extensible scene with multiple robots and objects.
