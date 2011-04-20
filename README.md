@@ -3,8 +3,8 @@ A vizualization tool for robots using OpenGL and Python.
 
 Main features:
 
-  *  render a extensible scene with multiple robots and objects.
-  *  simulate robots' cameras.
+  *  3d vizualization of multiple robots and objects.
+  *  simulation view of on-robot cameras.
   *  screen/screen capture builtin.
   *  server-client design.
 
