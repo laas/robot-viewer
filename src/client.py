@@ -21,6 +21,15 @@ import xmlrpclib
 
 
 def client(server = "CORBA"):
+    """
+    Create a client
+
+    :param server: server type
+    :type server: string
+
+    :returns: client
+    :rtype: CORBA/XML-RPC proxy object.
+    """
     if server == "CORBA":
         sys.path = [os.path.dirname(
                 os.path.abspath(__file__))+"/idl"] + sys.path
