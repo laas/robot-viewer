@@ -27,6 +27,7 @@ from OpenGL.GLU import *
 def normalized(v):
     return v/norm(v)
 
+OVERHEAD_THRESHOLD = 0.99
 
 class Camera(kinematic_chain.GenericObject):
     '''
@@ -100,7 +101,8 @@ class Camera(kinematic_chain.GenericObject):
         dup    = dy*factor
         dright = dx*factor*abs(self.cam_up[2])
 
-        if abs(self.cam_ray[2]) > 0.9 and dup*self.cam_ray[2] > 0:
+        if (abs(self.cam_ray[2]) > OVERHEAD_THRESHOLD
+            and dup*self.cam_ray[2] > 0 ):
             dup = 0
 
         new_z = self.cam_ray + dup*self.cam_up + dright*self.cam_right

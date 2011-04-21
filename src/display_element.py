@@ -35,9 +35,6 @@ class NullHandler(logging.Handler):
 logger.addHandler(NullHandler())
 
 
-glList_joint_sphere_mat = {}
-glList_link_mat = {}
-
 USE_VBO = False
 
 def ifenabled(meth):
@@ -68,10 +65,8 @@ class GlPrimitive(GenericObject):
         self.mesh = mesh
         if parent:
             parent.addChild(self)
-        # global obj_primitives
-        if mesh:
-            setattr(mesh, "gl_primitive", self)
-            mesh.addChild(self)
+            setattr(parent, "gl_primitive", self)
+
         if gl_list_ids:
             self.gl_list_ids = gl_list_ids
         if vbos:
@@ -83,26 +78,21 @@ class GlPrimitive(GenericObject):
 
     def generate_gl_list(self):
         if self.mesh:
-            self.generate_gl_list_mesh()
+            return self.generate_gl_list_mesh()
         if self.script:
-            self.generate_gl_list_script()
+            return self.generate_gl_list_script()
 
     def generate_gl_list_script(self):
-        win = glutGetWindow()
-        self.gl_list_ids[win] = glGenLists(1)
-        glNewList(self.gl_list_ids[win], GL_COMPILE);
+        new_list = glGenLists(1)
+        glNewList(new_list, GL_COMPILE);
         safe_eval(self.script, globals())
         glEndList();
-
+        return new_list
 
     def generate_gl_list_mesh(self):
-        win = glutGetWindow()
-        if not self.gl_list_ids.get(win):
-            self.gl_list_ids[win] = glGenLists(1)
-        else:
-            glDeleteLists(self.gl_list_ids[win], 1)
+        new_list = glGenLists(1)
         app = self.mesh.app
-        glNewList(self.gl_list_ids[win], GL_COMPILE);
+        glNewList(new_list, GL_COMPILE);
         if not app.transparency:
             app.transparency = 0
         elif type(app.transparency) == list:
@@ -133,7 +123,7 @@ class GlPrimitive(GenericObject):
                                %(self.mesh.name, joint_name, key.name))
         if not USE_VBO:
             geo = self.mesh.geo
-            if not geo.normals[:] or not geo.tri_idx[:]:
+            if not geo.normals[:] or not geo.tri_idxs[:]:
                 geo.compute_normals()
             glBegin(GL_TRIANGLES)
             for i in geo.tri_idxs:
@@ -141,12 +131,13 @@ class GlPrimitive(GenericObject):
                 glVertex3f( geo.coord[3*i], geo.coord[3*i+1], geo.coord[3*i+2])
             glEnd()
         glEndList();
+        return new_list
 
     @ifenabled
     def render(self):
         win = glutGetWindow()
         if not self.gl_list_ids.get(win):
-            self.generate_gl_list()
+            self.gl_list_ids[win] = self.generate_gl_list()
 
         glPushMatrix()
 
@@ -211,7 +202,7 @@ class DisplayObject(object):
         self.pending_update = False
         self.config = None
         for mesh in self.mesh_list:
-            mesh.addChild( GlPrimitive (mesh = mesh) )
+            mesh.addChild( GlPrimitive (mesh = mesh, parent = mesh) )
 
     def __getattr__(self, attr):
         return getattr(self.obj, attr)
@@ -251,16 +242,51 @@ class DisplayObject(object):
         self.config = config
 
 
+class JointGlPrimitve(GlPrimitive):
+    def __init__(self, *arg, **kwargs):
+        GlPrimitive.__init__(self, *arg, **kwargs )
+        self.skeleton_size = 1
+
+    def generate_gl_list(self):
+        new_list = glGenLists(1)
+        glNewList(new_list, GL_COMPILE);
+        draw_joint(self.parent, size = self.skeleton_size)
+        if self.parent.jointType not in ["free","freeFlyer"]:
+            draw_link(self.parent, size = self.skeleton_size)
+        glEndList();
+        return new_list
+
 class DisplayRobot(DisplayObject):
+    def __init__(self, *args, **kwargs):
+        DisplayObject.__init__(self, *args, **kwargs)
+        self.skeleton_size = 1
+        for joint in self.joint_list:
+            primitive = JointGlPrimitve(parent = joint)
+
+
     @ifenabled
-    def render(self, mesh_flag, skeleton_flag, skeleton_size):
+    def render(self, mesh_flag, skeleton_flag):
+        if self.pending_update:
+            self.pending_update = False
+            self.obj.update_config(self.config)
+
         if mesh_flag:
             DisplayObject.render(self)
+
         if skeleton_flag or not self.mesh_list[:]:
-            if self.pending_update:
-                self.pending_update = False
-                self.obj.update_config(self.config)
-            render_skeleton(self, skeleton_size)
+            self.render_skeleton()
+
+    def render_skeleton(self):
+        for j in self.joint_list:
+            j.gl_primitive.render()
+
+
+    def set_skeleton_size(self, size):
+        for j in self.joint_list:
+            j.gl_primitive.skeleton_size = size
+            for winid, list_id in j.gl_primitive.gl_list_ids.items():
+                glDeleteLists(list_id, 1)
+            j.gl_primitive.gl_list_ids = {}
 
 
 class Vbo(object):
@@ -280,7 +306,7 @@ class Vbo(object):
         self.poly_idx_vboIds  = []
 
         self.verts = mesh.geo.coord
-        if not mesh.geo.normals[:] or not mesh.geo.tri_idx[:]:
+        if not mesh.geo.normals[:] or not mesh.geo.tri_idxs[:]:
             mesh.geo.compute_normals()
 
         self.normals = mesh.geo.normals
@@ -374,38 +400,73 @@ class Vbo(object):
 
 
 def render_skeleton(robot, size):
-    for joint in robot.joint_list:
+    for joint in robot.moving_joint_list:
         draw_joint(joint, size)
-        if joint.parent and joint.jointType in ["rotate","revolute",
-                                                "prismatic","rotation",
-                                                "translation"]:
-            pos=joint.globalTransformation[0:3,3]
-            parent=joint.parent
-            parent_pos=parent.globalTransformation[0:3,3]
-            draw_link(pos,parent_pos,size)
+        pos = joint.globalTransformation[0:3,3]
+        angleAxis = rot2AngleAxis(joint.globalTransformation[0:3][0:3])
+        glPushMatrix()
+        glTranslatef(pos[0], pos[1], pos[2])
+        glRotated(angleAxis[0],angleAxis[1],angleAxis[2],angleAxis[3])
+        draw_joint(joint, size = 1)
+        draw_link(joint, size = 1)
+        glPopMatrix()
+
+def draw_joint(joint, size = 1):
+    for (key, value) in [ (GL_SPECULAR, [1,1,1,1]),
+                          (GL_EMISSION, [0.5,0,0,1]),
+                          (GL_AMBIENT_AND_DIFFUSE, [0.5,0,0,1]),
+                          (GL_SHININESS, 5),
+                      ]:
+        glMaterialfv(GL_FRONT_AND_BACK, key, value)
+    r = 0.01*size
+    h = r/2
+    glPushMatrix()
+    if joint.jointType in ["free", "freeflyer"]:
+        sphere = gluNewQuadric()
+        gluSphere(sphere,0.01*size,10,10)
+        glPopMatrix()
+        gluDeleteQuadric(sphere)
+        return
+
+    if joint.axis in ("X","x"):
+        glRotated(90,0,1,0)
+    elif joint.axis in ("Y","y"):
+        glRotated(90,1,0,0)
+    glTranslated(0.0,0.0,-h/2)
+    qua = gluNewQuadric()
+    gluCylinder(qua,r,r,h,10,5)
+    glTranslated(0.0,0.0,h)
+    gluDisk(qua,0,r,10,5)
+    glTranslated(0.0,0.0,-h)
+    glRotated(180,1,0,0)
+    gluDisk(qua,0,r,10,5)
+    gluDeleteQuadric(qua)
+    glPopMatrix()
+
+def draw_link(joint, size = 1):
+    parent = joint.getParentJoint()
+    if not parent:
+        return
+    glPushMatrix()
+    localT = kinematic_chain.find_relative_transformation( joint , parent )
+    parent_pos = localT[:3,3]
+    draw_cylinder([0.,0.,0.],parent_pos,size)
+    glPopMatrix()
 
 
-def draw_link(p1,p2,size=1):
-    global glList_link_mat
-    win = glutGetWindow()
-    if not glList_link_mat.get(win):
-        glList_link_mat[win] = glGenLists(1)
-        glNewList(glList_link_mat[win], GL_COMPILE);
-        for (key, value) in [ (GL_SPECULAR, [1,1,1,1]),
-                              (GL_EMISSION, [0,1,0,1]),
-                              (GL_AMBIENT_AND_DIFFUSE, [0,1,0,1]),
-                              (GL_SHININESS, 5),
-                              ]:
-            glMaterialfv(GL_FRONT_AND_BACK, key, value)
-        glEndList()
+def draw_cylinder(p1, p2, size=1):
+    for (key, value) in [ (GL_SPECULAR, [1,1,1,1]),
+                          (GL_EMISSION, [0,1,0,1]),
+                          (GL_AMBIENT_AND_DIFFUSE, [0,1,0,1]),
+                          (GL_SHININESS, 5),
+                          ]:
+        glMaterialfv(GL_FRONT_AND_BACK, key, value)
 
     r = 0.01*size/4
-    glCallList(glList_link_mat[win])
     p = p2-p1
     n_p = normalized(p)
     h = norm(p)
 
-    glPushMatrix()
     glTranslatef(p1[0], p1[1], p1[2])
     z_axis = numpy.array([0,0,1])
     axis = numpy.cross(z_axis, n_p)
@@ -420,56 +481,4 @@ def draw_link(p1,p2,size=1):
     glTranslated(0.0,0.0,-h)
     glRotated(180,1,0,0)
     gluDisk(qua,0,r,10,5)
-    glPopMatrix()
     gluDeleteQuadric(qua)
-
-
-def draw_joint(joint, size = 1):
-    global glList_joint_sphere_mat
-    win = glutGetWindow()
-    if not glList_joint_sphere_mat.get(win):
-        glList_joint_sphere_mat[win] = glGenLists(1)
-        glNewList(glList_joint_sphere_mat[win], GL_COMPILE);
-        for (key, value) in [ (GL_SPECULAR, [1,1,1,1]),
-                      (GL_EMISSION, [0.5,0,0,1]),
-                      (GL_AMBIENT_AND_DIFFUSE, [0.5,0,0,1]),
-                      (GL_SHININESS, 5),
-                      ]:
-            glMaterialfv(GL_FRONT_AND_BACK, key, value)
-        glEndList()
-    r = 0.01*size
-    h = r/2
-    pos=joint.globalTransformation[0:3,3]
-    glCallList(glList_joint_sphere_mat[win])
-
-    if joint.jointType in ["free", "freeflyer"]:
-        glPushMatrix()
-        glTranslatef(pos[0], pos[1], pos[2])
-        angleAxis = rot2AngleAxis(joint.globalTransformation[0:3][0:3])
-        glRotated(angleAxis[0],angleAxis[1],angleAxis[2],angleAxis[3])
-        sphere = gluNewQuadric()
-        gluSphere(sphere,0.01*size,10,10)
-        glPopMatrix()
-        gluDeleteQuadric(sphere)
-
-    else:
-        glPushMatrix()
-        glTranslatef(pos[0], pos[1], pos[2])
-        angleAxis = rot2AngleAxis(joint.globalTransformation[0:3][0:3])
-        glRotated(angleAxis[0],angleAxis[1],angleAxis[2],angleAxis[3])
-        if joint.axis in ("X","x"):
-            glRotated(90,0,1,0)
-        elif joint.axis in ("Y","y"):
-            glRotated(90,1,0,0)
-
-        glTranslated(0.0,0.0,-h/2)
-        qua = gluNewQuadric()
-        gluCylinder(qua,r,r,h,10,5)
-        glTranslated(0.0,0.0,h)
-        gluDisk(qua,0,r,10,5)
-        glTranslated(0.0,0.0,-h)
-        glRotated(180,1,0,0)
-        gluDisk(qua,0,r,10,5)
-        glPopMatrix()
-        gluDeleteQuadric(qua)
-

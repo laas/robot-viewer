@@ -16,6 +16,7 @@
 #! /usr/bin/env python
 
 import numpy
+import numpy.linalg
 import re
 from math import sin,cos
 from mathaux import *
@@ -30,6 +31,15 @@ logger = logging.getLogger("robotviewer.kinematic_chain")
 logger.addHandler(NullHandler())
 
 BASE_NODE_ID = -1
+
+def find_relative_transformation( obj1, obj2 ):
+    """
+    Find transformation matrix of obj2 in reference frame of obj1
+    """
+    res = numpy.dot( numpy.linalg.inv(obj1.globalTransformation),
+                      obj2.globalTransformation
+                     )
+    return res
 
 class GenericObject(object):
     """

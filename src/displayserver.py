@@ -784,7 +784,7 @@ class DisplayServer(object):
                 if isinstance(ele, DisplayRobot):
                     ele.render(self.render_mesh_flag,
                                self.render_skeleton_flag,
-                               self.skeleton_size)
+                               )
                 else:
                     ele.render()
             except:
@@ -897,11 +897,16 @@ class DisplayServer(object):
 
         elif args[0] == '+':
             self.skeleton_size += 1
+            for name, obj in self._element_dict.items():
+                if isinstance(obj, DisplayRobot):
+                    obj.set_skeleton_size(self.skeleton_size)
 
         elif args[0] == '-':
             if self.skeleton_size >1:
                 self.skeleton_size -= 1
-
+            for name, obj in self._element_dict.items():
+                if isinstance(obj, DisplayRobot):
+                    obj.set_skeleton_size(self.skeleton_size)
         elif args[0] == 't':
             if self.transparency < 1:
                 self.transparency += 0.1
