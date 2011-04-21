@@ -38,7 +38,7 @@ logger.addHandler(NullHandler())
 glList_joint_sphere_mat = {}
 glList_link_mat = {}
 
-NO_VBO = False
+USE_VBO = False
 
 def ifenabled(meth):
     def new_meth(cls, *kargs, **kwargs):
@@ -131,6 +131,15 @@ class GlPrimitive(GenericObject):
                     joint_name = self.mesh.getParentJoint().name
                 logger.debug("Self.Mesh %s of joint %s: Missing %s in material"
                                %(self.mesh.name, joint_name, key.name))
+        if not USE_VBO:
+            geo = self.mesh.geo
+            if not geo.normals[:] or not geo.tri_idx[:]:
+                geo.compute_normals()
+            glBegin(GL_TRIANGLES)
+            for i in geo.tri_idxs:
+                glNormal3f( geo.normals[3*i], geo.normals[3*i+1], geo.normals[3*i+2])
+                glVertex3f( geo.coord[3*i], geo.coord[3*i+1], geo.coord[3*i+2])
+            glEnd()
         glEndList();
 
     @ifenabled
@@ -149,7 +158,7 @@ class GlPrimitive(GenericObject):
         glRotated(agax[0],agax[1],agax[2],agax[3])
         glCallList(self.gl_list_ids[win])
 
-        if not self.mesh:
+        if (not USE_VBO) or (not self.mesh) :
             glPopMatrix()
             return
         if not self.vbos.get(win):
@@ -271,7 +280,6 @@ class Vbo(object):
         self.poly_idx_vboIds  = []
 
         self.verts = mesh.geo.coord
-
         if not mesh.geo.normals[:] or not mesh.geo.tri_idx[:]:
             mesh.geo.compute_normals()
 
@@ -291,100 +299,6 @@ class Vbo(object):
         for vboid in [self.tri_idx_vboId, self.quad_idx_vboId] + self.poly_idx_vboIds:
             glDeleteBuffersARB(1, vboid)
         object.__del__(self)
-
-
-    def computeNormals(self, mesh):
-        # TODO glList for colors
-        # copy vertex and normals from mesh
-        self.verts = mesh.geo.coord
-        coord=self.verts
-        idx = mesh.geo.idx
-        npoints=len(coord)/3
-
-        if mesh.geo.norm==[]:
-            normals=[]
-            points=[]
-            for k in range(npoints):
-                normals.append(numpy.array([0.0,0.0,0.0]))
-                points.append(numpy.array([coord[3*k],coord[3*k+1],
-                                           coord[3*k+2]]))
-
-        poly=[]
-        ii=0
-        for a_idx in idx:
-            if a_idx!=-1:
-                poly.append(a_idx)
-                continue
-            # idx=-1
-            num_sides = len(poly)
-            # if num_sides not in (3,4):
-            #     logger.warning("""n=%d.  Only support tri and quad mesh for
-            #                       the moment"""%num_sides)
-            #     poly=[]
-            #     continue
-            # idx=-1 and poly is a triangle
-            if num_sides == 3:
-                self.tri_idxs += poly
-            elif num_sides == 4:
-                self.quad_idxs += poly
-            else:
-                self.poly_idxs.append(poly)
-
-            if mesh.geo.norm == []:
-                # update the norm vector
-                # update the normals using G. Thurmer, C. A. Wuthrich,
-                # "Computing vertex normals from polygonal facets"
-                # Journal of Graphics Tools, 3 1998
-                ids  = (num_sides)*[None]
-                vecs = []
-                for i in range(num_sides):
-                    vecs.append((num_sides)*[None])
-                alphas = (num_sides)*[0]
-                for i, iid in enumerate(poly):
-                    ids[i] = iid
-
-                for i in range(num_sides):
-                    j = i + 1
-                    if j == num_sides:
-                        j = 0
-                    vecs[j][i] = normalized(points[ids[j]] - points[ids[i]])
-
-                try:
-                    for i in range(num_sides):
-                        if i == 0:
-                            alphas[i] = acos(numpy.dot
-                                             (vecs[1][0],vecs[0][num_sides-1]))
-                        elif i == num_sides - 1:
-                            alphas[i] = acos(numpy.dot (
-                                vecs[0][num_sides-1],
-                                vecs[num_sides-1][num_sides-2]))
-                        else:
-                            alphas[i] = acos(numpy.dot(vecs[i][i-1],
-                                                       vecs[i+1][i]))
-                except Exception,error:
-                    s = traceback.format_exc()
-                    logger.warning("Mesh processing error: %s"%s)
-
-                for i,alpha in enumerate(alphas):
-                    if i == 0:
-                        normals[ids[i]] += alpha*normalized(
-                            numpy.cross(vecs[0][num_sides-1],vecs[1][0]))
-                    elif i == num_sides - 1:
-                        normal_i = numpy.cross(vecs[num_sides-1][num_sides-2],
-                                               vecs[0][num_sides-1])
-                        normals[ids[i]] += alpha*normalized(normal_i)
-                    else:
-                        normal_i = numpy.cross(vecs[i][i-1], vecs[i+1][i])
-                        normals[ids[i]] += alpha*normalized(normal_i)
-            poly=[]
-        if mesh.geo.norm!=[]:
-            self.normals = mesh.geo.norm
-        else:
-            for normal in normals:
-                normal                =  normalized(normal)
-                self.normals          += [normal[0],normal[1],normal[2]]
-                # mesh.geo.norm  += self.normals
-
 
 
     def loadGPU(self, mesh):

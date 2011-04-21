@@ -44,12 +44,12 @@ def get_parser():
                       action="store_true", dest="no_cache", default=False,
                       help="force parsing robots' kinematics file")
 
-    parser.add_option("--no-vbo",
-                      action="store_true", dest="no_vbo", default=False,
-                      help="use display lists instead of vbo")
+    parser.add_option("--use-vbo",
+                      action="store_true", dest="use_vbo", default=False,
+                      help="use vbo instead of display list to draw triangles")
 
-    parser.add_option("--no-loop",
-                      action="store_true", dest="no_loop", default=False,
+    parser.add_option("--run-once",
+                      action="store_true", dest="run_once", default=False,
                       help="Do not enter glutMainLoop (for debug only)")
 
     parser.add_option("--skeleton",
@@ -78,15 +78,15 @@ def get_parser():
 
     parser.add_option("--width",
                       action="store", dest="width", type = "int", default = 640,
-                      help="number of windows")
+                      help="window width")
 
     parser.add_option("--height",
                       action="store", dest="height", type = "int", default = 480,
-                      help="number of windows")
+                      help="window height")
 
     parser.add_option("--stream",
                       action="store", dest="port", type = "int",
-                      help="refresh rate")
+                      help="stream PNG to a port (UDP)")
     return parser
 
 def main():

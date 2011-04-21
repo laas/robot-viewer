@@ -529,7 +529,6 @@ class Geometry():
 
     def compute_normals(self):
         npoints=len(self.coord)/3
-
         if self.norm==[]:
             normals=[]
             points=[]
