@@ -138,16 +138,20 @@ class DisplayServer(object):
         """
         self.config_file = None
         self.no_cache = False
+        self.no_vbo = False
         self.strict = False
         self.off_screen = False
         self.stream = None
         self.refresh_rate = None
         self.num_windows = 1
-
+        self.no_loop = False
         self.__dict__.update(options.__dict__)
 
         if not self.config_file:
             self.config_file = os.path.join(config_dir,"config")
+
+        if self.no_vbo:
+            display_element.NO_VBO = True
 
         self._element_dict = dict()
 
@@ -725,8 +729,10 @@ class DisplayServer(object):
         if self.off_screen:
             t = InteractThread(self)
             t.start()
-
-        glutMainLoop()
+        if not self.no_loop:
+            glutMainLoop()
+        else:
+            glutMainLoopEvent()
 
 
     def Ping(self):

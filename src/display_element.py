@@ -38,6 +38,8 @@ logger.addHandler(NullHandler())
 glList_joint_sphere_mat = {}
 glList_link_mat = {}
 
+NO_VBO = False
+
 def ifenabled(meth):
     def new_meth(cls, *kargs, **kwargs):
         if cls.enabled:
@@ -268,16 +270,19 @@ class Vbo(object):
         self.quad_idx_vboId  = -1
         self.poly_idx_vboIds  = []
 
-        self.verts = []
-        self.norms = []
-        self.tri_idxs  = []
-        self.quad_idxs = []
-        self.poly_idxs = []
-        self.tri_count  = 0
-        self.quad_count = 0
+        self.verts = mesh.geo.coord
+
+        if not mesh.geo.normals[:] or not mesh.geo.tri_idx[:]:
+            mesh.geo.compute_normals()
+
+        self.normals = mesh.geo.normals
+        self.tri_idxs  = mesh.geo.tri_idxs
+        self.quad_idxs = mesh.geo.quad_idxs
+        self.poly_idxs = mesh.geo.poly_idxs
+        self.tri_count  = mesh.geo.tri_count
+        self.quad_count = mesh.geo.tri_count
 
         logger.debug("Computing normals")
-        self.computeNormals(mesh)
 
         logger.debug("Loading to GPUs")
         self.loadGPU(mesh)
@@ -373,12 +378,12 @@ class Vbo(object):
                         normals[ids[i]] += alpha*normalized(normal_i)
             poly=[]
         if mesh.geo.norm!=[]:
-            self.norms = mesh.geo.norm
+            self.normals = mesh.geo.norm
         else:
             for normal in normals:
                 normal                =  normalized(normal)
-                self.norms          += [normal[0],normal[1],normal[2]]
-                # mesh.geo.norm  += self.norms
+                self.normals          += [normal[0],normal[1],normal[2]]
+                # mesh.geo.norm  += self.normals
 
 
 
@@ -399,7 +404,7 @@ class Vbo(object):
         logger.debug("Populating VBO for normals: vboID %d"%self.nor_vboId)
         glBindBufferARB( GL_ARRAY_BUFFER_ARB,self.nor_vboId );
         glBufferDataARB( GL_ARRAY_BUFFER_ARB,
-                             numpy.array (self.norms, dtype=numpy.float32),
+                             numpy.array (self.normals, dtype=numpy.float32),
                              GL_STATIC_DRAW_ARB );
         glBindBufferARB( GL_ARRAY_BUFFER_ARB,0 );
         logger.debug("Generated VBO for normals: vboID %d"%self.nor_vboId)
@@ -447,7 +452,7 @@ class Vbo(object):
         s+="quad_idx_vboId\t=%d\n"%self.quad_idx_vboId
 
         s+="len (_verts)\t=%d\n"%(len(self.verts))
-        s+="len (_norms)\t=%d\n"%(len(self.norms))
+        s+="len (_norms)\t=%d\n"%(len(self.normals))
         s+="len (_idxs)\t=%d\n"%(len(self.tri_idxs))
         s+="]"
         return s

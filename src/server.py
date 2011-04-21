@@ -44,6 +44,14 @@ def get_parser():
                       action="store_true", dest="no_cache", default=False,
                       help="force parsing robots' kinematics file")
 
+    parser.add_option("--no-vbo",
+                      action="store_true", dest="no_vbo", default=False,
+                      help="use display lists instead of vbo")
+
+    parser.add_option("--no-loop",
+                      action="store_true", dest="no_loop", default=False,
+                      help="Do not enter glutMainLoop (for debug only)")
+
     parser.add_option("--skeleton",
                       action="store_true", dest="skeleton", default=False,
                       help="only display robot skeletons")
@@ -120,7 +128,7 @@ def main():
     if options.server == "CORBA":
         logger.info("Starting robotviewer in corba mode")
         import displayserver_corba
-        DisplayServer = robotviewer.displayserver_corba.DisplayServerCorba
+        DisplayServer = displayserver_corba.DisplayServerCorba
     elif options.server == "XML-RPC":
         logger.info("Starting robotviewer in xmlrpc mode")
         import displayserver_xmlrpc

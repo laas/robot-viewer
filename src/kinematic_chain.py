@@ -15,7 +15,7 @@
 # along with robot-viewer.  If not, see <http://www.gnu.org/licenses/>.
 #! /usr/bin/env python
 
-import numpy as np
+import numpy
 import re
 from math import sin,cos
 from mathaux import *
@@ -47,7 +47,7 @@ class GenericObject(object):
         self.children=[]
         self.localTransformation = None
         self.globalTransformation = None
-        self.localR=np.eye(3)
+        self.localR=numpy.eye(3)
         self.id=None
         self.list_by_type = {}
 
@@ -142,13 +142,13 @@ class GenericObject(object):
         compute local transformation w.r.t for the first time (compute everything)
         """
         # rotation part
-        self.localTransformation = np.eye(4)
+        self.localTransformation = numpy.eye(4)
         self.localR = axisAngle2rot(self.rotation)
         self.localTransformation[0:3,0:3]=self.localR
 
         # last column
-        self.localTransformation[0:3,3]=np.array(self.translation)+\
-            np.dot(np.eye(3)-self.localR,np.array(self.center))
+        self.localTransformation[0:3,3]=numpy.array(self.translation)+\
+            numpy.dot(numpy.eye(3)-self.localR,numpy.array(self.center))
 
         # last line
         self.localTransformation[3,0:4]=[0,0,0,1]
@@ -162,7 +162,7 @@ class GenericObject(object):
             self.globalTransformation = self.localTransformation
             return
         else:
-            self.globalTransformation=np.dot\
+            self.globalTransformation=numpy.dot\
                 (self.parent.globalTransformation,self.localTransformation)
             return
 
@@ -200,7 +200,7 @@ class GenericObject(object):
         while generic_children[:]:
             for child in generic_children:
                 for grandchild in child.children[:]:
-                    grandchild.localTransformation = np.dot(child.localTransformation,
+                    grandchild.localTransformation = numpy.dot(child.localTransformation,
                                                               grandchild.localTransformation)
                     grandchild.translation =  grandchild.localTransformation[:3,3]
                     grandchild.localR = grandchild.localTransformation[:3,:3]
@@ -259,7 +259,7 @@ class Mesh(GenericObject):
         GenericObject.__init__(self)
         self.type="mesh"
         self.name=None
-        self.localR1=np.eye(3)  # due to offset of coordonee
+        self.localR1=numpy.eye(3)  # due to offset of coordonee
         self.app=Appearance()
         self.geo=Geometry()
 
@@ -288,13 +288,14 @@ class Mesh(GenericObject):
 
     def bounding_box_global(self):
         bbox = self.bounding_box_local()
-        bbox[0] = np.dot(self.globalTransformation,
-                         np.array(bbox[0] + [0]))[:3]
-        bbox[1] = np.dot(self.globalTransformation,
-                         np.array(bbox[1] + [0]))[:3]
+        bbox[0] = numpy.dot(self.globalTransformation,
+                         numpy.array(bbox[0] + [0]))[:3]
+        bbox[1] = numpy.dot(self.globalTransformation,
+                         numpy.array(bbox[1] + [0]))[:3]
         return bbox
 
     bounding_box = bounding_box_local
+
 
 #*****************************#
 #           JOINT             #
@@ -313,8 +314,8 @@ class Joint(GenericObject):
         self.isRobot=False
         self.angle=0
         self.axis=""
-        self.localR1=np.eye(3)  # due to cordinate offset
-        self.localR2=np.eye(3)  # due to self rotation (revolute joint)
+        self.localR1=numpy.eye(3)  # due to cordinate offset
+        self.localR2=numpy.eye(3)  # due to self rotation (revolute joint)
         self.op_point = GenericObject()
         self.addChild(self.op_point)
 
@@ -333,26 +334,26 @@ class Joint(GenericObject):
         if self.jointType in ["free", "freeflyer"]:
             self.localR=euleur2rotation(self.rpy)
             self.localTransformation[0:3,0:3]=self.localR
-            self.localTransformation[0:3,3]=np.array(self.translation)+\
-                np.dot(np.eye(3)-self.localR,np.array(self.center))
+            self.localTransformation[0:3,3]=numpy.array(self.translation)+\
+                numpy.dot(numpy.eye(3)-self.localR,numpy.array(self.center))
         elif ( self.type=="joint" and self.jointType in [ "rotate", "rotation", "revolute"]
                and self.id >= 0):
             self.localR2=axisNameAngle2rot(self.axis,self.angle)
-            self.localR=np.dot(self.localR1, self.localR2)
+            self.localR=numpy.dot(self.localR1, self.localR2)
             self.localTransformation[0:3,0:3]=self.localR
 
     def initLocalTransformation(self):
         """
         compute local transformation w.r.t for the first time (compute everything)
         """
-        self.localTransformation = np.eye(4)
-        self.globalTransformation = np.eye(4)
+        self.localTransformation = numpy.eye(4)
+        self.globalTransformation = numpy.eye(4)
         self.localR1=axisAngle2rot(self.rotation)
         self.localR = self.localR1
         self.localTransformation[0:3,0:3]=self.localR
         self.updateLocalTransformation()
-        self.localTransformation[0:3,3]=np.array(self.translation)+\
-            np.dot(np.eye(3)-self.localR,np.array(self.center))
+        self.localTransformation[0:3,3]=numpy.array(self.translation)+\
+            numpy.dot(numpy.eye(3)-self.localR,numpy.array(self.center))
         self.localTransformation[3,3]=1
 
 
@@ -502,6 +503,12 @@ class Geometry():
         self.coord=[]
         self.idx=[]
         self.norm=[]
+        self.tri_idxs  = []
+        self.quad_idxs = []
+        self.poly_idxs = []
+        self.tri_count  = 0
+        self.quad_count = 0
+        self.normals = self.norm
     def __str__(self):
         s="Geometry:"
         s+="%d points and %d faces"%(len(self.coord)/3,len(self.idx)/4)
@@ -518,3 +525,90 @@ class Geometry():
             self.coord[3*i]   *= scale_x
             self.coord[3*i+1] *= scale_y
             self.coord[3*i+2] *= scale_z
+
+
+    def compute_normals(self):
+        npoints=len(self.coord)/3
+
+        if self.norm==[]:
+            normals=[]
+            points=[]
+            for k in range(npoints):
+                normals.append(numpy.array([0.0,0.0,0.0]))
+                points.append(numpy.array([self.coord[3*k],self.coord[3*k+1],
+                                           self.coord[3*k+2]]))
+
+        poly=[]
+        ii=0
+        for a_idx in self.idx:
+            if a_idx!=-1:
+                poly.append(a_idx)
+                continue
+            num_sides = len(poly)
+            # if num_sides not in (3,4):
+            #     logger.warning("""n=%d.  Only support tri and quad mesh for
+            #                       the moment"""%num_sides)
+            #     poly=[]
+            #     continue
+            # a_idx=-1 and poly is a triangle
+            if num_sides == 3:
+                self.tri_idxs += poly
+            elif num_sides == 4:
+                self.quad_idxs += poly
+            else:
+                self.poly_idxs.append(poly)
+
+            if self.norm == []:
+                # update the norm vector
+                # update the normals using G. Thurmer, C. A. Wuthrich,
+                # "Computing vertex normals from polygonal facets"
+                # Journal of Graphics Tools, 3 1998
+                ids  = (num_sides)*[None]
+                vecs = []
+                for i in range(num_sides):
+                    vecs.append((num_sides)*[None])
+                alphas = (num_sides)*[0]
+                for i, iid in enumerate(poly):
+                    ids[i] = iid
+
+                for i in range(num_sides):
+                    j = i + 1
+                    if j == num_sides:
+                        j = 0
+                    vecs[j][i] = normalized(points[ids[j]] - points[ids[i]])
+
+                try:
+                    for i in range(num_sides):
+                        if i == 0:
+                            alphas[i] = acos(numpy.dot
+                                             (vecs[1][0],vecs[0][num_sides-1]))
+                        elif i == num_sides - 1:
+                            alphas[i] = acos(numpy.dot (
+                                vecs[0][num_sides-1],
+                                vecs[num_sides-1][num_sides-2]))
+                        else:
+                            alphas[i] = acos(numpy.dot(vecs[i][i-1],
+                                                       vecs[i+1][i]))
+                except Exception,error:
+                    s = traceback.format_exc()
+                    logger.warning("Mesh processing error: %s"%s)
+
+                for i,alpha in enumerate(alphas):
+                    if i == 0:
+                        normals[ids[i]] += alpha*normalized(
+                            numpy.cross(vecs[0][num_sides-1],vecs[1][0]))
+                    elif i == num_sides - 1:
+                        normal_i = numpy.cross(vecs[num_sides-1][num_sides-2],
+                                               vecs[0][num_sides-1])
+                        normals[ids[i]] += alpha*normalized(normal_i)
+                    else:
+                        normal_i = numpy.cross(vecs[i][i-1], vecs[i+1][i])
+                        normals[ids[i]] += alpha*normalized(normal_i)
+            poly=[]
+        if self.norm!=[]:
+            self.normals = self.norm
+        else:
+            for normal in normals:
+                normal                =  normalized(normal)
+                self.normals          += [normal[0],normal[1],normal[2]]
+                # self.norm  += self.norms
