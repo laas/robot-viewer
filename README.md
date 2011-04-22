@@ -28,7 +28,8 @@ Make sure you have the following dependency:
  * [omniORB 4.1.4 and omniORBpy](http://omniORB.sourceforge.net) (optional)
 
 
-To install this package:
+Install this package as an usual python package:
+
     python setup.py install --prefix $YOUR_PREFIX
 
 ## Usage
