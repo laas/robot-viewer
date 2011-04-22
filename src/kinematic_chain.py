@@ -250,10 +250,10 @@ class GenericObject(object):
 
     def getParentJoint(self):
         """
-        Get the highest level parent
+        Get the immediate parent joint
 
         :returns: the Robot
-        :rtype: :class:`kinematic_chain.Robot`.
+        :rtype: :class:`kinematic_chain.Joint`.
         """
         if not self.parent:
             return None
@@ -262,7 +262,15 @@ class GenericObject(object):
         else:
             return self.parent.getParentJoint()
 
+    def getChildrenJoints(self):
 
+        children = []
+        for child in self.children:
+            if isinstance(child, Joint):
+                children.append(child)
+            else:
+                children += child.getChildrenJoints()
+        return children
 
 class Mesh(GenericObject):
     def __init__(self):

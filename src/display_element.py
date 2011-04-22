@@ -251,8 +251,7 @@ class JointGlPrimitve(GlPrimitive):
         new_list = glGenLists(1)
         glNewList(new_list, GL_COMPILE);
         draw_joint(self.parent, size = self.skeleton_size)
-        if self.parent.jointType not in ["free","freeFlyer"]:
-            draw_link(self.parent, size = self.skeleton_size)
+        draw_link(self.parent, size = self.skeleton_size)
         glEndList();
         return new_list
 
@@ -444,14 +443,13 @@ def draw_joint(joint, size = 1):
     glPopMatrix()
 
 def draw_link(joint, size = 1):
-    parent = joint.getParentJoint()
-    if not parent:
-        return
-    glPushMatrix()
-    localT = kinematic_chain.find_relative_transformation( joint , parent )
-    parent_pos = localT[:3,3]
-    draw_cylinder([0.,0.,0.],parent_pos,size)
-    glPopMatrix()
+    children = joint.getChildrenJoints()
+    for child in children:
+        glPushMatrix()
+        localT = kinematic_chain.find_relative_transformation( joint , child )
+        child_pos = localT[:3,3]
+        draw_cylinder([0.,0.,0.],child_pos,size)
+        glPopMatrix()
 
 
 def draw_cylinder(p1, p2, size=1):
