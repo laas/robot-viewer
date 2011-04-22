@@ -89,12 +89,12 @@ class GlWindow(object):
         Arguments:
         - `self`:
         """
-        milliseconds = time.clock () * 1000.0
+        milliseconds = glutGet( GLUT_ELAPSED_TIME )
         if (milliseconds - self._g_dwLastFPS >= 1000):
             # # When A Second Has Passed...
             # g_dwLastFPS = win32api.GetTickCount();
             # # Update Our Time Variable
-            self._g_dwLastFPS = time.clock () * 1000.0
+            self._g_dwLastFPS = milliseconds
             self._fps = self._g_nFrames;
             # # Save The FPS
             self._g_nFrames = 0;
