@@ -87,7 +87,7 @@ class RvWidget(DisplayServer, gtk.gtkgl.DrawingArea):
         self.set_size_request(300, 300)
 
         self.connect('configure_event', self.reshape)
-        self.connect('expose_event', self.DrawGLScene)
+        self.connect('expose_event', self._draw_glscene)
 
 
         def idle(widget):
@@ -118,10 +118,10 @@ class RvWidget(DisplayServer, gtk.gtkgl.DrawingArea):
 
     def scroll_event_cb(self,widget,event):
         if event.direction == gtk.gdk.SCROLL_UP:
-            self.camera.moveBackForth(-100)
+            self.camera.move_back_forth(-100)
 
         if event.direction == gtk.gdk.SCROLL_DOWN:
-            self.camera.moveBackForth(100)
+            self.camera.move_back_forth(100)
 
 
     def motion_notify_cb(self,widget,event):
@@ -134,7 +134,7 @@ class RvWidget(DisplayServer, gtk.gtkgl.DrawingArea):
         if self.mouseButtons[0] == 1:
             self.camera.rotate(dx,dy)
         elif self.mouseButtons[2] == 1:
-            self.camera.moveSideway(dx,dy)
+            self.camera.move_sideway(dx,dy)
 
         self.oldMousePos = (event.x, event.y)
 
@@ -177,10 +177,10 @@ class RvWidget(DisplayServer, gtk.gtkgl.DrawingArea):
 
         return True
 
-    def initGL(self):
+    def init_gl(self):
         return
 
-    def setLight(self):
+    def set_light(self):
 
         # Setup GL States
         glClearColor (0.0, 0.0, 0.0, 0.5);
@@ -215,20 +215,20 @@ class RvWidget(DisplayServer, gtk.gtkgl.DrawingArea):
 
         glEnable(GL_LIGHT0)
 
-    def finalInit(self):
+    def final_init(self):
         '''
         Final initialization, to be called when an GL context has been created
         '''
-        if not ( IsExtensionSupported ("GL_ARB_vertex_buffer_object") and\
+        if not ( _is_extension_supported ("GL_ARB_vertex_buffer_object") and\
                      glInitVertexBufferObjectARB()   ):
             raise Exception('Help!  No VBO support')
         DisplayServer.__init__(self)
-        self.setLight()
+        self.set_light()
         self.connect('configure_event', self.reshape)
-        self.connect('expose_event', self.DrawGLScene)
+        self.connect('expose_event', self._draw_glscene)
         return
 
-    def DrawGLScene(self, widget ,event):
+    def _draw_glscene(self, widget ,event):
         glcontext = self.get_gl_context()
         gldrawable = self.get_gl_drawable()
 

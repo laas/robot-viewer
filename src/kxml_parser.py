@@ -137,7 +137,7 @@ class Parser (object):
                 polyhedron_obj.id = polyhedron_nid
                 polyhedron_obj.name = self.findStringProperty(polyhedron_node,
                                                               self.nameTag)
-                assembly_obj.addChild(polyhedron_obj)
+                assembly_obj.add_child(polyhedron_obj)
                 self.shapes[polyhedron_nid] = polyhedron_obj
                 self.shape_types[polyhedron_nid] = "polyhedron"
                 poly_rel_pos = self.findMatNode(polyhedron_node,
@@ -159,7 +159,7 @@ class Parser (object):
                     raise
                 for obj in objs:
                     if isinstance(obj,kinematic_chain.GenericObject):
-                        polyhedron_obj.addChild(obj)
+                        polyhedron_obj.add_child(obj)
                         # obj.translation = [0,0,0]
                     else:
                         logger.debug("Ignoring %s"%str(obj))
@@ -256,7 +256,7 @@ class Parser (object):
         if not hNodes[:]:
             obj = kinematic_chain.GenericObject()
             for id, shape in self.shapes.items():
-                obj.addChild(shape)
+                obj.add_child(shape)
             obj.init()
             return [obj]
 
@@ -288,7 +288,7 @@ class Parser (object):
              joint_.translation = joint_.localTransformation[0:3,3]
              joint_.localR = joint_.localTransformation[0:3,0:3]
 
-             joint_.localR2 = axisNameAngle2rot(joint_.axis,joint_.angle)
+             joint_.localR2 = axis_name_angle2rot(joint_.axis,joint_.angle)
              joint_.localR1 = numpy.dot(joint_.localR,
                                         numpy.linalg.inv(joint_.localR2))
              joint_.rotation = rot2AxisAngle(joint_.localR1)
@@ -307,7 +307,7 @@ class Parser (object):
             joint.id = int(node.attributes["id"].value)
             if not parent:
                 raise Exception("Expected a parent for node %s"%node.nodeName)
-            parent.addChild(joint)
+            parent.add_child(joint)
 
 
         sotJointType = self.jointType[node.nodeName]
@@ -335,8 +335,8 @@ class Parser (object):
         solid = self.shapes[solid_id]
         solid.translation = relative_solid_position[0:3,3]
         solid.rotation    = rot2AxisAngle(relative_solid_position[0:3,0:3])
-        # solid.addChild(self.shapes[solid_id])
-        joint.addChild(solid)
+        # solid.add_child(self.shapes[solid_id])
+        joint.add_child(solid)
 
         if isinstance(joint, kinematic_chain.Robot):
             self.compute_localT_from_globalT_(joint)
@@ -366,7 +366,7 @@ joint.localT=
                         msg + str(jj)
                         msg += "\nkxml global pos = %s"%str(
                             self.globalTransformations[jj.id])
-                        jj = jj.getParentJoint()
+                        jj = jj.get_parent_joint()
                     raise Exception(msg)
                     # logger.exception(msg)
         return joint
@@ -553,4 +553,4 @@ if __name__ == '__main__':
     logger.addHandler(sh)
     robot = parse(sys.argv[1])[0]
     print robot
-    # print robot.printJoints()
+    # print robot.print_joints()

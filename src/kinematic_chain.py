@@ -88,7 +88,7 @@ class GenericObject(object):
         self.translation = config[:3]
         self.rpy = config[3:6]
         self.rotation = euleur2AxisAngle(self.rpy)
-        self.initLocalTransformation()
+        self.init_local_transformation()
         self.update()
 
     def get_config(self):
@@ -124,21 +124,21 @@ class GenericObject(object):
             child.scale(scale)
 
 
-    def addChild(self,a_child):
+    def add_child(self,a_child):
         """
         Add a :class:`kinematic_chain.GenericObject` object to element's children list
         """
         self.children.append(a_child)
         a_child.parent = self
 
-    def setParent(self,parent):
+    def set_parent(self,parent):
         """
         Set a :class:`kinematic_chain.GenericObject` object as element's parent
         """
         self.parent=parent
 
 
-    def updateLocalTransformation(self):
+    def update_local_transformation(self):
         """ update local transformation w.r.t element's parent. Nothing to do,
         since nothing varies for a GenericObject
 
@@ -147,13 +147,13 @@ class GenericObject(object):
         """
         pass
 
-    def initLocalTransformation(self):
+    def init_local_transformation(self):
         """
         compute local transformation w.r.t for the first time (compute everything)
         """
         # rotation part
         self.localTransformation = numpy.eye(4)
-        self.localR = axisAngle2rot(self.rotation)
+        self.localR = axis_angle2rot(self.rotation)
         self.localTransformation[0:3,0:3]=self.localR
 
         # last column
@@ -164,7 +164,7 @@ class GenericObject(object):
         self.localTransformation[3,0:4]=[0,0,0,1]
 
 
-    def updateGlobalTransformation(self):
+    def update_global_transformation(self):
         """ update position and orientation in the world coordinates based on
         local transformation and parent's global transformation
         """
@@ -180,11 +180,11 @@ class GenericObject(object):
     def init(self):
         """ Do the following initializations in order:
 
-         * call :func:`kinematic_chain.GenericObject.initLocalTransformation` on itself
+         * call :func:`kinematic_chain.GenericObject.init_local_transformation` on itself
          * call init() on all children
         """
-        self.initLocalTransformation()
-        self.updateGlobalTransformation()
+        self.init_local_transformation()
+        self.update_global_transformation()
         def _union(l1, l2):
             return list(set(l1).union(set(l2)))
 
@@ -216,7 +216,7 @@ class GenericObject(object):
                     grandchild.localR = grandchild.localTransformation[:3,:3]
                     grandchild.rotaion = rot2AxisAngle(grandchild.localR)
                     grandchild.rpy = rot2rpy(grandchild.localR)
-                    self.addChild(grandchild)
+                    self.add_child(grandchild)
                 self.children.remove(child)
                 del child
             generic_children = [child for child in self.children
@@ -227,16 +227,16 @@ class GenericObject(object):
     def update(self):
         """ Do the following initializations in order:
 
-         * call :func:`kinematic_chain.GenericObject.updateLocalTransformation` on itself
-         * call :func:`kinematic_chain.GenericObject.updateGlobalTransformation` on itself
+         * call :func:`kinematic_chain.GenericObject.update_local_transformation` on itself
+         * call :func:`kinematic_chain.GenericObject.update_global_transformation` on itself
          * call update() on all children
         """
-        self.updateLocalTransformation()
-        self.updateGlobalTransformation()
+        self.update_local_transformation()
+        self.update_global_transformation()
         for child in self.children:
             child.update()
 
-    def getRobot(self):
+    def get_robot(self):
         """
         Get the highest level parent
 
@@ -246,9 +246,9 @@ class GenericObject(object):
         if self.parent==None:
             return self
         else:
-            return self.parent.getRobot()
+            return self.parent.get_robot()
 
-    def getParentJoint(self):
+    def get_parent_joint(self):
         """
         Get the immediate parent joint
 
@@ -260,16 +260,16 @@ class GenericObject(object):
         elif isinstance(self.parent,Joint):
             return self.parent
         else:
-            return self.parent.getParentJoint()
+            return self.parent.get_parent_joint()
 
-    def getChildrenJoints(self):
+    def get_children_joints(self):
 
         children = []
         for child in self.children:
             if isinstance(child, Joint):
                 children.append(child)
             else:
-                children += child.getChildrenJoints()
+                children += child.get_children_joints()
         return children
 
 class Mesh(GenericObject):
@@ -335,7 +335,7 @@ class Joint(GenericObject):
         self.localR1=numpy.eye(3)  # due to cordinate offset
         self.localR2=numpy.eye(3)  # due to self rotation (revolute joint)
         self.op_point = GenericObject()
-        self.addChild(self.op_point)
+        self.add_child(self.op_point)
 
     def __str__(self):
         s = GenericObject.__str__(self)
@@ -343,7 +343,7 @@ class Joint(GenericObject):
         s+= "\nangle\t\t= "+str(self.angle)
         return s
 
-    def updateLocalTransformation(self):
+    def update_local_transformation(self):
         """
         update local transformation w.r.t element's parent
 
@@ -356,20 +356,20 @@ class Joint(GenericObject):
                 numpy.dot(numpy.eye(3)-self.localR,numpy.array(self.center))
         elif ( self.type=="joint" and self.jointType in [ "rotate", "rotation", "revolute"]
                and self.id >= 0):
-            self.localR2=axisNameAngle2rot(self.axis,self.angle)
+            self.localR2=axis_name_angle2rot(self.axis,self.angle)
             self.localR=numpy.dot(self.localR1, self.localR2)
             self.localTransformation[0:3,0:3]=self.localR
 
-    def initLocalTransformation(self):
+    def init_local_transformation(self):
         """
         compute local transformation w.r.t for the first time (compute everything)
         """
         self.localTransformation = numpy.eye(4)
         self.globalTransformation = numpy.eye(4)
-        self.localR1=axisAngle2rot(self.rotation)
+        self.localR1=axis_angle2rot(self.rotation)
         self.localR = self.localR1
         self.localTransformation[0:3,0:3]=self.localR
-        self.updateLocalTransformation()
+        self.update_local_transformation()
         self.localTransformation[0:3,3]=numpy.array(self.translation)+\
             numpy.dot(numpy.eye(3)-self.localR,numpy.array(self.center))
         self.localTransformation[3,3]=1
@@ -397,13 +397,13 @@ class Robot(Joint):
         return s
 
     def update_config(self, config):
-        self.setAngles(config[6:])
+        self.set_angles(config[6:])
         self.waist.translation = config[0:3]
         self.waist.rpy = config[3:6]
-        self.initLocalTransformation()
+        self.init_local_transformation()
         self.update()
 
-    def setAngles(self,angles):
+    def set_angles(self,angles):
         """
         Set joint angles
 
@@ -416,7 +416,7 @@ class Robot(Joint):
         for i,angle in enumerate(angles):
             self.moving_joint_list[i].angle = angle
 
-    def printJoints(self):
+    def print_joints(self):
         """
         Print all joints
         """
@@ -431,7 +431,7 @@ class Robot(Joint):
                 vec += [self.joint_dict[i].angle]
         return vec
 
-    def waistPos(self,p):
+    def waist_pos(self,p):
         """
         Set waist position
 
@@ -440,7 +440,7 @@ class Robot(Joint):
         """
         self.waist.translation=p
 
-    def waistRpy(self,ori):
+    def waist_rpy(self,ori):
         """
         Set waist orientation
 
@@ -464,7 +464,7 @@ class Robot(Joint):
         """ Do the following initializations in order:
 
          * build joint_list and mesh_list
-         * call :func:`kinematic_chain.Joint.initLocalTransformation` on itself
+         * call :func:`kinematic_chain.Joint.init_local_transformation` on itself
          * call init() on all children
         """
         GenericObject.init(self)
@@ -476,8 +476,8 @@ class Robot(Joint):
 
         self.update_joint_dict()
 
-        self.initLocalTransformation()
-        self.updateGlobalTransformation()
+        self.init_local_transformation()
+        self.update_global_transformation()
         self.update_moving_joint_list()
 
         for mesh in self.mesh_list:

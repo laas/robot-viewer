@@ -89,7 +89,7 @@ def draw_link(p1,p2,size=0.01):
     glEnd()
     glPopMatrix()
 
-def axisNameAngle2rot(axis,a):
+def axis_name_angle2rot(axis,a):
     if re.search(r"[zZ]",axis):
         return np.array([(cos(a), -sin(a),      0),\
                         (sin(a),  cos(a),      0),\
@@ -107,7 +107,7 @@ def axisNameAngle2rot(axis,a):
     return np.eye(3)
 
 # http://www.euclideanspace.com/maths/geometry/rotations/conversions/angleToMatrix/index.htm
-def axisAngle2rot(array):
+def axis_angle2rot(array):
     array = np.array(array)
     array[0:3] = normalized(array[0:3])
 

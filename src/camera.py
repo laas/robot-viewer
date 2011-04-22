@@ -138,7 +138,7 @@ class Camera(kinematic_chain.GenericObject):
         return
 
 
-    def moveSideway(self,dx,dy):
+    def move_sideway(self,dx,dy):
         """Move camera but keep orientation
 
         Arguments:
@@ -157,7 +157,7 @@ class Camera(kinematic_chain.GenericObject):
         self.update()
 
 
-    def moveBackForth(self,dy):
+    def move_back_forth(self,dy):
         """Move camera but keep orientation
 
         Arguments:

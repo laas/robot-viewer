@@ -24,7 +24,7 @@ from OpenGL.GL.EXT.framebuffer_object import *
 import kinematic_chain
 import ml_parser
 import pickle
-from openglaux import IsExtensionSupported
+from openglaux import _is_extension_supported
 from display_element import DisplayObject, DisplayRobot, GlPrimitive
 import display_element
 import re,imp
@@ -84,7 +84,7 @@ class GlWindow(object):
     def camera(self):
         return self.cameras[self.active_camera]
 
-    def updateFPS(self):
+    def update_fps(self):
         """
         Arguments:
         - `self`:
@@ -174,9 +174,9 @@ class DisplayServer(object):
         self.world_cameras = []
 
         logger.debug("Initializing OpenGL")
-        self.initGL()
+        self.init_gl()
         self.pendingObjects=[]
-        self.parseConfig()
+        self.parse_config()
         self.add_cameras()
         self._mouseButton = None
         self._oldMousePos = [ 0, 0 ]
@@ -266,7 +266,7 @@ class DisplayServer(object):
             glutVisibilityFunc(self.visible_cb);
             glutDisplayFunc(self.draw_cb)
             glutReshapeFunc(self.resize_cb)
-            self.bindEvents()
+            self.bind_events()
             glutPositionWindow(i*self.width,20);
             self.init_lights()
             cam = Camera()
@@ -279,7 +279,7 @@ class DisplayServer(object):
 
         glutIdleFunc(self.refresh_cb)
 
-    def initGL(self):
+    def init_gl(self):
         logger.debug("Initializing glut")
         glutInit(sys.argv)
         logger.debug("Setting glut DisplayMode")
@@ -324,7 +324,7 @@ class DisplayServer(object):
                                      GL_COLOR_ATTACHMENT0_EXT,
                                      GL_RENDERBUFFER_EXT, self.rbo_id)
 
-    def setRobotJointRank(self,robot_name, joint_rank_xml):
+    def set_robot_joint_rank(self,robot_name, joint_rank_xml):
         """
         """
         if robot_name not in self._element_dict.keys():
@@ -361,14 +361,14 @@ class DisplayServer(object):
         s = s.replace('$','')
         return s
 
-    def parseConfig(self):
+    def parse_config(self):
         prog_version = distutils.version.StrictVersion(version.__version__)
         config = CustomConfigParser()
         config.read(self.config_file)
         logger.info( 'parsed_config %s'%config)
 
         if not config.has_section('global'):
-            self.parseConfigLegacy(config)
+            self.parse_configLegacy(config)
             return
 
         for section in config.sections():
@@ -410,7 +410,7 @@ class DisplayServer(object):
 
                 joint_rank = config.get(section, 'joint_rank')
                 if otype == "robot" and joint_rank:
-                    self.setRobotJointRank( oname, joint_rank)
+                    self.set_robot_joint_rank( oname, joint_rank)
 
                 position = config.get(section, 'position')
                 if not position:
@@ -452,7 +452,7 @@ class DisplayServer(object):
                                format(parent_name))
                 continue
             new_el = copy.deepcopy( self._element_dict[orig_name] )
-            parent_obj.get_op_point(parent_joint_id).addChild(new_el)
+            parent_obj.get_op_point(parent_joint_id).add_child(new_el)
             parent_obj.init()
             self._element_dict[child_name] = new_el
             self.enableElement(child_name)
@@ -460,7 +460,7 @@ class DisplayServer(object):
         for name, obj in self._element_dict.items():
             obj.update()
 
-    def parseConfigLegacy(self, config):
+    def parse_configLegacy(self, config):
         logger.warning("Entering legacy config parsing")
         for section in config.sections():
             if section not in ['robots','default_configs',
@@ -504,7 +504,7 @@ class DisplayServer(object):
                     continue
                 if not os.path.isfile(joint_rank_config):
                     continue
-                self.setRobotJointRank(self, robot_name,joint_rank_config)
+                self.set_robot_joint_rank(self, robot_name,joint_rank_config)
 
         if config.has_section('objects'):
             object_names = config.options('objects')
@@ -585,7 +585,7 @@ class DisplayServer(object):
                 else:
                     group  = kinematic_chain.GenericObject()
                     for obj in objs:
-                        group.addChild(obj)
+                        group.add_child(obj)
                         group.init()
                 if scale:
                     group.scale(scale)
@@ -746,7 +746,7 @@ class DisplayServer(object):
         try:
             while len(self.queued_keys) > 0:
                 key = self.queued_keys.popleft()
-                self.keyPressedFunc(key)
+                self.key_pressed_func(key)
             current_t = glutGet( GLUT_ELAPSED_TIME )
             win = glutGetWindow()
             if ((not self.last_refreshed.get(win))
@@ -777,7 +777,7 @@ class DisplayServer(object):
         self.windows[win].camera.update_view()
 
         if not self.off_screen:
-            self.windows[win].updateFPS()
+            self.windows[win].update_fps()
         for name,ele in self._element_dict.items():
             #    logger.info( item[0], item[1]._enabled)
             try:
@@ -873,7 +873,7 @@ class DisplayServer(object):
             window.extra_info = " (Recording to {0})".format(self.video_fn)
 
 
-    def keyPressedFunc(self, *args):
+    def key_pressed_func(self, *args):
         # If escape is pressed, kill everything.
         if args[0] == "q" : # exit when ESCAPE is pressed
             self.quit = True
@@ -979,7 +979,7 @@ class DisplayServer(object):
             self.windows[win].change_camera()
             glutPostRedisplay( )
 
-    def mouseButtonFunc( self, button, mode, x, y ):
+    def mouse_button_func( self, button, mode, x, y ):
         """Callback function (mouse button pressed or released).
 
         The current and old mouse positions are stored in
@@ -994,7 +994,7 @@ class DisplayServer(object):
 
 
 
-    def mouseMotionFunc( self, x, y ):
+    def mouse_motion_func( self, x, y ):
         """Callback function (mouse moved while button is pressed).
 
         The current and old mouse positions are stored in
@@ -1012,24 +1012,24 @@ class DisplayServer(object):
 
         if ( glutGetModifiers() == GLUT_ACTIVE_SHIFT and\
                self._mouseButton == GLUT_LEFT_BUTTON  ):
-            camera.moveBackForth(dy)
+            camera.move_back_forth(dy)
 
         elif self._mouseButton == GLUT_LEFT_BUTTON:
             camera.rotate(dx,dy)
 
         elif self._mouseButton == GLUT_RIGHT_BUTTON:
-            camera.moveSideway(dx,dy)
+            camera.move_sideway(dx,dy)
 
 
         self._oldMousePos[0], self._oldMousePos[1] = x, y
 
         glutPostRedisplay( )
 
-    def bindEvents(self):
-        glutMouseFunc( self.mouseButtonFunc )
-        glutMotionFunc( self.mouseMotionFunc )
-        glutSpecialFunc(self.keyPressedFunc)
-        glutKeyboardFunc(self.keyPressedFunc)
+    def bind_events(self):
+        glutMouseFunc( self.mouse_button_func )
+        glutMotionFunc( self.mouse_motion_func )
+        glutSpecialFunc(self.key_pressed_func)
+        glutKeyboardFunc(self.key_pressed_func)
 
     def init_lights(self, bg = [0,0,0]):
         glClearColor (bg[0], bg[1], bg[2], 0.5);

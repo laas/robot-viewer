@@ -64,7 +64,7 @@ class GlPrimitive(GenericObject):
         self.script = script
         self.mesh = mesh
         if parent:
-            parent.addChild(self)
+            parent.add_child(self)
             setattr(parent, "gl_primitive", self)
 
         if gl_list_ids:
@@ -117,8 +117,8 @@ class GlPrimitive(GenericObject):
                                      format(key,value))
             else:
                 joint_name = "None"
-                if self.mesh.getParentJoint():
-                    joint_name = self.mesh.getParentJoint().name
+                if self.mesh.get_parent_joint():
+                    joint_name = self.mesh.get_parent_joint().name
                 logger.debug("Self.Mesh %s of joint %s: Missing %s in material"
                                %(self.mesh.name, joint_name, key.name))
         if not USE_VBO:
@@ -202,7 +202,7 @@ class DisplayObject(object):
         self.pending_update = False
         self.config = None
         for mesh in self.mesh_list:
-            mesh.addChild( GlPrimitive (mesh = mesh, parent = mesh) )
+            mesh.add_child( GlPrimitive (mesh = mesh, parent = mesh) )
 
     def __getattr__(self, attr):
         return getattr(self.obj, attr)
@@ -233,7 +233,7 @@ class DisplayObject(object):
             mesh.gl_primitive.generate_gl_list(mesh)
 
 
-    def getConfig(self):
+    def get_config(self):
         return self.config
 
 
@@ -318,7 +318,7 @@ class Vbo(object):
         logger.debug("Computing normals")
 
         logger.debug("Loading to GPUs")
-        self.loadGPU(mesh)
+        self.load_gpu(mesh)
 
     def __del__(self):
         for vboid in [self.tri_idx_vboId, self.quad_idx_vboId] + self.poly_idx_vboIds:
@@ -326,7 +326,7 @@ class Vbo(object):
         object.__del__(self)
 
 
-    def loadGPU(self, mesh):
+    def load_gpu(self, mesh):
         logger.debug("Creating VBO for mesh %s"%mesh.name)
         self.tri_count = len(self.tri_idxs)
         self.quad_count = len(self.quad_idxs)
@@ -443,7 +443,7 @@ def draw_joint(joint, size = 1):
     glPopMatrix()
 
 def draw_link(joint, size = 1):
-    children = joint.getChildrenJoints()
+    children = joint.get_children_joints()
     for child in children:
         glPushMatrix()
         localT = kinematic_chain.find_relative_transformation( joint , child )

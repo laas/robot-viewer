@@ -32,7 +32,7 @@ old_cam_up = None;
 
 logger = logging.getLogger("robotviewer.openglaux")
 
-def IsExtensionSupported (TargetExtension):
+def _is_extension_supported (TargetExtension):
     """ Accesses the rendering context to see if it supports an extension.
     Note, that this test only tells you if the OpenGL library
     supports the extension. The PyOpenGL system might not actually
@@ -64,7 +64,7 @@ def IsExtensionSupported (TargetExtension):
     # Exentsion names are in the form GL_<group>_<extension_name>
     # e.g.  GL_EXT_fog_coord
     # Python divides extension into modules
-    # g_fVBOSupported = IsExtensionSupported ("GL_ARB_vertex_buffer_object")
+    # g_fVBOSupported = _is_extension_supported ("GL_ARB_vertex_buffer_object")
     # from OpenGL.GL.EXT.fog_coord import *
     if (TargetExtension [:3] != "GL_"):
         # Doesn't appear to following extension naming convention.

@@ -237,7 +237,7 @@ class SafeEvalVisitor(object):
         for child in node.getChildNodes():
             self.visit(child, *args)
 
-    def visitName(self, node, *args):
+    def visit_name(self, node, *args):
         "Disallow any attempts to access a restricted builtin/attr."
         name = node.getChildren()[0]
         lineno = get_node_lineno(node)
@@ -248,7 +248,7 @@ class SafeEvalVisitor(object):
             self.errors.append(SafeEvalAttrError( \
                 "access to attribute '%s' is denied" % name, lineno))
                
-    def visitGetattr(self, node, *args):
+    def visit_getattr(self, node, *args):
         "Disallow any attempts to access a restricted attribute."
         name = node.attrname
         lineno = get_node_lineno(node)

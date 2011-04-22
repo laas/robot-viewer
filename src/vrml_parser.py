@@ -105,7 +105,7 @@ class VrmlProcessor(DispatchProcessor):
                         if 'scale' in vrml_node.keys() and isinstance(child,GenericObject):
                             for grandchild in child.children:
                                 grandchild.geo.scale(vrml_node['scale'])
-                        processed_node.addChild(child)
+                        processed_node.add_child(child)
                         child.parent = processed_node
                     else:
                         logger.debug("Ignoring transform child %s"%str(child))
@@ -115,7 +115,7 @@ class VrmlProcessor(DispatchProcessor):
             if 'children' in vrml_node.keys():
                 children = vrml_node['children']
                 for child in children:
-                    processed_node.addChild(child)
+                    processed_node.add_child(child)
 
 
         elif vrml_node.name == "Humanoid":
@@ -123,7 +123,7 @@ class VrmlProcessor(DispatchProcessor):
             processed_node.joint_names = vrml_node['joints']
             processed_node.segment_names = vrml_node['segments']
             body = vrml_node['humanoidBody'][0]
-            processed_node.addChild(body)
+            processed_node.add_child(body)
             body.parent = processed_node
 
         elif vrml_node.name == "Segment":
@@ -132,7 +132,7 @@ class VrmlProcessor(DispatchProcessor):
                 children = vrml_node['children']
                 for child in children:
                     if isinstance(child, GenericObject):
-                        processed_node.addChild(child)
+                        processed_node.add_child(child)
                         child.parent = processed_node
                     else:
                         logger.debug("Ignoring segment child %s"%str(child))
@@ -165,7 +165,7 @@ class VrmlProcessor(DispatchProcessor):
 
             for child in children:
                 if isinstance(child, GenericObject):
-                    processed_node.addChild(child)
+                    processed_node.add_child(child)
                     child.parent = processed_node
                 else:
                     logger.debug("Ignoring child %s"%str(child))
