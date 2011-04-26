@@ -23,7 +23,7 @@
 
 import sys
 import xml.dom.minidom as dom
-import kinematic_chain
+import kinematics
 # from dynamic_graph.sot.dynamics.dynamic import Dynamic
 # from dynamic_graph.sot import SE3, R3, SO3
 import numpy
@@ -44,7 +44,7 @@ logger.addHandler(NullHandler())
 class Parser (object):
     """
     Adapt from parser in sot-dynamic project https://github.com/jrl-umi3218/sot-dynamic
-    Parser to build kinematic_chain.Robot entities.
+    Parser to build kinematics.Robot entities.
 
     Format is kxml, Kineo CAM robot description format.
     """
@@ -116,7 +116,7 @@ class Parser (object):
         assembly_nodes = dom1.getElementsByTagName(self.assemblyTag)
         for assembly_node in assembly_nodes:
             assembly_nid = int(assembly_node.attributes["id"].value)
-            assembly_obj = kinematic_chain.GenericObject()
+            assembly_obj = kinematics.GenericObject()
             assembly_obj.id = assembly_nid
             rel_pos = None
             motion_frame = None
@@ -133,7 +133,7 @@ class Parser (object):
 
             for polyhedron_node in polyhedron_nodes:
                 polyhedron_nid = int(polyhedron_node.attributes["id"].value)
-                polyhedron_obj = kinematic_chain.GenericObject()
+                polyhedron_obj = kinematics.GenericObject()
                 polyhedron_obj.id = polyhedron_nid
                 polyhedron_obj.name = self.findStringProperty(polyhedron_node,
                                                               self.nameTag)
@@ -158,7 +158,7 @@ class Parser (object):
                         os.path.join(self.kxml_dir_name, rel_path))
                     raise
                 for obj in objs:
-                    if isinstance(obj,kinematic_chain.GenericObject):
+                    if isinstance(obj,kinematics.GenericObject):
                         polyhedron_obj.add_child(obj)
                         # obj.translation = [0,0,0]
                     else:
@@ -238,7 +238,7 @@ class Parser (object):
         return res
 
     def _propagate_geo_param(self, obj, key, value):
-        if isinstance(obj, kinematic_chain.Mesh):
+        if isinstance(obj, kinematics.Mesh):
             old_val =  getattr(obj.app, key)
             if old_val != value:
                 logger.debug("Mesh %s: %s changed from %s to %s"
@@ -254,7 +254,7 @@ class Parser (object):
 
         hNodes = dom1.getElementsByTagName(self.robotTag)
         if not hNodes[:]:
-            obj = kinematic_chain.GenericObject()
+            obj = kinematics.GenericObject()
             for id, shape in self.shapes.items():
                 obj.add_child(shape)
             obj.init()
@@ -294,16 +294,16 @@ class Parser (object):
              joint_.rotation = rot2AxisAngle(joint_.localR1)
 
         for child in [ c for c in joint_.children
-                       if isinstance(c,kinematic_chain.Joint)]:
+                       if isinstance(c,kinematics.Joint)]:
             self.compute_localT_from_globalT_(child)
 
 
 
     def createJoint (self, node, parent = None):
         if node.nodeName == "HPP_FREEFLYER_JOINT":
-            joint = kinematic_chain.Robot()
+            joint = kinematics.Robot()
         else:
-            joint = kinematic_chain.Joint()
+            joint = kinematics.Joint()
             joint.id = int(node.attributes["id"].value)
             if not parent:
                 raise Exception("Expected a parent for node %s"%node.nodeName)
@@ -338,7 +338,7 @@ class Parser (object):
         # solid.add_child(self.shapes[solid_id])
         joint.add_child(solid)
 
-        if isinstance(joint, kinematic_chain.Robot):
+        if isinstance(joint, kinematics.Robot):
             self.compute_localT_from_globalT_(joint)
             joint.init()
             for i,j in enumerate(joint.joint_list):

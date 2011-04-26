@@ -21,7 +21,7 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from OpenGL.GLX import *
 from OpenGL.GL.EXT.framebuffer_object import *
-import kinematic_chain
+import kinematics
 import ml_parser
 import pickle
 from openglaux import _is_extension_supported
@@ -555,7 +555,7 @@ class DisplayServer(object):
             objs = ml_parser.parse(epath, not self.no_cache)
             robots = []
             for obj in objs:
-                if isinstance(obj, kinematic_chain.Robot):
+                if isinstance(obj, kinematics.Robot):
                     robots.append(obj)
             if len(robots) != 1:
                 raise Exception("file %s contains %d robots, expected 1."
@@ -577,13 +577,13 @@ class DisplayServer(object):
                 logger.debug("Creating element from supported markup language file %s."%epath)
                 objs = ml_parser.parse(epath, not self.no_cache)
                 objs = [ o for o in objs
-                         if isinstance(o, kinematic_chain.GenericObject)]
+                         if isinstance(o, kinematics.GenericObject)]
                 if len(objs) == 0:
                     raise Exception('Found no object in file %s'%epath)
                 elif len(objs) == 1:
                     group = objs[0]
                 else:
-                    group  = kinematic_chain.GenericObject()
+                    group  = kinematics.GenericObject()
                     for obj in objs:
                         group.add_child(obj)
                         group.init()
@@ -699,7 +699,7 @@ class DisplayServer(object):
             return l
 
         obj = self._element_dict[ename].obj
-        if not isinstance(obj, kinematic_chain.Robot):
+        if not isinstance(obj, kinematics.Robot):
             return l
         for j in obj.moving_joint_list:
             l += [j.name]

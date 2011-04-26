@@ -27,7 +27,7 @@ class NullHandler(logging.Handler):
     def emit(self, record):
         pass
 
-logger = logging.getLogger("robotviewer.kinematic_chain")
+logger = logging.getLogger("robotviewer.kinematics")
 logger.addHandler(NullHandler())
 
 BASE_NODE_ID = -1
@@ -126,14 +126,14 @@ class GenericObject(object):
 
     def add_child(self,a_child):
         """
-        Add a :class:`kinematic_chain.GenericObject` object to element's children list
+        Add a :class:`kinematics.GenericObject` object to element's children list
         """
         self.children.append(a_child)
         a_child.parent = self
 
     def set_parent(self,parent):
         """
-        Set a :class:`kinematic_chain.GenericObject` object as element's parent
+        Set a :class:`kinematics.GenericObject` object as element's parent
         """
         self.parent=parent
 
@@ -180,7 +180,7 @@ class GenericObject(object):
     def init(self):
         """ Do the following initializations in order:
 
-         * call :func:`kinematic_chain.GenericObject.init_local_transformation` on itself
+         * call :func:`kinematics.GenericObject.init_local_transformation` on itself
          * call init() on all children
         """
         self.init_local_transformation()
@@ -227,8 +227,8 @@ class GenericObject(object):
     def update(self):
         """ Do the following initializations in order:
 
-         * call :func:`kinematic_chain.GenericObject.update_local_transformation` on itself
-         * call :func:`kinematic_chain.GenericObject.update_global_transformation` on itself
+         * call :func:`kinematics.GenericObject.update_local_transformation` on itself
+         * call :func:`kinematics.GenericObject.update_global_transformation` on itself
          * call update() on all children
         """
         self.update_local_transformation()
@@ -241,7 +241,7 @@ class GenericObject(object):
         Get the highest level parent
 
         :returns: the Robot
-        :rtype: :class:`kinematic_chain.Robot`.
+        :rtype: :class:`kinematics.Robot`.
         """
         if self.parent==None:
             return self
@@ -253,7 +253,7 @@ class GenericObject(object):
         Get the immediate parent joint
 
         :returns: the Robot
-        :rtype: :class:`kinematic_chain.Joint`.
+        :rtype: :class:`kinematics.Joint`.
         """
         if not self.parent:
             return None
@@ -464,7 +464,7 @@ class Robot(Joint):
         """ Do the following initializations in order:
 
          * build joint_list and mesh_list
-         * call :func:`kinematic_chain.Joint.init_local_transformation` on itself
+         * call :func:`kinematics.Joint.init_local_transformation` on itself
          * call init() on all children
         """
         GenericObject.init(self)

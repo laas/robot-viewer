@@ -17,7 +17,7 @@
 
 
 import re, sys
-import kinematic_chain
+import kinematics
 import os
 import logging, pickle
 
@@ -45,7 +45,7 @@ def load_cache(cached_file):
         logger.warning("Old on invalid cached file. Removing %s"%cached_file)
         return None
 
-    gen_objs = [ o for o in objs if isinstance(o, kinematic_chain.GenericObject) ]
+    gen_objs = [ o for o in objs if isinstance(o, kinematics.GenericObject) ]
 
     if not gen_objs[:]:
         logger.warning("Cached does not contain any object. Removing %s"%cached_file)

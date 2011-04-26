@@ -26,8 +26,8 @@ from simpleparse.dispatchprocessor import *
 from numbers import Number
 import pprint
 
-from kinematic_chain import Mesh, Appearance, Geometry
-from kinematic_chain import GenericObject, Joint, Robot
+from kinematics import Mesh, Appearance, Geometry
+from kinematics import GenericObject, Joint, Robot
 from camera import Camera
 class NullHandler(logging.Handler):
     def emit(self, record):
@@ -264,7 +264,7 @@ def parse(filename):
 
 def main():
     import optparse
-    logger = logging.getLogger("kinematic_chain")
+    logger = logging.getLogger("kinematics")
     logger.setLevel(logging.DEBUG)
     sh = logging.StreamHandler()
     sh.setLevel(logging.DEBUG)

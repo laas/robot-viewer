@@ -19,10 +19,10 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from OpenGL.GL.ARB.vertex_buffer_object import *
 import numpy, time
-import kinematic_chain
+import kinematics
 from mathaux import *
 from safeeval import safe_eval
-from kinematic_chain import Robot, GenericObject
+from kinematics import Robot, GenericObject
 import traceback
 
 import logging, os, sys
@@ -446,7 +446,7 @@ def draw_link(joint, size = 1):
     children = joint.get_children_joints()
     for child in children:
         glPushMatrix()
-        localT = kinematic_chain.find_relative_transformation( joint , child )
+        localT = kinematics.find_relative_transformation( joint , child )
         child_pos = localT[:3,3]
         draw_cylinder([0.,0.,0.],child_pos,size)
         glPopMatrix()

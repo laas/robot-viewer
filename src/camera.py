@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with robot-viewer.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import division
-import kinematic_chain
+import kinematics
 from math import sqrt,sin,cos,atan2, pi
 import numpy
 from mathaux import *
@@ -29,13 +29,13 @@ def normalized(v):
 
 OVERHEAD_THRESHOLD = 0.99
 
-class Camera(kinematic_chain.GenericObject):
+class Camera(kinematics.GenericObject):
     '''
     World camera and robot cameras. Use OpenHRP convention
     http://openrtp.info/openhrp3/en/create_model.html#VISIONSENSOR
     '''
     def __init__(self):
-        kinematic_chain.GenericObject.__init__(self)
+        kinematics.GenericObject.__init__(self)
 
         self.frontClipDistance = 0.01
         self.backClipDistance = 100
@@ -60,7 +60,7 @@ class Camera(kinematic_chain.GenericObject):
         pass
 
     def update(self):
-        kinematic_chain.GenericObject.update(self)
+        kinematics.GenericObject.update(self)
         lookatRel = numpy.eye(4)
         lookatRel[2,3] = - self.focal
         lookatT = numpy.dot(self.globalTransformation,
