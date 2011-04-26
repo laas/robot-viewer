@@ -37,7 +37,7 @@ logger = logging.getLogger("robotviewer.vrml_parser")
 logger.addHandler(NullHandler())
 
 path = os.path.abspath(os.path.dirname(__file__))
-grammar_file = os.path.join(path,"vrml.ebnf" )
+grammar_file = os.path.join(path,"vrml.sbnf" )
 VRMLPARSERDEF = open(grammar_file).read()
 
 class VrmlNode(dict):
