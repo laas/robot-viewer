@@ -815,7 +815,32 @@ class DisplayServer(object):
                                      format(self.stream))
 
         glutSwapBuffers()
+
+        if self.run_once:
+            self.screen_capture()
+
         return True
+
+    def screen_capture(self):
+        import PIL.Image
+        win = glutGetWindow()
+        pixels = glReadPixels(0,0,self.windows[win].camera.width ,
+                              self.windows[win].camera.height ,
+                              GL_RGB, GL_UNSIGNED_BYTE)
+        im = (PIL.Image.fromstring("RGB",
+                                   (self.windows[win].camera.width,
+                                    self.windows[win].camera.height),
+                                   pixels).
+              transpose(PIL.Image.FLIP_TOP_BOTTOM))
+        imsuff = datetime.datetime.now().strftime("%Y%m%d%H%M")
+        imname = None
+        imname = "/tmp/robotviewer_{0}.png".format(imsuff)
+        i = 0
+        while not imname or os.path.isfile(imname):
+            i += 1
+            imname = "/tmp/robotviewer_{0}_{1}.png".format(imsuff, i)
+        logger.info("Saved to {0}".format(imname))
+        im.save(imname)
 
     def stop_record(self):
         for id, window in self.windows.items():
@@ -949,25 +974,8 @@ class DisplayServer(object):
                          self.lightAttenuation)
 
         elif args[0] == 'c':
-            import PIL.Image
-            win = glutGetWindow()
-            pixels = glReadPixels(0,0,self.windows[win].camera.width ,
-                                  self.windows[win].camera.height ,
-                                  GL_RGB, GL_UNSIGNED_BYTE)
-            im = (PIL.Image.fromstring("RGB",
-                                       (self.windows[win].camera.width,
-                                        self.windows[win].camera.height),
-                                       pixels).
-                  transpose(PIL.Image.FLIP_TOP_BOTTOM))
-            imsuff = datetime.datetime.now().strftime("%Y%m%d%H%M")
-            imname = None
-            imname = "/tmp/robotviewer_{0}.png".format(imsuff)
-            i = 0
-            while not imname or os.path.isfile(imname):
-                i += 1
-                imname = "/tmp/robotviewer_{0}_{1}.png".format(imsuff, i)
-            logger.info("Saved to {0}".format(imname))
-            im.save(imname)
+            self.screen_capture()
+
         elif args[0] == 'v':
             if not self.recording:
                 self.start_record()
