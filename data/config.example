@@ -15,16 +15,22 @@ position: 0 1 0.7 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
 #geometry: $HOME/.robotviewer/danceFloor.wrl
 geometry: $HOME/.robotviewer/floor.py
 
+[object bunny]
+#geometry: $HOME/.robotviewer/danceFloor.wrl
+geometry: $HOME/.robotviewer/bunny.obj
+scale: 3 3 3
+position: 0 -1 -0.1 1.57 0 1.57
+
 # [object coord]
 # geometry: $HOME/.robotviewer/coord.py
 # parent: hrp,,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39
 # position: 0 0 0 0 0 0
 
-[object coord]
-geometry: $HOME/.robotviewer/coord.py
-parent: camera1,
+#[object coord]
+#geometry: $HOME/.robotviewer/coord.py
+#parent: camera1,
 # position: 0 0 0 0 0 0
 
-[object coord2]
-geometry: $HOME/.robotviewer/coord.py
-parent: camera2,
+#[object coord2]
+#geometry: $HOME/.robotviewer/coord.py
+#parent: camera2,

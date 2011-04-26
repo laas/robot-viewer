@@ -118,7 +118,8 @@ class GenericObject(object):
     def scale(self, scale):
         for i in range(3):
             self.translation[i]*=scale[i]
-            self.localTransformation[i][3]*=scale[i]
+            sc = scale[i]
+            self.localTransformation[i,3] *= sc
 
         for child in self.children:
             child.scale(scale)
@@ -490,7 +491,8 @@ class Robot(Joint):
                     raise Exception("Invalid color for mesh %s"%str(mesh))
 
                 if len(color) != 3:
-                    raise Exception("Invalid len for a color in mesh %s"%str(mesh.name))
+                    raise Exception("Invalid len for a color in mesh %s"
+                                    %str(mesh.name))
 
         if not self.mesh_list[:]:
             logger.warning("Robot contains 0 mesh.")

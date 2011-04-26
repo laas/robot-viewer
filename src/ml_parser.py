@@ -29,7 +29,8 @@ logger.addHandler(NullHandler())
 
 parsers = { 'vrml': 'vrml_parser',
             'wrl': 'vrml_parser',
-            'kxml': 'kxml_parser'
+            'kxml': 'kxml_parser',
+            'obj': 'obj_parser'
             }
 supported_extensions = parsers.keys()
 

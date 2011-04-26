@@ -35,6 +35,7 @@ Main features:
       data_files=[('bin',['bin/robotviewer','bin/robotviewer-gtk']),
                   (config_dir,['data/floor.py',
                                'data/config.example','data/sample.wrl',
+                               'data/bunny.obj',
                                'data/coord.py']),
                   ('share/man/man1',['data/robotviewer.1','data/robotviewer-gtk.1']),
                   ],

@@ -406,7 +406,8 @@ class DisplayServer(object):
                                     .format(section))
                 scale = config.get(section, 'scale')
                 if not scale:
-                    scale = [1,1,1]
+                    scale = "1 1 1"
+                scale = [float(w) for w in scale.split()]
 
                 joint_rank = config.get(section, 'joint_rank')
                 if otype == "robot" and joint_rank:

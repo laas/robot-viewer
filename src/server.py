@@ -98,17 +98,22 @@ def main():
         os.mkdir(config_dir)
     os.chmod(config_dir,
              stat.S_IWUSR | stat.S_IRUSR | stat.S_IXUSR)
-    prefix_dir = os.path.split(os.path.abspath(os.path.dirname(__file__)))[0]
+    prefix_dir = os.path.abspath(os.path.dirname(__file__))
+    prefix_dir = os.path.split(prefix_dir)[0]
+    prefix_dir = os.path.split(prefix_dir)[0]
+    prefix_dir = os.path.split(prefix_dir)[0]
+    prefix_dir = os.path.split(prefix_dir)[0]
+
     default_config_dir = os.path.join( prefix_dir,
                                       "share","robot-viewer")
 
     def visit_cb(arg, dirname, names):
         for name in names:
-            if not os.path.exists(os.path.join(config_dir,name)):
-                os.symlink(os.path.join(dirname, name),
-                           os.path.join(config_dir,name)
-                           )
-
+            if os.path.exists(os.path.join(config_dir,name)):
+                os.remove(os.path.join(config_dir,name))
+            os.symlink(os.path.join(dirname, name),
+                       os.path.join(config_dir,name)
+                       )
     os.path.walk(default_config_dir, visit_cb, None)
     config_file = os.path.join(config_dir, 'config')
 

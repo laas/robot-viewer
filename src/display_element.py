@@ -98,6 +98,18 @@ class GlPrimitive(GenericObject):
         elif type(app.transparency) == list:
             app.transparency = app.transparency[0]
 
+        if not app.specularColor:
+            app.specularColor = [1, 1, 1]
+
+
+        if self.mesh.parent == None:
+            for key in ['emissiveColor', 'emissiveColor','ambientColor']:
+                if not app.__dict__[key]:
+                    app.__dict__[key] = [0.2, 0.2, 0.2]
+            if not app.shininess:
+                app.shininess = 5
+
+
         for (key, value) in [ (GL_SPECULAR,app.specularColor),
                               (GL_EMISSION,app.emissiveColor ),
                               (GL_AMBIENT_AND_DIFFUSE,app.diffuseColor ),

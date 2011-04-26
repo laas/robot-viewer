@@ -11,6 +11,8 @@ class NullHandler(logging.Handler):
 
 logger = logging.getLogger()
 logger.addHandler(NullHandler())
+import kinematics
+
 
 def get_parser():
     usage = "usage: [options]"
@@ -25,6 +27,9 @@ def get_parser():
     return parser
 
 class ObjProcessor(DispatchProcessor):
+    def __init__(self, mesh):
+        self.mesh = mesh
+
 
     def basis_matrix(self,(tag,start,stop,subtags), buffer ):
         '''FIXME'''
@@ -95,7 +100,11 @@ class ObjProcessor(DispatchProcessor):
     def face(self,(tag,start,stop,subtags), buffer ):
         '''FIXME'''
         logger.debug('dispatching face')
-        return dispatchList(self, subtags, buffer)
+        if self.mesh.geo.idx != []:
+            self.mesh.geo.idx.append(-1)
+        ids = dispatchList(self, subtags, buffer)
+        ids =  [i - 1 for i in ids]
+        self.mesh.geo.idx += ids
 
 
 
@@ -325,12 +334,27 @@ class ObjProcessor(DispatchProcessor):
     def vertex(self,(tag,start,stop,subtags), buffer ):
         '''FIXME'''
         logger.debug('dispatching vertex')
-        return dispatchList(self, subtags, buffer)
+        self.mesh.geo.coord += dispatchList(self, subtags, buffer)
 
 
 class ObjParser(Parser):
+    def __init__(self, *args, **kwargs):
+        Parser.__init__(self,*args, **kwargs)
+        self.mesh = kinematics.Mesh()
+
     def buildProcessor(self):
-        return ObjProcessor()
+        return ObjProcessor(self.mesh)
+
+
+def parse(filename):
+    path = os.path.abspath(os.path.dirname(__file__))
+    grammar_file = os.path.join(path,"obj.sbnf" )
+    DEF = open(grammar_file).read()
+    parser = ObjParser(DEF, 'ObjFile')
+    parser.parse(open(filename).read())
+    parser.mesh.init()
+    return [parser.mesh]
+
 
 def main():
     oparser = get_parser()
@@ -346,7 +370,8 @@ def main():
     data = open(args[0]).read()
     DEF = open('obj.sbnf').read()
     parser = ObjParser(DEF, 'ObjFile')
-    print parser.parse(data)
+    parser.parse(data)
+    print parser.mesh
 
 
 if __name__ == '__main__':
