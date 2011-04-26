@@ -6,5 +6,5 @@ prune *~*
 prune *#*
 recursive-include bin/ *
 recursive-include data/ *
-include src/*.ebnf
+include src/*.sbnf
 
