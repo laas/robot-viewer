@@ -1,0 +1,132 @@
+# based on obj specification @ http://www.martinreddy.net/gfx/3d/OBJ.spec
+ObjFile          ::= obj_line*
+>obj_line<       ::= ts,(vertex_data/element/statement/connectivity/group/display),ts
+
+>vertex_data<    ::= (vertex/texture/normal/parameter/cstype/degree/basis_matrix/step)
+vertex           ::= 'v' , x, y, z, w?
+texture          ::= 'vt', u, v, w
+normal           ::= 'vn', i, j, k
+parameter        ::= 'vp', u, v, w?
+cstype           ::= 'cstype', rat?, type
+degree           ::= 'deg', degu, degv
+basis_matrix     ::= 'bmat', u_or_v, matrix
+step             ::= 'step', stepu, stepv
+
+>element<        ::= (point/line/face/curve/curve_2d/surface)
+point            ::= 'p', v1, v2, v3
+line             ::= 'l', v1, (slash,vt1)?, v2, (slash,vt2)?, v3,(slash,vt3)?
+face             ::= 'f', (v1, (slash,vt1)?, (slash,vn1)?)+
+curve            ::= 'curv', (u)+
+curve_2d         ::= 'curv2', (u)+
+surface          ::= 'surf', s0, s1, t0, t1, (v1, (slash,vt1)?, (slash,vn1)?)+
+
+>statement<      ::= (param/trim/hole/special_curve/special_point)
+param            ::= 'parm', u_or_v, (p1)+
+trim             ::= 'trim', (u0, u1, curv2d)+
+hole             ::= 'hole', (u0, u1, curv2d)+
+special_curve    ::= 'scrv', (u0, u1, curv2d)+
+special_point    ::= 'sp', (vp)+
+
+
+connectivity     ::= 'con',surf_1,q0_1,q1_1, curv2d_1, surf_2,q0_2,q1_2,curv2d_2
+
+>group<          ::= (ggroup/smooth/merge/object_name/lod)
+ggroup           ::= 'g', (group_name)+
+smooth           ::= 's', group_number
+merge            ::= 'mg', group_number, res
+object_name      ::= 'o', oname
+
+
+>display<        ::= (bevel/c_interp/d_interp
+                      /lod/maplib/usemap/usemtl/mtllib/shadow_obj/trace_obj
+                      /ctech/stech
+                      )
+
+bevel            ::= 'bevel', onoff
+c_interp         ::= 'c_interp', onoff
+d_interp         ::= 'c_interp', onoff
+lod              ::= 'lod', level
+maplib           ::= 'maplib', (filename)+
+usemap           ::= 'usemap', map_name/off
+usemtl           ::= 'usemtl', material_name
+mtllib           ::= 'mtltlib', (filename)+
+shadow_obj       ::= 'shadow_obj', filename
+trace_obj        ::= 'shadow_obj', filename
+ctech            ::= 'ctech', technique,  (resolution)+
+stech            ::= 'stech', technique,  (resolution)+
+
+slash            ::= '/'
+u_or_v           ::= ts,'u'/'v',ts
+>onoff<          ::= on/off
+on               ::= ts,'on',ts
+off              ::= ts,'off',ts
+rat              ::= ts,'rotational'/'non-rotational',ts
+type             ::= ts,'bmatrix'/'bezier'/'bspline'/'cardinal'/'taylor'/'Taylor'/'basis matrix'/'Bezier'/'B-spline'/'Cardinal',ts
+end              ::= 'end'
+
+
+>x<              ::= ts,Float,ts
+>y<              ::= ts,Float,ts
+>z<              ::= ts,Float,ts
+>w<              ::= ts,Float,ts
+>u<              ::= ts,Float,ts
+>u0<             ::= ts,Float,ts
+>u1<             ::= ts,Float,ts
+>v<              ::= ts,Float,ts
+>s0<             ::= ts,Float,ts
+>s1<             ::= ts,Float,ts
+>t0<             ::= ts,Float,ts
+>t1<             ::= ts,Float,ts
+>p1<             ::= ts,Float,ts
+>p2<             ::= ts,Float,ts
+>q0_1<           ::= ts,Float,ts
+>q1_1<           ::= ts,Float,ts
+>q0_2<           ::= ts,Float,ts
+>q1_2<           ::= ts,Float,ts
+>degu<           ::= ts,Float,ts
+>degv<           ::= ts,Float,ts
+>res<            ::= ts,Float,ts
+>resolution<     ::= ts,Float,ts
+
+matrix_line      ::= (ts,Float,ts)+,'\\',ts
+matrix           ::= (ts,matrix_line,ts)+
+
+>v1<             ::= ts,Integer,ts
+>v2<             ::= ts,Integer,ts
+>v3<             ::= ts,Integer,ts
+>vt1<            ::= ts,Integer,ts
+>vt2<            ::= ts,Integer,ts
+>vt3<            ::= ts,Integer,ts
+>vn1<            ::= ts,Integer,ts
+>vn2<            ::= ts,Integer,ts
+>vn3<            ::= ts,Integer,ts
+>curv2d<         ::= ts,Integer,ts
+>curv2d_2<       ::= ts,Integer,ts
+>curv2d_1<       ::= ts,Integer,ts
+>vp<             ::= ts,Integer,ts
+>i<              ::= ts,Integer,ts
+>j<              ::= ts,Integer,ts
+>k<              ::= ts,Integer,ts
+>surf_1<         ::= ts,Integer,ts
+>surf_2<         ::= ts,Integer,ts
+>stepu<          ::= ts,Integer,ts
+>stepv<          ::= ts,Integer,ts
+>group_number<   ::= ts,Integer,ts
+>level<          ::= ts,Integer,ts
+
+
+>group_name<     ::= SFString
+>oname<          ::= SFString
+>filename<       ::= SFString
+>map_name<       ::= SFString
+>technique<      ::= SFString
+>material_name<  ::= SFString
+
+Float            ::= [-+]*, ( ('0',[xX],[0-9]+) / ([0-9.]+,([eE],[-+0-9.]+)?))
+Integer          ::= [-+]*, [0-9]+
+SFBool           ::= 'TRUE'/'FALSE'
+SFString         ::= '"',(CHARNODBLQUOTE/ESCAPEDCHAR/SIMPLEBACKSLASH)*,'"'
+<CHARNODBLQUOTE> ::=  -[\134"]+
+<SIMPLEBACKSLASH>::= '\134'
+<ESCAPEDCHAR>    ::= '\\"'/'\134\134'
+<ts>             ::=  ( [ \011-\015,]+ / ('#',-'\012'*,'\n')+ )*
