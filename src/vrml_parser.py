@@ -23,7 +23,6 @@ import logging, os, sys
 from simpleparse.common import numbers, strings, comments
 from simpleparse.parser import Parser
 from simpleparse.dispatchprocessor import *
-from vrml_grammar import VRMLPARSERDEF
 from numbers import Number
 import pprint
 
@@ -36,6 +35,10 @@ class NullHandler(logging.Handler):
 
 logger = logging.getLogger("robotviewer.vrml_parser")
 logger.addHandler(NullHandler())
+
+path = os.path.abspath(os.path.dirname(__file__))
+grammar_file = os.path.join(path,"vrml.ebnf" )
+VRMLPARSERDEF = open(grammar_file).read()
 
 class VrmlNode(dict):
     def __init__(self, n = None):

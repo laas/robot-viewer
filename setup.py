@@ -29,6 +29,8 @@ Main features:
                     'robotviewer.idl.robotviewer_corba__POA',
                 ],
       package_dir={'robotviewer':'src'},
+      package_data={'robotviewer': ['vrml.ebnf',
+                                    ]},
       requires=['sphinx (>=0.6)','pyopengl'],
       data_files=[('bin',['bin/robotviewer','bin/robotviewer-gtk']),
                   (config_dir,['data/floor.py',
@@ -40,7 +42,7 @@ Main features:
                 #'build_manpage2':build_manpage
                 },
 
-      # ext_modules = [Extension("robotviewer.oglc",
+      #ext_modules = [Extension("robotviewer.oglc",
       #                          sources = ["src/oglc.cc"],
       #                          libraries = ['GL','GLU'],
       #                          )]
