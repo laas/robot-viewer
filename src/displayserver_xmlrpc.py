@@ -50,7 +50,7 @@ class DisplayServerXmlrpc(DisplayServer):
         self.server.register_function(self.updateElementConfig , 'updateElementConfig')
         self.server.register_function(self.getElementConfig , 'getElementConfig')
         self.server.register_function(self.listElements , 'listElements')
-        self.server.register_function(self.list_element_dofs , 'list_element_dofs')
+        self.server.register_function(self.listElementDofs , 'listElementDofs')
         self.server.register_function(self.Ping , 'Ping')
         t = threading.Thread(target = self.server.serve_forever)
         t.start()

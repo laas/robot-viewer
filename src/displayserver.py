@@ -467,7 +467,7 @@ class DisplayServer(object):
                                'objects','joint_rank',
                                'preferences','scales']:
                 raise Exception("Invalid section {0} in {1}".
-                                format(sec,self.config_file))
+                                format(section,self.config_file))
 
         scales = {}
         if config.has_section('scales'):
