@@ -36,7 +36,6 @@ logger.addHandler(NullHandler())
 
 
 USE_VBO = False
-INTEL = False
 
 def ifenabled(meth):
     def new_meth(cls, *args, **kwargs):
@@ -290,21 +289,7 @@ class DisplayRobot(DisplayObject):
 
     def render_skeleton(self):
         for j in self.joint_list:
-            # Known bug with Intel card that make cylinders appear in strange
-            # direction
-            if not INTEL:
-                j.gl_primitive.render()
-            else:
-                glPushMatrix()
-                Tmatrix = j.globalTransformation
-                R=Tmatrix[0:3,0:3]
-                p=Tmatrix[0:3,3]
-                agax=rot2AngleAxis(R)
-                glTranslatef(p[0],p[1],p[2])
-                glRotated(agax[0],agax[1],agax[2],agax[3])
-                draw_joint(j, self.skeleton_size)
-                draw_link(j, self.skeleton_size)
-                glPopMatrix()
+            j.gl_primitive.render()
 
     def set_skeleton_size(self, size):
         self.skeleton_size = size
