@@ -35,10 +35,10 @@ def get_parser():
                       help="be verbose")
 
     parser.add_option("-s","--server", dest="server", default = "CORBA",
-                      help="server type to be used (default: CORBA)")
+                      help="set server type to be used (default: CORBA)")
 
     parser.add_option("-c","--config-file", dest="config_file",
-                      help="specify config file")
+                      help="set config file")
 
     parser.add_option("--no-cache",
                       action="store_true", dest="no_cache", default=False,
@@ -50,7 +50,7 @@ def get_parser():
 
     parser.add_option("--run-once",
                       action="store_true", dest="run_once", default=False,
-                      help="Do not enter glutMainLoop (for debug only)")
+                      help="render one frame, make a screenshot and quit (debug use only)")
 
     parser.add_option("--skeleton",
                       action="store_true", dest="skeleton", default=False,
@@ -62,7 +62,7 @@ def get_parser():
 
     parser.add_option("--version",
                       action="store_true", dest="version", default=False,
-                      help="Print version and exit")
+                      help="print version and exit")
 
     parser.add_option("--off-screen",
                        action="store_true", dest="off_screen", default=False,
@@ -70,19 +70,19 @@ def get_parser():
 
     parser.add_option("-r", "--refresh-rate",
                       action="store", dest="refresh_rate", type = "int", default = 1000,
-                      help="specify refresh rate")
+                      help="set refresh rate")
 
     parser.add_option("--num-windows",
                       action="store", dest="num_windows", type = "int", default = 1,
-                      help="number of windows")
+                      help="set number(s) of windows")
 
     parser.add_option("--width",
                       action="store", dest="width", type = "int", default = 640,
-                      help="window width")
+                      help="set window(s) width")
 
     parser.add_option("--height",
                       action="store", dest="height", type = "int", default = 480,
-                      help="window height")
+                      help="set window(s) height")
 
     parser.add_option("--stream",
                       action="store", dest="port", type = "int",
