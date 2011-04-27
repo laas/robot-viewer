@@ -87,6 +87,10 @@ def get_parser():
     parser.add_option("--stream",
                       action="store", dest="port", type = "int",
                       help="stream PNG to a port (UDP)")
+
+    parser.add_option("--intel",
+                      action="store_true", dest="intel",  default=False,
+                      help="tell robot-viewer that it is running on an Intel card")
     return parser
 
 def main():

@@ -145,10 +145,15 @@ class DisplayServer(object):
         self.refresh_rate = None
         self.num_windows = 1
         self.run_once = False
+        self.intel = False
         self.__dict__.update(options.__dict__)
 
         if not self.config_file:
             self.config_file = os.path.join(config_dir,"config")
+
+        if self.intel:
+            display_element.INTEL = True
+
 
         if self.use_vbo:
             display_element.USE_VBO = True
