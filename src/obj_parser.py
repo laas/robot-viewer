@@ -102,9 +102,9 @@ class ObjProcessor(DispatchProcessor):
         logger.debug('dispatching face')
         if self.mesh.geo.idx != []:
             self.mesh.geo.idx.append(-1)
-        ids = dispatchList(self, subtags, buffer)
-        ids =  [i - 1 for i in ids]
-        self.mesh.geo.idx += ids
+        for id, texture, normal in dispatchList(self, subtags, buffer):
+            id -= 1
+            self.mesh.geo.idx.append(id)
 
 
 
@@ -330,11 +330,40 @@ class ObjProcessor(DispatchProcessor):
         logger.debug('dispatching usemtl')
         return None
 
-
     def vertex(self,(tag,start,stop,subtags), buffer ):
         '''FIXME'''
         logger.debug('dispatching vertex')
         self.mesh.geo.coord += dispatchList(self, subtags, buffer)
+
+    def ver_tex(self,(tag,start,stop,subtags), buffer ):
+        '''FIXME'''
+        logger.debug('dispatching ver_tex')
+        return None
+
+    def ver_tex_nor(self,(tag,start,stop,subtags), buffer ):
+        '''FIXME'''
+        logger.debug('dispatching ver_tex_nor')
+        l = dispatchList(self, subtags, buffer)
+        idx = None
+        tex = None
+        nor = None
+        idx = l[0]
+        if not l[1:]:
+            return [idx, tex, idx]
+        if l[1] != "/":
+            raise Exception ("Unexpected pattern in vertex %s"%buffer[start:stop])
+        if l[2] != "/":
+            tex = l[2]
+            if l[4:]:
+                nor = l[4]
+        else:
+            if l[3:]:
+                nor = l[3]
+        return [idx, tex, idx]
+
+
+
+
 
 
 class ObjParser(Parser):
@@ -367,11 +396,8 @@ def main():
 
 
     logger.addHandler(sh)
-    data = open(args[0]).read()
-    DEF = open('obj.sbnf').read()
-    parser = ObjParser(DEF, 'ObjFile')
-    parser.parse(data)
-    print parser.mesh
+    for m in parse(args[0]):
+        print m
 
 
 if __name__ == '__main__':

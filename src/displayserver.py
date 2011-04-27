@@ -154,6 +154,7 @@ class DisplayServer(object):
             display_element.USE_VBO = True
 
         self._element_dict = dict()
+        self.windows = {}
 
         self.fbo_id = -1
         self.rbo_id = -1
@@ -289,7 +290,7 @@ class DisplayServer(object):
             self.create_window()
         else:
             import oglc
-            oglc.create_osmesa_context()
+            oglc.create_gl_context()
             #self.create_window()
             #glutHideWindow(self.window)
 
@@ -729,11 +730,14 @@ class DisplayServer(object):
 
         if self.off_screen:
             t = InteractThread(self)
-            t.start()
-        if not self.run_once:
+            #t.start()
+        if not (self.run_once or self.off_screen):
             glutMainLoop()
-        else:
+        elif self.run_once:
             glutMainLoopEvent()
+        elif self.off_screen:
+            while True:
+                glutMainLoopEvent()
 
 
     def Ping(self):

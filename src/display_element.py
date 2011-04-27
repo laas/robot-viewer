@@ -38,9 +38,9 @@ logger.addHandler(NullHandler())
 USE_VBO = False
 
 def ifenabled(meth):
-    def new_meth(cls, *kargs, **kwargs):
+    def new_meth(cls, *args, **kwargs):
         if cls.enabled:
-            return meth(cls, *kargs, **kwargs)
+            return meth(cls, *args, **kwargs)
         else:
             return
     return new_meth
@@ -407,7 +407,6 @@ class Vbo(object):
         s+="len (_idxs)\t=%d\n"%(len(self.tri_idxs))
         s+="]"
         return s
-
 
 
 def render_skeleton(robot, size):
