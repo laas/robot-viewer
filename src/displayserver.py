@@ -242,19 +242,12 @@ class DisplayServer(object):
 
     def create_window(self):
         logger.info("Creating window")
-        intel_card = False
-        if os.name == 'posix':
-            rt = subprocess.call("lspci | grep VGA | grep Intel",
-                                 shell= True)
-            if rt == 0:
-                intel_card = True
-        # Hack to catch segfaut on intel cards
-        if intel_card:
-            dummy_win = glutCreateWindow("Initializing...")
+        dummy_win = glutCreateWindow("Initializing...")
+        glutHideWindow(dummy_win)
+
         glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA
                             | GLUT_DEPTH)
-        if intel_card:
-            glutDestroyWindow(dummy_win)
+        glutDestroyWindow(dummy_win)
         logger.debug("Setting glut WindowSize")
         glutInitWindowSize(self.width, self.height)
         logger.debug("Creating glutWindow")
