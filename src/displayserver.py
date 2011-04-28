@@ -190,7 +190,7 @@ class DisplayServer(object):
             self.render_mesh_flag = True
             self.render_skeleton_flag = False
 
-        self.skeleton_size = 1
+        self.skeleton_size = 2
         self.transparency = 0
 
         # key interaction from console

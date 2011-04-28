@@ -113,8 +113,10 @@ def main():
 
     def visit_cb(arg, dirname, names):
         for name in names:
-            if os.path.exists(os.path.join(config_dir,name)):
-                os.remove(os.path.join(config_dir,name))
+            f = os.path.join(config_dir,name)
+            if os.path.exists(f):
+                logger.info("Removing %s"%f)
+                os.remove(f)
             os.symlink(os.path.join(dirname, name),
                        os.path.join(config_dir,name)
                        )

@@ -31,8 +31,8 @@ class RangeWidgets(gtk.Table):
     import gtk
     def __init__(self, names = []):
         self.names = names
-        no_cols = 3
-        no_rows = len(names)/3 + 1
+        no_cols = 2
+        no_rows = len(names)/no_cols + 1
         gtk.Table.__init__(self, no_rows, no_cols, True)
         self.show()
         self.hscales = []
@@ -58,9 +58,9 @@ class RangeWidgets(gtk.Table):
         print adj.value
 
 class ControllerWidget(RangeWidgets):
-    def __init__(self, objname):
+    def __init__(self, objname, clt):
         self.objname = objname
-        self.clt = client.client()
+        self.clt = clt
         print self.objname
         start_pos = self.clt.getElementConfig(self.objname)
         print start_pos
@@ -95,6 +95,10 @@ def get_parser():
     parser.add_option("-p", "--pattern",
                       action="store", dest="pattern",
                       help="Regular expression describing elements to be controlled.")
+
+    parser.add_option("-s","--server", dest="server", default = "CORBA",
+                      help="set server type to be used (default: CORBA)")
+
     return parser
 
 def main():
@@ -109,15 +113,17 @@ def main():
     window = gtk.Window (gtk.WINDOW_TOPLEVEL)
     window.connect("destroy", lambda w: gtk.main_quit())
     window.set_title("Position Control")
-    clt = client.client()
+    clt = client.client(options.server)
     notebook = gtk.Notebook()
     window.add(notebook)
     print notebook
     for obj in clt.listElements():
-        tab = ControllerWidget(obj)
+        sw = gtk.ScrolledWindow()
+        tab = ControllerWidget(obj, clt)
+        sw.add_with_viewport(tab)
         if not re.match(r"%s"%patt, obj):
             continue
-        notebook.append_page(tab, gtk.Label(obj))
+        notebook.append_page(sw, gtk.Label(obj))
 
     window.show_all()
     gtk.main()
