@@ -2,7 +2,7 @@ Source: robot-viewer
 Section: python
 Priority: optional
 Maintainer: Duong Dang <dang.duong@gmail.com>
-Build-Depends: python (>=2.6), cdbs, python-support, debhelper (>=7.4), python-sphinx, python-gtk2
+Build-Depends: python (>=2.6), cdbs, python-support, debhelper (>=7.4), python-sphinx
 XS-Python-Version: >=2.6
 Standards-Version: 3.8.4
 

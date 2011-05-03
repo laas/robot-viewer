@@ -1,10 +1,2 @@
-include Makefile LICENSE.txt CHANGELOG.txt AUTHORS.txt INSTALL.txt makeaux.sh
-recursive-include data/ *
-recursive-include docs/ *.rst *.py Makefile make.bat
-prune docs/build/
-prune *~*
-prune *#*
-recursive-include bin/ *
-recursive-include data/ *
-include src/*.sbnf
-
+include *.txt COPYING.LESSER README.md Makefile
+include data/bunny.obj data/camera.py data/config.example data/config.nao data/coord.py data/floor.py data/nancy.wrl data/sample.wrl
