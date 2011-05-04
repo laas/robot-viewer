@@ -1,2 +1,4 @@
 include *.txt COPYING.LESSER README.md Makefile
 include data/bunny.obj data/camera.py data/config.example data/config.nao data/coord.py data/floor.py data/nancy.wrl data/sample.wrl
+include bin/*
+include src/*.sbnf

@@ -1,6 +1,3 @@
-#! /usr/bin/env python
-
-__author__ = "Duong Dang"
 __version__ = "0.1"
 
 import logging, sys, os, re
