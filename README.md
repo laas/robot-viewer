@@ -25,7 +25,7 @@ Create a robotviewer.repo file inside /etc/yum.repo.d with the following lines:
     baseurl=http://homepages.laas.fr/nddang/repos/fedora14
     enabled=1
     
-Change the line "fedora14" to your current version of fedora. Install robot-viewer by the usual way:
+Change the line "fedora14" to the appropriate version of your system. Install robot-viewer by the usual way:
   
     yum install robot-viewer
          
