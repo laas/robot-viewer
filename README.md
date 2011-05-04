@@ -10,11 +10,29 @@ Main features:
 
 ## Installation
 ### Binary package
-Ubuntu:
+#### Ubuntu:
 
     apt-add-repository ppa:dang-duong/ppa
     apt-get update
     apt-get install robot-viewer
+
+#### Fedora:
+
+Create a robotviewer.repo file inside /etc/yum.repo.d with the following lines:
+       
+    [robotviewer-repos]
+    name=Repository for robot-viewer.
+    baseurl=http://homepages.laas.fr/nddang/repos/fedora14
+    enabled=1
+    
+Install robot-viewer by the usual way:
+  
+    yum install robot-viewer
+         
+         
+
+
+
 
 ### From source
 Make sure you have the following dependency:
