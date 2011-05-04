@@ -20,7 +20,7 @@ Main features:
 
 Create a robotviewer.repo file inside /etc/yum.repo.d with the following lines:
        
-    [robotviewer-repos]
+    [robotviewer]
     name=Repository for robot-viewer.
     baseurl=http://homepages.laas.fr/nddang/repos/fedora14
     enabled=1
