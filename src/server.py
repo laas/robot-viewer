@@ -131,7 +131,7 @@ def main():
         for name in names:
             f = os.path.join(config_dir,name)
             if os.path.exists(f):
-                logger.info("Removing %s"%f)
+                logger.debug("Removing %s"%f)
                 os.remove(f)
             os.symlink(os.path.join(dirname, name),
                        os.path.join(config_dir,name)

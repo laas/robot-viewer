@@ -763,7 +763,7 @@ class DisplayServer(object):
         #if glGetError() > 0:
         if len(self.pendingObjects) > 0:
             obj = self.pendingObjects.pop()
-            logger.info( "creating %s %s %s"%( obj[0], obj[1], obj[2]))
+            logger.debug( "creating %s %s %s"%( obj[0], obj[1], obj[2]))
             self._create_element(obj[0],obj[1],obj[2])
         # Clear Screen And Depth Buffer
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
