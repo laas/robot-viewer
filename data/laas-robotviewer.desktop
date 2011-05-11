@@ -1,0 +1,15 @@
+[Desktop Entry]
+Version=1.6
+Name=Robot Viewer
+# Only KDE 4 seems to use GenericName, so we reuse the KDE strings.
+# From Ubuntu's language-pack-kde-XX-base packages, version 9.04-20090413.
+GenericName=Visualization tool for robotics
+GenericName[en_GB]=Visualization tool for robotics
+# Gnome and KDE 3 uses Comment.
+Comment=Visualization tool for robotics
+Exec=/usr/bin/robotviewer
+Terminal=true
+Icon=/usr/share/robot-viewer/robot-viewer.png
+Type=Application
+Categories=Graphics
+MimeType=text/html;text/xml;application/xhtml_xml;
