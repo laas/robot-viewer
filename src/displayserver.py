@@ -340,7 +340,7 @@ class DisplayServer(KinematicServer):
             m = pattern.match(line)
             if m:
                 correct_joint_dict[m.group(1)] = int(m.group(2)) -6
-                logger.info( m.group(1)+ "\t" + m.group(2))
+                logger.debug( m.group(1)+ "\t" + m.group(2))
 
         for joint in self.display_elements[robot_name].obj.joint_list:
             if correct_joint_dict.has_key(joint.name):
@@ -380,7 +380,7 @@ class DisplayServer(KinematicServer):
         """
         logger.debug("Creating {0} {1} {2} {3}".format(etype, ename, epath, scale))
         if self.display_elements.has_key(ename):
-            logger.exception("Element with that name exists already")
+            logger.exception("%s Element with that name exists already"%ename)
             return
 
         if etype == 'robot':

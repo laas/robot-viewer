@@ -32,6 +32,16 @@ logger.addHandler(NullHandler())
 
 BASE_NODE_ID = -1
 
+all_objects = {}
+
+def register_object(obj):
+    obj.uuid = 0
+    global all_objects
+    while obj.uuid in all_objects.keys():
+        obj.uuid += 1
+    all_objects[obj.uuid] = obj
+    return obj.uuid
+
 def find_relative_transformation( obj1, obj2 ):
     """
     Find transformation matrix of obj2 in reference frame of obj1
@@ -60,7 +70,7 @@ class GenericObject(object):
         self.localR=numpy.eye(3)
         self.id=None
         self.list_by_type = {}
-
+        register_object(self)
     def get_list(self, type):
         try:
             return self.list_by_type[type]
@@ -281,6 +291,12 @@ class Mesh(GenericObject):
         self.localR1=numpy.eye(3)  # due to offset of coordonee
         self.app=Appearance()
         self.geo=Geometry()
+
+    def init(self):
+        GenericObject.init(self)
+        self.geo.compute_normals()
+
+
 
     def scale(self, scale_vec):
         GenericObject.scale(self,scale_vec)
@@ -508,6 +524,7 @@ class Appearance():
         self.shininess      = None
         self.transparency   = None
         self.ambientIntensity= 0.0
+
     def __str__(self):
         s=""
         s+="\ndiffuseColor="+str(self.diffuseColor)

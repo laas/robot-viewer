@@ -38,6 +38,9 @@ module robotviewer_corba {
 
     void listElements(out ElementList list);
     void listElementDofs(in string element_name, out ElementList list);
+    void listMeshes(out ElementList list);
+    void getGlConfig(in string name, out DoubleSeq config) raises(InvalidKey);
+
     void Ping(out string outstring);
   };
 };

@@ -394,6 +394,19 @@ class KinematicServer(object):
             l += [j.name]
         return l
 
+    def listMeshes(self):
+        results = []
+        for name, element in self.kinematic_elements.items():
+            for mesh in element.mesh_list:
+                results.append(mesh.uuid)
+        return results
+
+    def getGlConfig(self, uuid):
+        Tmatrix = kinematics.all_objects[uuid].globalTransformation
+        R=Tmatrix[0:3,0:3]
+        p=Tmatrix[0:3,3]
+        agax=rot2AngleAxis(R)
+        return list(p) + list(agax)
 
     def run(self):
         while True:
@@ -405,6 +418,7 @@ class KinematicServer(object):
 
 if __name__ == '__main__':
     server = KinematicServer()
-    print server.listElements()
+    print server.listMeshes()
+    print server.getMeshConfig(server.listMeshes()[0])
     server.run()
 
