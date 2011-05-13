@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright (c) 2010-2011, Duong Dang <mailto:dang.duong@gmail.com>
 # This file is part of robot-viewer.
 
@@ -13,7 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public License
 # along with robot-viewer.  If not, see <http://www.gnu.org/licenses/>.
-# -*- coding: utf-8 -*-
+
 
 # Copyright 2010 CNRS
 # Author: Florent Lamiraux, Duong Dang
