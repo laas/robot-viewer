@@ -238,7 +238,7 @@ class RvWidget(DisplayServer, gtk.gtkgl.DrawingArea):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
         updateView(self.camera)
-        for item in self._element_dict.items():
+        for item in self.display_elements.items():
             ele = item[1]
             ele.render()
 

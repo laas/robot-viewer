@@ -213,6 +213,7 @@ class DisplayObject(object):
         self.obj = obj
         self.pending_update = False
         self.config = None
+        self.enabled = True
         for mesh in self.mesh_list:
             mesh.add_child( GlPrimitive (mesh = mesh, parent = mesh) )
 

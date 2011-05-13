@@ -47,7 +47,8 @@ import distutils.version
 import numpy
 from mathaux import *
 from ctypes import *
-logger = logging.getLogger("robotviewer.displayserver")
+from kinematic_server import KinematicServer
+
 
 try:
     from opencv import highgui, cv, adaptors
@@ -55,6 +56,8 @@ except ImportError:
     highgui = None
     adaptors = None
     cv = None
+
+logger = logging.getLogger("robotviewer.displayserver")
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass
@@ -125,7 +128,7 @@ class GlWindow(object):
         logger.info("Change camera to %d %s"%(self.active_camera,
                                               self.camera.name))
 
-class DisplayServer(object):
+class DisplayServer(KinematicServer):
     """OpenGL server
     """
 
@@ -136,6 +139,7 @@ class DisplayServer(object):
 
         Arguments:
         """
+
         self.config_file = None
         self.no_cache = False
         self.use_vbo = False
@@ -153,7 +157,7 @@ class DisplayServer(object):
         if self.use_vbo:
             display_element.USE_VBO = True
 
-        self._element_dict = dict()
+        self.display_elements = dict()
         self.windows = {}
 
         self.fbo_id = -1
@@ -173,10 +177,9 @@ class DisplayServer(object):
         self.lightAttenuation = 0.2
         self.active_cameras = {}
         self.world_cameras = []
-
+        KinematicServer.__init__(self)
         logger.debug("Initializing OpenGL")
         self.init_gl()
-        self.pendingObjects=[]
         self.parse_config()
         self.add_cameras()
         self._mouseButton = None
@@ -217,7 +220,7 @@ class DisplayServer(object):
             self.usage += "%.20s: %s\n"%(key, effect)
 
     def add_cameras(self):
-        for key, value in self._element_dict.items():
+        for key, value in self.display_elements.items():
             if isinstance(value, DisplayObject):
                 cameras = value.get_list(Camera)
                 for id, window in self.windows.items():
@@ -266,7 +269,7 @@ class DisplayServer(object):
             cam = Camera()
             cam.width = self.width
             cam.height = self.height
-            self._element_dict["camera%d"%window.id] = cam
+            self.display_elements["camera%d"%window.id] = cam
             self.world_cameras.append(cam)
             window.cameras.append(cam)
 
@@ -321,7 +324,7 @@ class DisplayServer(object):
     def set_robot_joint_rank(self,robot_name, joint_rank_xml):
         """
         """
-        if robot_name not in self._element_dict.keys():
+        if robot_name not in self.display_elements.keys():
             return False
 
 
@@ -338,11 +341,11 @@ class DisplayServer(object):
                 correct_joint_dict[m.group(1)] = int(m.group(2)) -6
                 logger.info( m.group(1)+ "\t" + m.group(2))
 
-        for joint in self._element_dict[robot_name].obj.joint_list:
+        for joint in self.display_elements[robot_name].obj.joint_list:
             if correct_joint_dict.has_key(joint.name):
                 joint.id = correct_joint_dict[joint.name]
 
-        self._element_dict[robot_name].obj.update_joint_dict()
+        self.display_elements[robot_name].obj.update_joint_dict()
         return True
 
 
@@ -356,179 +359,12 @@ class DisplayServer(object):
         return s
 
     def parse_config(self):
-        prog_version = distutils.version.StrictVersion(version.__version__)
-        config = CustomConfigParser()
-        config.read(self.config_file)
-        logger.info( 'parsed_config %s'%config)
-
-        if not config.has_section('global'):
-            self.parse_configLegacy(config)
-            return
-
-        for section in config.sections():
-            for options in config.options(section):
-                value = self._replace_env_var(config.get(section,options))
-                config.set(section, options, value)
-
-        conf_version = distutils.version.StrictVersion(config.get('global','version'))
-        if prog_version < conf_version:
-            raise Exception("Your config version ({0}) is newer than program version ({1})".
-                            format(conf_version, prog_version))
-
-        value =  config.get('global','background')
-        if value:
-            value = [float(e) for e in value.split(",")]
+        KinematicServer.parse_config(self)
+        bg = self.global_configs.get('background')
+        if bg:
             for win in self.windows:
                 glutSetWindow(win)
-                glClearColor (value[0], value[1], value[2], 0.5);
-
-        sections = config.sections()
-        join_pairs = []
-
-        for section in sections:
-            words = section.split()
-            otype = words[0]
-
-            if otype in ["robot", "object"]:
-                oname = words[1]
-                if not words[1:]:
-                    raise Exception("All robots must have a name.")
-
-                geometry = config.get(section, 'geometry')
-                if not geometry:
-                    raise Exception("missing geometry section for {0}"
-                                    .format(section))
-                scale = config.get(section, 'scale')
-                if not scale:
-                    scale = "1 1 1"
-                scale = [float(w) for w in scale.split()]
-
-                joint_rank = config.get(section, 'joint_rank')
-                if otype == "robot" and joint_rank:
-                    self.set_robot_joint_rank( oname, joint_rank)
-
-                position = config.get(section, 'position')
-                if not position:
-                    postion = 6*[0.0]
-                else:
-                    position = [float(e) for e in position.split()]
-
-                self._create_element(otype, oname,
-                                     geometry, scale)
-                if position:
-                    self.updateElementConfig(oname, position)
-                self.enableElement(oname)
-                parent = config.get(section, 'parent')
-
-                if parent:
-                    self.disableElement(oname)
-                    parent_name = parent.split(",")[0]
-                    parent_joint_ids = parent.split(",")[1:]
-
-                    for parent_joint_id in parent_joint_ids:
-                        if parent_joint_id != "":
-                            parent_joint_id = int(parent_joint_id)
-                        else:
-                            parent_joint_id = None
-                        name = "{0}_{1}_{2}".format(oname,parent_name,
-                                                    parent_joint_id)
-                        join_pairs.append((oname, name, parent_name,
-                                           parent_joint_id))
-
-        for pair in join_pairs:
-            orig_name = pair[0]
-            child_name = pair[1]
-            parent_name = pair[2]
-            parent_joint_id = pair[3]
-            try:
-                parent_obj = self._element_dict[parent_name]
-            except KeyError:
-                logger.warning("Parent {0} does not exist. Skipping".
-                               format(parent_name))
-                continue
-            new_el = copy.deepcopy( self._element_dict[orig_name] )
-            parent_obj.get_op_point(parent_joint_id).add_child(new_el)
-            parent_obj.init()
-            self._element_dict[child_name] = new_el
-            self.enableElement(child_name)
-
-        for name, obj in self._element_dict.items():
-            obj.update()
-
-    def parse_configLegacy(self, config):
-        logger.warning("Entering legacy config parsing")
-        for section in config.sections():
-            if section not in ['robots','default_configs',
-                               'objects','joint_rank',
-                               'preferences','scales']:
-                raise Exception("Invalid section {0} in {1}".
-                                format(section,self.config_file))
-
-        scales = {}
-        if config.has_section('scales'):
-            for key, value in config.items('scales'):
-                value = [float(e) for e in value.split(",")]
-                scales[key] = value
-
-
-        if config.has_section('robots'):
-            robot_names = config.options('robots')
-            for robot_name in robot_names:
-                robot_config = config.get('robots',robot_name)
-                robot_config = self._replace_env_var(robot_config)
-                logger.info( 'robot_config=%s'%robot_config)
-                if not os.path.isfile(robot_config):
-                    logger.info( "WARNING: Couldn't load %s. Are you sure %s exists?"\
-                        %(robot_name,robot_config))
-                    continue
-                self._create_element('robot',robot_name,robot_config,
-                                     scales.get(robot_name))
-                self.enableElement(robot_name)
-        else:
-            logger.info( """Couldn't any default robots.
-            Loading an empty scene
-            You might need to load some robots yourself.
-            See documentation""")
-
-        if config.has_section('joint_ranks'):
-            robot_names = config.options('joint_ranks')
-            for robot_name in robot_names:
-                joint_rank_config = config.get('joint_ranks',robot_name)
-                joint_rank_config = self._replace_env_var(joint_rank_config)
-                if not self._element_dict.has_key(robot_name):
-                    continue
-                if not os.path.isfile(joint_rank_config):
-                    continue
-                self.set_robot_joint_rank(self, robot_name,joint_rank_config)
-
-        if config.has_section('objects'):
-            object_names = config.options('objects')
-            for object_name in object_names:
-                object_file = config.get('objects',object_name)
-                object_file = self._replace_env_var(object_file)
-                if not os.path.isfile(object_file):
-                    logger.warning('Could not find %s'%object_file)
-                    continue
-                self._create_element('object', object_name,
-                                     object_file, scales.get(object_name))
-                self.enableElement(object_name)
-
-        if config.has_section('default_configs'):
-            object_names = config.options('default_configs')
-            for object_name in object_names:
-                pos = config.get('default_configs',object_name)
-                pos = [float(e) for e in pos.split()]
-                self.updateElementConfig(object_name,pos)
-
-        if config.has_section('preferences'):
-            for key, value in config.items('preferences'):
-                if key == 'background':
-                    value = [float(e) for e in value.split(",")]
-                    for win in self.windows:
-                        glutSetWindow(win)
-                        glClearColor (value[0], value[1], value[2], 0.5);
-
-        return
+                glClearColor (bg[0], bg[1], bg[2], 0.5);
 
 
     def _create_element(self, etype, ename, epath, scale = None):
@@ -542,7 +378,7 @@ class DisplayServer(object):
         - `path`:  string, description  (e.g. wrl path)
         """
         logger.debug("Creating {0} {1} {2} {3}".format(etype, ename, epath, scale))
-        if self._element_dict.has_key(ename):
+        if self.display_elements.has_key(ename):
             logger.exception("Element with that name exists already")
             return
 
@@ -559,7 +395,8 @@ class DisplayServer(object):
             if scale:
                 new_robot.scale(scale)
             new_element = DisplayRobot(new_robot)
-            self._element_dict[ename] = new_element
+            self.display_elements[ename] = new_element
+            self.kinematic_elements[ename] = new_robot
 
         elif etype == 'object':
             new_element = None
@@ -582,6 +419,8 @@ class DisplayServer(object):
                     for obj in objs:
                         group.add_child(obj)
                         group.init()
+                self.kinematic_elements[ename] = group
+
                 if scale:
                     group.scale(scale)
                 new_element = DisplayObject(group)
@@ -591,114 +430,10 @@ class DisplayServer(object):
             if not new_element:
                 raise Exception("creation of element from {0} failed".format(epath))
             logger.debug("Adding %s to internal dictionay"%(new_element))
-            self._element_dict[ename] = new_element
+            self.display_elements[ename] = new_element
 
         else:
             raise TypeError,"Unknown element type %s"%etype
-
-
-    def createElement(self, etype, ename, epath):
-        """
-        Same as _create_element but could be called by outside world
-        (CORBA) show will always be in the GL thread
-        Arguments:
-        - `self`:
-        - `etype`:        string, element type (e.g. robot, GLscript)
-        - `name`:         string, element name
-        - `path`:  string, path  (e.g. wrl path)
-        """
-        TIMEOUT = 600
-        self.pendingObjects.append((etype, ename, epath))
-        wait = 0
-        while ename not in self._element_dict.keys() and wait < TIMEOUT:
-            time.sleep(0.1)
-            wait += 0.1
-        if wait >= TIMEOUT:
-            logger.exception("Object took too long to create")
-            return False
-        return True
-
-    def destroyElement(self,name):
-        """
-        Arguments:
-        - `self`:
-        - `name`:         string, element name
-        """
-        if not self._element_dict.has_key(name):
-            logger.exception("Element with that name does not exist")
-            return False
-
-        del self._element_dict[name]
-        return True
-
-    def enableElement(self,name):
-        """
-
-        Arguments:
-        - `self`:
-        - `name`:
-        """
-        if not self._element_dict.has_key(name):
-            return False
-
-        self._element_dict[name].enabled = True
-        return True
-
-    def disableElement(self,name):
-        """
-        Arguments:
-        - `self`:
-        - `name`:
-        """
-        if not self._element_dict.has_key(name):
-            return False
-
-        self._element_dict[name].enabled = False
-        return True
-
-    def updateElementConfig(self,name,config):
-        """
-        Arguments:
-        - `self`:
-        - `name`:         string, element name
-        """
-        if not self._element_dict.has_key(name):
-            logger.exception("Element with that name does not exist")
-            return False
-
-        self._element_dict[name].update_config(config)
-        return True
-
-    def getElementConfig(self,name):
-        """
-        Arguments:
-        - `self`:
-        - `name`:         string, element name
-        """
-        if not self._element_dict.has_key(name):
-            logger.exception(KeyError,
-                             "Element with that name does not exist")
-            return []
-        cfg = self._element_dict[name].get_config()
-        if not isinstance(cfg, list):
-            return []
-        else:
-            return cfg
-
-    def listElements(self):
-        return [name for name in self._element_dict.keys() ]
-
-    def listElementDofs(self, ename):
-        l = ["X", "Y", "Z", "roll", "pitch", "yaw"]
-        if not isinstance( self._element_dict[ename], DisplayObject):
-            return l
-
-        obj = self._element_dict[ename].obj
-        if not isinstance(obj, kinematics.Robot):
-            return l
-        for j in obj.moving_joint_list:
-            l += [j.name]
-        return l
 
 
 
@@ -776,7 +511,7 @@ class DisplayServer(object):
 
         if not self.off_screen:
             self.windows[win].update_fps()
-        for name,ele in self._element_dict.items():
+        for name,ele in self.display_elements.items():
             #    logger.info( item[0], item[1]._enabled)
             try:
                 if isinstance(ele, DisplayRobot):
@@ -920,27 +655,27 @@ class DisplayServer(object):
 
         elif args[0] == '+':
             self.skeleton_size += 1
-            for name, obj in self._element_dict.items():
+            for name, obj in self.display_elements.items():
                 if isinstance(obj, DisplayRobot):
                     obj.set_skeleton_size(self.skeleton_size)
 
         elif args[0] == '-':
             if self.skeleton_size >1:
                 self.skeleton_size -= 1
-            for name, obj in self._element_dict.items():
+            for name, obj in self.display_elements.items():
                 if isinstance(obj, DisplayRobot):
                     obj.set_skeleton_size(self.skeleton_size)
         elif args[0] == 't':
             if self.transparency < 1:
                 self.transparency += 0.1
-                for name, e in self._element_dict.items():
+                for name, e in self.display_elements.items():
                     if isinstance(e, DisplayRobot):
                         e.set_transparency(self.transparency)
 
         elif args[0] == 'r':
             if self.transparency > 0:
                 self.transparency -= .1
-                for name, e in self._element_dict.items():
+                for name, e in self.display_elements.items():
                     if isinstance(e, DisplayRobot):
                         e.set_transparency(self.transparency)
         elif args[0] == 'l':
@@ -1085,3 +820,30 @@ class DisplayServer(object):
             glutSetWindow(win)
             glutPostRedisplay()
 
+
+
+    def enableElement(self,name):
+        """
+
+        Arguments:
+        - `self`:
+        - `name`:
+        """
+        if not self.display_elements.has_key(name):
+            return False
+
+        self.kinematic_elements[name].enabled = True
+        return True
+
+    def disableElement(self,name):
+        """
+        Arguments:
+        - `self`:
+        - `name`:
+        """
+
+        if not self.display_elements.has_key(name):
+            return False
+
+        self.kinematic_elements[name].enabled = False
+        return True
