@@ -22,7 +22,7 @@ from math import sin,cos
 from mathaux import *
 from collections import deque
 import logging
-
+import __builtin__
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass
@@ -35,12 +35,12 @@ BASE_NODE_ID = -1
 all_objects = {}
 
 def register_object(obj):
-    obj.uuid = 0
+    newid = 0
     global all_objects
-    while obj.uuid in all_objects.keys():
-        obj.uuid += 1
-    all_objects[obj.uuid] = obj
-    return obj.uuid
+    while newid in all_objects.keys():
+        newid += 1
+    all_objects[newid] = obj
+    return newid
 
 def find_relative_transformation( obj1, obj2 ):
     """
@@ -70,7 +70,7 @@ class GenericObject(object):
         self.localR=numpy.eye(3)
         self.id=None
         self.list_by_type = {}
-        register_object(self)
+        self.uuid = register_object(self)
     def get_list(self, type):
         try:
             return self.list_by_type[type]

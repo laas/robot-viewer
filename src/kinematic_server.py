@@ -49,7 +49,7 @@ class KinematicServer(object):
     config_dir = os.environ['HOME']+'/.robotviewer/'
     config_file = os.path.join(config_dir,"config")
     global_configs = {}
-    def __init__(self, *args, **kwargs):
+    def __init__(self, options, args):
         self.pendingObjects = []
         self.kinematic_elements = {}
         self.parse_config()
@@ -279,7 +279,7 @@ class KinematicServer(object):
             return
 
         if etype == 'robot':
-            objs = ml_parser.parse(epath)
+            objs = ml_parser.parse(epath, False)
             robots = []
             for obj in objs:
                 if isinstance(obj, kinematics.Robot):
@@ -401,6 +401,17 @@ class KinematicServer(object):
                 results.append(mesh.uuid)
         return results
 
+    def printMesh(self, uuid):
+        import json
+        try:
+            mesh = kinematics.all_objects[uuid]
+            logger.exception("Invalid key, available keys are %s"
+                             %str(kinematics.all_objects.keys() ))
+            return json.dumps({'vertexPositions' : mesh.geo.coord,
+                               'indices' : mesh.geo.tri_idxs,
+                              })
+        except KeyError:
+            return json.dumps({})
     def getGlConfig(self, uuid):
         Tmatrix = kinematics.all_objects[uuid].globalTransformation
         R=Tmatrix[0:3,0:3]

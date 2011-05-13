@@ -178,7 +178,7 @@ class DisplayServer(KinematicServer):
         self.lightAttenuation = 0.2
         self.active_cameras = {}
         self.world_cameras = []
-        KinematicServer.__init__(self)
+        KinematicServer.__init__(self, options, args)
         logger.debug("Initializing OpenGL")
         self.init_gl()
         self.parse_config()

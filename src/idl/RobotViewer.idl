@@ -21,7 +21,7 @@
 module robotviewer_corba {
   typedef sequence<double> DoubleSeq;
   typedef sequence<string> ElementList;
-
+  typedef sequence<short> ShortSeq;
   interface RobotViewer
   {
     exception InvalidKey{
@@ -38,9 +38,10 @@ module robotviewer_corba {
 
     void listElements(out ElementList list);
     void listElementDofs(in string element_name, out ElementList list);
-    void listMeshes(out ElementList list);
-    void getGlConfig(in string name, out DoubleSeq config) raises(InvalidKey);
 
+    void listMeshes(out ShortSeq list);
+    void getGlConfig(in short uuid , out DoubleSeq config) raises(InvalidKey);
+    void printMesh(in short uuid, out string output) raises(InvalidKey);
     void Ping(out string outstring);
   };
 };
