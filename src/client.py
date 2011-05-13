@@ -39,6 +39,6 @@ def client(server = "CORBA"):
                                     [('RobotViewer','context'),
                                      ('RobotViewer','object')])
     elif server == "XML-RPC":
-        return xmlrpclib.ServerProxy("http://localhost:8000/")
+        return xmlrpclib.ServerProxy("http://localhost:8001/")
     else:
         raise Exception("Invalid server type")

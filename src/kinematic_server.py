@@ -49,7 +49,7 @@ class KinematicServer(object):
     config_dir = os.environ['HOME']+'/.robotviewer/'
     config_file = os.path.join(config_dir,"config")
     global_configs = {}
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.pendingObjects = []
         self.kinematic_elements = {}
         self.parse_config()
@@ -74,11 +74,11 @@ class KinematicServer(object):
                 correct_joint_dict[m.group(1)] = int(m.group(2)) -6
                 logger.info( m.group(1)+ "\t" + m.group(2))
 
-        for joint in self.kinematic_elements[robot_name].obj.joint_list:
+        for joint in self.kinematic_elements[robot_name].joint_list:
             if correct_joint_dict.has_key(joint.name):
                 joint.id = correct_joint_dict[joint.name]
 
-        self.kinematic_elements[robot_name].obj.update_joint_dict()
+        self.kinematic_elements[robot_name].update_joint_dict()
         return True
 
 
@@ -293,7 +293,9 @@ class KinematicServer(object):
             self.kinematic_elements[ename] = new_robot
 
         elif etype == 'object':
-            self.kinematic_elements[ename] = kinematics.GenericObject()
+            new_object = kinematics.GenericObject()
+            new_object.init()
+            self.kinematic_elements[ename] = new_object
 
 
     def createElement(self, etype, ename, epath):
@@ -382,10 +384,10 @@ class KinematicServer(object):
 
     def listElementDofs(self, ename):
         l = ["X", "Y", "Z", "roll", "pitch", "yaw"]
-        if not isinstance( self.kinematic_elements[ename], DisplayObject):
+        if not isinstance( self.kinematic_elements[ename], kinematics.GenericObject):
             return l
 
-        obj = self.kinematic_elements[ename].obj
+        obj = self.kinematic_elements[ename]
         if not isinstance(obj, kinematics.Robot):
             return l
         for j in obj.moving_joint_list:

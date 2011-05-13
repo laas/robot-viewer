@@ -149,7 +149,8 @@ class DisplayServer(KinematicServer):
         self.refresh_rate = None
         self.num_windows = 1
         self.run_once = False
-        self.__dict__.update(options.__dict__)
+        if options:
+            self.__dict__.update(options.__dict__)
 
         if not self.config_file:
             self.config_file = os.path.join(config_dir,"config")

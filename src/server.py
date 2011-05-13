@@ -30,7 +30,7 @@ formatter = logging.Formatter("%(name)s:%(levelname)s:%(message)s")
 ch.setFormatter(formatter)
 # add the handlers to the logger
 logger.addHandler(ch)
-
+from server_factory import create_server, CORBA, XML_RPC, KINEMATIC, DISPLAY
 
 def get_parser():
     usage = "usage: [options]"
@@ -104,6 +104,10 @@ def get_parser():
                       action="store", dest="port", type = "int",
                       help="stream PNG to a port (UDP)")
 
+    parser.add_option("--no-gl",
+                      action="store_true", dest="no_gl",
+                      help="start kinematic server only, no GL")
+
     # parser.add_option("--intel",
     #                   action="store_true", dest="intel",  default=False,
     #                   help="tell robot-viewer that it is running on an Intel card")
@@ -151,19 +155,17 @@ def main():
 
     if options.verbose:
         ch.setLevel(logging.DEBUG)
-
+    type = DISPLAY
+    if options.no_gl:
+        type = KINEMATIC
     if options.server == "CORBA":
-        logger.info("Starting robotviewer in corba mode")
-        import displayserver_corba
-        DisplayServer = displayserver_corba.DisplayServerCorba
+        com_type = CORBA
     elif options.server == "XML-RPC":
-        logger.info("Starting robotviewer in xmlrpc mode")
-        import displayserver_xmlrpc
-        logger.debug("Imported displayserver_xmlrpc")
-        DisplayServer = displayserver_xmlrpc.DisplayServerXmlrpc
+        com_type = XML_RPC
     else:
         raise Exception ("Not supported server type %s"%options.server)
-    server = DisplayServer(options,args)
+
+    server = create_server(type, com_type, options, args)
     logger.debug("created server")
     server.run()
 
