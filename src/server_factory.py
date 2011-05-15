@@ -67,9 +67,6 @@ def create_server( type, com_type, options, args):
                 self.server.register_function(self.getElementConfig , 'getElementConfig')
                 self.server.register_function(self.listElements , 'listElements')
                 self.server.register_function(self.listElementDofs , 'listElementDofs')
-                self.server.register_function(self.listMeshes , 'listMeshes')
-                self.server.register_function(self.getGlConfig , 'getGlConfig')
-
                 t = threading.Thread(target = self.server.serve_forever)
                 t.start()
 

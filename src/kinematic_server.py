@@ -49,10 +49,17 @@ class KinematicServer(object):
     config_dir = os.environ['HOME']+'/.robotviewer/'
     config_file = os.path.join(config_dir,"config")
     global_configs = {}
-    def __init__(self, options, args):
+    def __init__(self, options = {}, args = []):
         self.pendingObjects = []
         self.kinematic_elements = {}
         self.parse_config()
+
+    @property
+    def meshes(self):
+        res = []
+        for name, obj in self.kinematic_elements.items():
+            res += obj.mesh_list
+        return res
 
     def set_robot_joint_rank(self,robot_name, joint_rank_xml):
         """
@@ -293,9 +300,29 @@ class KinematicServer(object):
             self.kinematic_elements[ename] = new_robot
 
         elif etype == 'object':
-            new_object = kinematics.GenericObject()
-            new_object.init()
-            self.kinematic_elements[ename] = new_object
+            ext = os.path.splitext(epath)[1].replace(".","")
+            if ext in ml_parser.supported_extensions:
+                logger.debug("Creating element from supported markup language file %s."%epath)
+                objs = ml_parser.parse(epath)
+                objs = [ o for o in objs
+                         if isinstance(o, kinematics.GenericObject)]
+                if len(objs) == 0:
+                    raise Exception('Found no object in file %s'%epath)
+                elif len(objs) == 1:
+                    group = objs[0]
+                else:
+                    group  = kinematics.GenericObject()
+                    for obj in objs:
+                        group.add_child(obj)
+                        group.init()
+                self.kinematic_elements[ename] = group
+
+                if scale:
+                    group.scale(scale)
+            else:
+                new_object = kinematics.GenericObject()
+                self.kinematic_elements[ename] = new_object
+                new_object.init()
 
 
     def createElement(self, etype, ename, epath):
@@ -404,20 +431,25 @@ class KinematicServer(object):
     def printMesh(self, uuid):
         import json
         try:
-            mesh = kinematics.all_objects[uuid]
+            mesh = [ m for m in self.meshes if m.uuid == uuid][0]
             logger.exception("Invalid key, available keys are %s"
-                             %str(kinematics.all_objects.keys() ))
+                             %str([m.uuid for m in self.meshes])
+                             )
             return json.dumps({'vertexPositions' : mesh.geo.coord,
                                'indices' : mesh.geo.tri_idxs,
+                               'vertexNormals' : mesh.geo.norm,
                               })
         except KeyError:
             return json.dumps({})
+
     def getGlConfig(self, uuid):
-        Tmatrix = kinematics.all_objects[uuid].globalTransformation
+        mesh = [ m for m in self.meshes if m.uuid == uuid][0]
+        Tmatrix = mesh.globalTransformation
         R=Tmatrix[0:3,0:3]
         p=Tmatrix[0:3,3]
         agax=rot2AngleAxis(R)
-        return list(p) + list(agax)
+        res = list(p) + list(agax)
+        return [float(e) for e in res]
 
     def run(self):
         while True:
@@ -430,6 +462,6 @@ class KinematicServer(object):
 if __name__ == '__main__':
     server = KinematicServer()
     print server.listMeshes()
-    print server.getMeshConfig(server.listMeshes()[0])
+    print server.getGlConfig(server.listMeshes()[0])
     server.run()
 

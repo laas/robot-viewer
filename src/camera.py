@@ -18,11 +18,22 @@ import kinematics
 from math import sqrt,sin,cos,atan2, pi
 import numpy
 from mathaux import *
-import display_element
 def norm(a):
     return sqrt(numpy.dot(a,a))
-from OpenGL.GL import *
-from OpenGL.GLU import *
+
+import logging
+class NullHandler(logging.Handler):
+    def emit(self, record):
+        pass
+
+logger = logging.getLogger("robotviewer.camera")
+logger.addHandler(NullHandler())
+
+try:
+    from OpenGL.GL import *
+    from OpenGL.GLU import *
+except:
+    logger.exception("Could not import OpenGL modules.")
 
 def normalized(v):
     return v/norm(v)
@@ -101,7 +112,7 @@ class Camera(kinematics.GenericObject):
         dup    = dy*factor
         dright = dx*factor*abs(self.cam_up[2])
 
-        if (abs(self.cam_ray[2]) > OVERHEAD_THRESHOLD
+        if (abs(normalized(self.cam_ray)[2] ) > OVERHEAD_THRESHOLD
             and dup*self.cam_ray[2] > 0 ):
             dup = 0
 

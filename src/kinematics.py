@@ -21,7 +21,7 @@ import re
 from math import sin,cos
 from mathaux import *
 from collections import deque
-import logging
+import logging, uuid
 import __builtin__
 class NullHandler(logging.Handler):
     def emit(self, record):
@@ -31,16 +31,6 @@ logger = logging.getLogger("robotviewer.kinematics")
 logger.addHandler(NullHandler())
 
 BASE_NODE_ID = -1
-
-all_objects = {}
-
-def register_object(obj):
-    newid = 0
-    global all_objects
-    while newid in all_objects.keys():
-        newid += 1
-    all_objects[newid] = obj
-    return newid
 
 def find_relative_transformation( obj1, obj2 ):
     """
@@ -70,7 +60,7 @@ class GenericObject(object):
         self.localR=numpy.eye(3)
         self.id=None
         self.list_by_type = {}
-        self.uuid = register_object(self)
+        self.uuid = str(uuid.uuid1())
     def get_list(self, type):
         try:
             return self.list_by_type[type]
