@@ -38,7 +38,7 @@ except:
 def normalized(v):
     return v/norm(v)
 
-OVERHEAD_THRESHOLD = 0.99
+OVERHEAD_THRESHOLD = 1 - 1e-3
 
 class Camera(kinematics.GenericObject):
     '''
