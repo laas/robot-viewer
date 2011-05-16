@@ -406,7 +406,7 @@ class DisplayServer(KinematicServer):
             if ext == "py":
                 logger.debug("Creating element from python script file %s."%epath)
                 new_element = GlPrimitive(script = open(epath).read())
-                new_object = new_element()
+                new_object = new_element
             elif ext in ml_parser.supported_extensions:
                 logger.debug("Creating element from supported markup language file %s."%epath)
                 objs = ml_parser.parse(epath, not self.no_cache)
