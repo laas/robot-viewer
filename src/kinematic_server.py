@@ -195,7 +195,11 @@ class KinematicServer(object):
             obj.update()
 
     def parse_configLegacy(self, config):
-        logger.warning("Entering legacy config parsing")
+        logger.exception("""
+        =========================================
+        You have an older version of config file. This parser is not maintained.
+        Please adapt to new schema following config.example.
+        =========================================""")
         for section in config.sections():
             if section not in ['robots','default_configs',
                                'objects','joint_rank',
@@ -258,14 +262,6 @@ class KinematicServer(object):
                 pos = config.get('default_configs',object_name)
                 pos = [float(e) for e in pos.split()]
                 self.updateElementConfig(object_name,pos)
-
-        if config.has_section('preferences'):
-            for key, value in config.items('preferences'):
-                if key == 'background':
-                    value = [float(e) for e in value.split(",")]
-                    for win in self.windows:
-                        glutSetWindow(win)
-                        glClearColor (value[0], value[1], value[2], 0.5);
 
         return
 
