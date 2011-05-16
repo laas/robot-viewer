@@ -406,6 +406,7 @@ class DisplayServer(KinematicServer):
             if ext == "py":
                 logger.debug("Creating element from python script file %s."%epath)
                 new_element = GlPrimitive(script = open(epath).read())
+                new_object = new_element()
             elif ext in ml_parser.supported_extensions:
                 logger.debug("Creating element from supported markup language file %s."%epath)
                 objs = ml_parser.parse(epath, not self.no_cache)
@@ -420,18 +421,20 @@ class DisplayServer(KinematicServer):
                     for obj in objs:
                         group.add_child(obj)
                         group.init()
-                self.kinematic_elements[ename] = group
-
+                new_object = group
                 if scale:
                     group.scale(scale)
                 new_element = DisplayObject(group)
             else:
                 logger.debug("Creating element from raw script")
                 new_element = GlPrimitive(script = epath)
+                new_object = new_element
             if not new_element:
                 raise Exception("creation of element from {0} failed".format(epath))
             logger.debug("Adding %s to internal dictionay"%(new_element))
             self.display_elements[ename] = new_element
+            self.kinematic_elements[ename] = new_object
+
 
         else:
             raise TypeError,"Unknown element type %s"%etype
