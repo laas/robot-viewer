@@ -24,7 +24,6 @@ from OpenGL.GL.EXT.framebuffer_object import *
 import kinematics
 import ml_parser
 import pickle
-from openglaux import _is_extension_supported
 from display_element import DisplayObject, DisplayRobot, GlPrimitive
 import display_element
 import re,imp
