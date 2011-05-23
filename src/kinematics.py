@@ -23,6 +23,7 @@ from mathaux import *
 from collections import deque
 import logging, uuid
 import __builtin__
+import traceback
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass
