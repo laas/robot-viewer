@@ -848,5 +848,5 @@ class DisplayServer(KinematicServer):
         if not self.display_elements.has_key(name):
             return False
 
-        self.kinematic_elements[name].enabled = False
+        self.display_elements[name].enabled = False
         return True
