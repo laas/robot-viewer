@@ -503,6 +503,15 @@ class DisplayServer(KinematicServer):
             obj = self.pendingObjects.pop()
             logger.debug( "creating %s %s %s"%( obj[0], obj[1], obj[2]))
             self._create_element(obj[0],obj[1],obj[2])
+
+        for name, obj in self.display_elements.items():
+            if "pending_display_change" not in obj.__dict__.keys():
+                continue
+            if obj.pending_display_change:
+                obj.pending_display_change = True
+                for mesh in obj.mesh_list:
+                    mesh.gl_primitive.generate_gl_list()
+
         # Clear Screen And Depth Buffer
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glLoadIdentity ();
@@ -849,4 +858,20 @@ class DisplayServer(KinematicServer):
             return False
 
         self.display_elements[name].enabled = False
+        return True
+
+
+    def setTransparency(self,name, t):
+        """
+        Arguments:
+        - `self`:
+        - `name`:
+        """
+        if name not in self.display_elements.keys():
+            return False
+
+        if t <0 or t > 1:
+            return False
+
+        self.display_elements[name].set_transparency(t)
         return True

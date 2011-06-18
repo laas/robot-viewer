@@ -373,6 +373,15 @@ class KinematicServer(object):
         """
         return True
 
+    def setTransparency(self,name, t):
+        """
+        Arguments:
+        - `self`:
+        - `name`:
+        """
+        return True
+
+
     def updateElementConfig(self,name,config):
         """
         Arguments:

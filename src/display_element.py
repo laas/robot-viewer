@@ -115,7 +115,7 @@ class GlPrimitive(GenericObject):
                               (GL_AMBIENT_AND_DIFFUSE,app.diffuseColor ),
                               (GL_AMBIENT,app.ambientColor ),
                               (GL_SHININESS,app.shininess),
-                              #(GL_TRANSPARENCY,app.transparency)
+                              # (GL_TRANSPARENCY,app.transparency)
                               ]:
             if value:
                 try:
@@ -216,6 +216,7 @@ class DisplayObject(object):
         self.enabled = True
         for mesh in self.mesh_list:
             mesh.add_child( GlPrimitive (mesh = mesh, parent = mesh) )
+        self.pending_display_change = False
 
     def __getattr__(self, attr):
         return getattr(self.obj, attr)
@@ -242,8 +243,9 @@ class DisplayObject(object):
 
     def set_transparency(self, transparency):
         for mesh in self.mesh_list:
-            mesh.transparency = transparency
-            mesh.gl_primitive.generate_gl_list(mesh)
+            mesh.app.transparency = transparency
+            mesh.gl_primitive.mesh.app.transparency = transparency
+            # mesh.gl_primitive.generate_gl_list()
 
 
     def get_config(self):
