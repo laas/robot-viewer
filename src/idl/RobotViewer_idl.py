@@ -99,6 +99,8 @@ RobotViewer._d_listMeshes = ((), (omniORB.typeMapping["IDL:robotviewer_corba/Sho
 RobotViewer._d_getGlConfig = ((omniORB.tcInternal.tv_short, ), (omniORB.typeMapping["IDL:robotviewer_corba/DoubleSeq:1.0"], ), {_0_robotviewer_corba.RobotViewer.InvalidKey._NP_RepositoryId: _0_robotviewer_corba.RobotViewer._d_InvalidKey})
 RobotViewer._d_printMesh = ((omniORB.tcInternal.tv_short, ), ((omniORB.tcInternal.tv_string,0), ), {_0_robotviewer_corba.RobotViewer.InvalidKey._NP_RepositoryId: _0_robotviewer_corba.RobotViewer._d_InvalidKey})
 RobotViewer._d_Ping = ((), ((omniORB.tcInternal.tv_string,0), ), None)
+RobotViewer._d_start_record = ((), (), None)
+RobotViewer._d_stop_record = ((), (), None)
 
 # RobotViewer object reference
 class _objref_RobotViewer (CORBA.Object):
@@ -149,7 +151,13 @@ class _objref_RobotViewer (CORBA.Object):
     def Ping(self, *args):
         return _omnipy.invoke(self, "Ping", _0_robotviewer_corba.RobotViewer._d_Ping, args)
 
-    __methods__ = ["createElement", "setRobotJointRank", "destroyElement", "enableElement", "disableElement", "setTransparency", "updateElementConfig", "getElementConfig", "listElements", "listElementDofs", "listMeshes", "getGlConfig", "printMesh", "Ping"] + CORBA.Object.__methods__
+    def start_record(self, *args):
+        return _omnipy.invoke(self, "start_record", _0_robotviewer_corba.RobotViewer._d_start_record, args)
+
+    def stop_record(self, *args):
+        return _omnipy.invoke(self, "stop_record", _0_robotviewer_corba.RobotViewer._d_stop_record, args)
+
+    __methods__ = ["createElement", "setRobotJointRank", "destroyElement", "enableElement", "disableElement", "setTransparency", "updateElementConfig", "getElementConfig", "listElements", "listElementDofs", "listMeshes", "getGlConfig", "printMesh", "Ping", "start_record", "stop_record"] + CORBA.Object.__methods__
 
 omniORB.registerObjref(RobotViewer._NP_RepositoryId, _objref_RobotViewer)
 _0_robotviewer_corba._objref_RobotViewer = _objref_RobotViewer
@@ -161,7 +169,7 @@ class RobotViewer (PortableServer.Servant):
     _NP_RepositoryId = _0_robotviewer_corba.RobotViewer._NP_RepositoryId
 
 
-    _omni_op_d = {"createElement": _0_robotviewer_corba.RobotViewer._d_createElement, "setRobotJointRank": _0_robotviewer_corba.RobotViewer._d_setRobotJointRank, "destroyElement": _0_robotviewer_corba.RobotViewer._d_destroyElement, "enableElement": _0_robotviewer_corba.RobotViewer._d_enableElement, "disableElement": _0_robotviewer_corba.RobotViewer._d_disableElement, "setTransparency": _0_robotviewer_corba.RobotViewer._d_setTransparency, "updateElementConfig": _0_robotviewer_corba.RobotViewer._d_updateElementConfig, "getElementConfig": _0_robotviewer_corba.RobotViewer._d_getElementConfig, "listElements": _0_robotviewer_corba.RobotViewer._d_listElements, "listElementDofs": _0_robotviewer_corba.RobotViewer._d_listElementDofs, "listMeshes": _0_robotviewer_corba.RobotViewer._d_listMeshes, "getGlConfig": _0_robotviewer_corba.RobotViewer._d_getGlConfig, "printMesh": _0_robotviewer_corba.RobotViewer._d_printMesh, "Ping": _0_robotviewer_corba.RobotViewer._d_Ping}
+    _omni_op_d = {"createElement": _0_robotviewer_corba.RobotViewer._d_createElement, "setRobotJointRank": _0_robotviewer_corba.RobotViewer._d_setRobotJointRank, "destroyElement": _0_robotviewer_corba.RobotViewer._d_destroyElement, "enableElement": _0_robotviewer_corba.RobotViewer._d_enableElement, "disableElement": _0_robotviewer_corba.RobotViewer._d_disableElement, "setTransparency": _0_robotviewer_corba.RobotViewer._d_setTransparency, "updateElementConfig": _0_robotviewer_corba.RobotViewer._d_updateElementConfig, "getElementConfig": _0_robotviewer_corba.RobotViewer._d_getElementConfig, "listElements": _0_robotviewer_corba.RobotViewer._d_listElements, "listElementDofs": _0_robotviewer_corba.RobotViewer._d_listElementDofs, "listMeshes": _0_robotviewer_corba.RobotViewer._d_listMeshes, "getGlConfig": _0_robotviewer_corba.RobotViewer._d_getGlConfig, "printMesh": _0_robotviewer_corba.RobotViewer._d_printMesh, "Ping": _0_robotviewer_corba.RobotViewer._d_Ping, "start_record": _0_robotviewer_corba.RobotViewer._d_start_record, "stop_record": _0_robotviewer_corba.RobotViewer._d_stop_record}
 
 RobotViewer._omni_skeleton = RobotViewer
 _0_robotviewer_corba__POA.RobotViewer = RobotViewer

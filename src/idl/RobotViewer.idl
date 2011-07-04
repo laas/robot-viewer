@@ -44,6 +44,9 @@ module robotviewer_corba {
     void getGlConfig(in short uuid , out DoubleSeq config) raises(InvalidKey);
     void printMesh(in short uuid, out string output) raises(InvalidKey);
     void Ping(out string outstring);
+    void start_record();
+    void stop_record();
+
   };
 };
 #endif

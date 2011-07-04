@@ -29,8 +29,8 @@ def create_server( type, com_type, options, args):
         import kinematic_server
         ServerClass = kinematic_server.KinematicServer
     elif type == DISPLAY:
-        import displayserver
-        ServerClass = displayserver.DisplayServer
+        import display_server
+        ServerClass = display_server.DisplayServer
 
     if com_type == CORBA:
         sys.path = [os.path.dirname(os.path.abspath(__file__))+"/idl"] + sys.path

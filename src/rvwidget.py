@@ -16,7 +16,7 @@
 #! /usr/bin/env python
 
 
-from displayserver import *
+from display_server import *
 from openglaux import *
 from camera import *
 import sys
