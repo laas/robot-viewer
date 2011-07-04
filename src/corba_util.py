@@ -89,7 +89,7 @@ def StartServer( server_instance, module_name, obj_name, context_name , poa_path
     testContext = None
     name = [ CosNaming.NameComponent(component[0],component[1]) for component in context_name]
     try:
-        textContext = rootContext.bind_new_context(name)
+        testContext = rootContext.bind_new_context(name)
         logger.info( "New %s context bound"%str(context_name))
     except:
         logger.info( "%s context already exists"%str(context_name))
