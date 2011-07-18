@@ -228,7 +228,7 @@ class VrmlProcessor(DispatchProcessor):
         s = buffer[start:stop]
 
         if s not in self.def_dict.keys():
-            raise Exception("USE/IS used before node definition.")
+            raise Exception("USE/IS used before node definition: %s"%s[:100])
 
         return self.def_dict[s]
 
@@ -237,7 +237,7 @@ class VrmlProcessor(DispatchProcessor):
         s = buffer[start:stop]
 
         if s not in self.def_dict.keys():
-            raise Exception("USE/IS used before node definition.")
+            raise Exception("USE/IS used before node definition. %s"%s[:100])
 
         return self.def_dict[s]
 
