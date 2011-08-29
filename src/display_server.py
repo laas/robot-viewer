@@ -16,6 +16,7 @@
 #! /usr/bin/env python
 import os
 import OpenGL
+OpenGL.FORWARD_COMPATIBLE_ONLY = True
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
@@ -47,6 +48,7 @@ import numpy
 from mathaux import *
 from ctypes import *
 from kinematic_server import KinematicServer
+from OpenGL.GL.shaders import *
 
 
 try:
@@ -138,7 +140,6 @@ class DisplayServer(KinematicServer):
 
         Arguments:
         """
-
         self.config_file = None
         self.no_cache = False
         self.use_vbo = False
@@ -173,8 +174,8 @@ class DisplayServer(KinematicServer):
         self.capture_images = []
         self.last_refreshed = {}
 
-        self.modelAmbientLight = 0.3
-        self.lightAttenuation = 0.2
+        self.modelAmbientLight = 0.05
+        self.lightAttenuation = 1
         self.active_cameras = {}
         self.world_cameras = []
         KinematicServer.__init__(self, options, args)
@@ -293,6 +294,14 @@ class DisplayServer(KinematicServer):
             logger.info("Creating context")
             self.create_render_buffer()
             self.window = []
+
+        p = os.path.abspath(os.path.dirname(__file__))
+        vs_text = open(os.path.join(p,'vertex_shader.c')).read()
+        fs_text = open(os.path.join(p,'fragment_shader.c')).read()
+        self.program = compileProgram(compileShader(vs_text, GL_VERTEX_SHADER),
+                                      compileShader(fs_text, GL_FRAGMENT_SHADER),
+                                      )
+        glUseProgram(self.program)
 
 
     # The function called when our window is resized (which shouldn't happen if
