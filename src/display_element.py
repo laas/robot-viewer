@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with robot-viewer.  If not, see <http://www.gnu.org/licenses/>.
 import OpenGL
+OpenGL.FORWARD_COMPATIBLE_ONLY = True
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
@@ -24,6 +25,8 @@ from mathaux import *
 from safeeval import safe_eval
 from kinematics import Robot, GenericObject
 import traceback
+
+
 
 import logging, os, sys
 logger = logging.getLogger("robotviewer.display_element")
@@ -277,7 +280,7 @@ class DisplayRobot(DisplayObject):
 
 
     @ifenabled
-    def render(self, mesh_flag, skeleton_flag):
+    def render(self, mesh_flag = True,  skeleton_flag = False):
         if self.pending_update:
             self.pending_update = False
             self.obj.update_config(self.config)
