@@ -205,6 +205,7 @@ class DisplayServer(KinematicServer):
                             ("m", "Turn meshes on/off"),
                             ("s", "Turn skeletons on/off"),
                             ("w", "Turn wireframe on/off"),
+                            ("p", "Turn specular highlights on/off"),
                             ("+", "Skeleton size up"),
                             ("-", "Skeleton size down"),
                             ("l", "lighter scene"),
@@ -274,6 +275,17 @@ class DisplayServer(KinematicServer):
             self.world_cameras.append(cam)
             window.cameras.append(cam)
 
+            p = os.path.abspath(os.path.dirname(__file__))
+            vs_text = open(os.path.join(p,'vertex_shader.c')).read()
+            fs_text = open(os.path.join(p,'fragment_shader.c')).read()
+            self.program = compileProgram(compileShader(vs_text, GL_VERTEX_SHADER),
+                                          compileShader(fs_text, GL_FRAGMENT_SHADER),
+                                          )
+            self.specular_highlights = True
+            self.uShowSpecularHighlights = glGetUniformLocation(self.program, "uShowSpecularHighlights")
+
+            glUseProgram(self.program)
+            glUniform1i(self.uShowSpecularHighlights, self.specular_highlights)
 
         glutIdleFunc(self.refresh_cb)
 
@@ -295,13 +307,8 @@ class DisplayServer(KinematicServer):
             self.create_render_buffer()
             self.window = []
 
-        p = os.path.abspath(os.path.dirname(__file__))
-        vs_text = open(os.path.join(p,'vertex_shader.c')).read()
-        fs_text = open(os.path.join(p,'fragment_shader.c')).read()
-        self.program = compileProgram(compileShader(vs_text, GL_VERTEX_SHADER),
-                                      compileShader(fs_text, GL_FRAGMENT_SHADER),
-                                      )
-        glUseProgram(self.program)
+
+
 
 
     # The function called when our window is resized (which shouldn't happen if
@@ -666,6 +673,10 @@ class DisplayServer(KinematicServer):
             self.render_skeleton_flag = not self.render_skeleton_flag
             print "render skeleton:", self.render_skeleton_flag
 
+        elif args[0] == 'p':
+            self.specular_highlights = not self.specular_highlights
+            glUniform1i(self.uShowSpecularHighlights, self.specular_highlights)
+
         elif args[0] == 'w':
             self.wired_frame_flag = not self.wired_frame_flag
             print "render mesh:", self.wired_frame_flag
@@ -829,9 +840,9 @@ class DisplayServer(KinematicServer):
                                                 self.modelAmbientLight,
                                                 self.modelAmbientLight,1])
 
-        # glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, )
+        #glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, self.)
         glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self.lightAttenuation)
-        # glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.03)
+        #glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.03)
 
         glEnable(GL_LIGHT0)
 
