@@ -490,6 +490,7 @@ class Robot(Joint):
 
         for mesh in self.mesh_list:
             mesh.app.transparency = 0
+
             for color in (mesh.app.diffuseColor,mesh.app.ambientColor,
                           mesh.app.specularColor,mesh.app.emissiveColor):
                 if color == None:
@@ -500,6 +501,7 @@ class Robot(Joint):
                 if len(color) != 3:
                     raise Exception("Invalid len for a color in mesh %s"
                                     %str(mesh.name))
+
 
         if not self.mesh_list[:]:
             logger.warning("Robot contains 0 mesh.")

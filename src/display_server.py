@@ -49,7 +49,7 @@ from mathaux import *
 from ctypes import *
 from kinematic_server import KinematicServer
 from OpenGL.GL.shaders import *
-
+from shader import Shader
 
 try:
     from opencv import highgui, cv, adaptors
@@ -149,6 +149,7 @@ class DisplayServer(KinematicServer):
         self.refresh_rate = None
         self.num_windows = 1
         self.run_once = False
+        self.modern_shader = False
         if options:
             self.__dict__.update(options.__dict__)
 
@@ -206,6 +207,7 @@ class DisplayServer(KinematicServer):
                             ("s", "Turn skeletons on/off"),
                             ("w", "Turn wireframe on/off"),
                             ("p", "Turn specular highlights on/off"),
+                            ("[", "Toggle legacy shader on/off"),
                             ("+", "Skeleton size up"),
                             ("-", "Skeleton size down"),
                             ("l", "lighter scene"),
@@ -258,6 +260,7 @@ class DisplayServer(KinematicServer):
         logger.debug("Creating glutWindow")
         self.windows = {}
         # self.windows.append(glutCreateWindow("Robotviewer Server"))
+        self.shaders = display_element.shaders
         for i in range(self.num_windows):
             window = GlWindow()
             self.windows[window.id] = window
@@ -278,14 +281,21 @@ class DisplayServer(KinematicServer):
             p = os.path.abspath(os.path.dirname(__file__))
             vs_text = open(os.path.join(p,'vertex_shader.c')).read()
             fs_text = open(os.path.join(p,'fragment_shader.c')).read()
-            self.program = compileProgram(compileShader(vs_text, GL_VERTEX_SHADER),
-                                          compileShader(fs_text, GL_FRAGMENT_SHADER),
-                                          )
+            program = compileProgram(compileShader(vs_text, GL_VERTEX_SHADER),
+                                              compileShader(fs_text, GL_FRAGMENT_SHADER),
+                                              )
+            shader = Shader(program)
+            glUseProgram(program)
             self.specular_highlights = True
-            self.uShowSpecularHighlights = glGetUniformLocation(self.program, "uShowSpecularHighlights")
+            shader.uShowSpecularHighlights = self.specular_highlights
 
-            glUseProgram(self.program)
-            glUniform1i(self.uShowSpecularHighlights, self.specular_highlights)
+            shader.uAmbientLightingColor        = (0.1,0.1,0.1)
+            shader.uPointLightingLocation       = (5.0,4.0,5.0)
+            shader.uPointLightingDiffuseColor   = (0.8,0.8,0.8)
+            shader.uPointLightingSpecularColor  = (0.8,0.8,0.8)
+            shader.uMaterialShininess = 1.0
+            shader.uModernShader = True
+            self.shaders[glutGetWindow()] = shader
 
         glutIdleFunc(self.refresh_cb)
 
@@ -675,7 +685,21 @@ class DisplayServer(KinematicServer):
 
         elif args[0] == 'p':
             self.specular_highlights = not self.specular_highlights
-            glUniform1i(self.uShowSpecularHighlights, self.specular_highlights)
+            for id in self.windows:
+                glutSetWindow(id)
+                self.shaders[id].uShowSpecularHighlights = self.specular_highlights
+
+        elif args[0] == '[':
+            self.modern_shader = not self.modern_shader
+            if self.modern_shader:
+                legacy = "OFF"
+            else:
+                legacy = "ON"
+            print "Legacy shader is ", legacy
+            for id in self.windows:
+                glutSetWindow(id)
+                self.shaders[id].uModernShader = self.modern_shader
+
 
         elif args[0] == 'w':
             self.wired_frame_flag = not self.wired_frame_flag
@@ -697,6 +721,7 @@ class DisplayServer(KinematicServer):
             for name, obj in self.display_elements.items():
                 if isinstance(obj, DisplayRobot):
                     obj.set_skeleton_size(self.skeleton_size)
+
         elif args[0] == 't':
             if self.transparency < 1:
                 self.transparency += 0.1

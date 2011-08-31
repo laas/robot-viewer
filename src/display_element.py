@@ -26,6 +26,7 @@ from safeeval import safe_eval
 from kinematics import Robot, GenericObject
 import traceback
 
+shaders = {}
 
 
 import logging, os, sys
@@ -155,6 +156,22 @@ class GlPrimitive(GenericObject):
             self.gl_list_ids[win] = self.generate_gl_list()
 
         glPushMatrix()
+
+        if self.mesh:
+            app = self.mesh.app
+            #print app.specularColor, app.emissiveColor, app.diffuseColor, app.ambientColor
+            if app.specularColor:
+                shaders[glutGetWindow()].uMaterialSpecularColor = app.specularColor
+
+            if app.emissiveColor:
+                shaders[glutGetWindow()].uMaterialEmissiveColor = app.emissiveColor
+
+            if app.diffuseColor:
+                shaders[glutGetWindow()].uMaterialDiffuseColor = app.diffuseColor
+
+            if app.ambientColor:
+                shaders[glutGetWindow()].uMaterialAmbientColor = app.ambientColor
+
 
         Tmatrix = self.globalTransformation
         R=Tmatrix[0:3,0:3]

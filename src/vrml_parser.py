@@ -79,6 +79,16 @@ class VrmlProcessor(DispatchProcessor):
                 try:
                     mat = vrml_node['material']
                     processed_node.__dict__.update(vrml_node['material'][0])
+                    for color in ["diffuseColor", "ambientColor",
+                                  "emissiveColor","specularColor",]:
+                        val = processed_node.__dict__[color]
+                        if not val:
+                            continue
+                        val = [float(w) for w in val]
+                        processed_node.__dict__[color] = val
+
+
+
                 except:
                     logger.exception("Exception on:\nvrml_node={0}\nbuffer={1}..."
                                  .format(vrml_node,buffer[start:max(stop,start+200)]))
