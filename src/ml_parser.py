@@ -20,6 +20,8 @@ import re, sys
 import kinematics
 import os
 import logging, pickle
+from distutils.version import LooseVersion
+from version import __version__
 
 logger = logging.getLogger("robotviewer.ml_parser")
 class NullHandler(logging.Handler):
@@ -36,23 +38,25 @@ supported_extensions = parsers.keys()
 
 def load_cache(cached_file):
     try:
-        objs = pickle.load(open(cached_file))
+        data = pickle.load(open(cached_file))
     except:
         logger.warning("Couldn't load cached file.")
         os.remove(cached_file)
         return None
 
-    if type(objs)!= list:
-        logger.warning("Old on invalid cached file. Removing %s"%cached_file)
+    if ((not isinstance(data, dict)) or (not data.get('version'))
+        or LooseVersion(data.get('version')) < LooseVersion(__version__)
+        ):
+        logger.warning("Old or invalid cached file. Removing %s"%cached_file)
         return None
 
-    gen_objs = [ o for o in objs if isinstance(o, kinematics.GenericObject) ]
+    gen_objs = [ o for o in data.get("content") if isinstance(o, kinematics.GenericObject) ]
 
     if not gen_objs[:]:
         logger.warning("Cached does not contain any object. Removing %s"%cached_file)
         return None
 
-    return objs
+    return data.get("content")
 
 
 def parse_nocache(filename):
@@ -85,7 +89,9 @@ def parse(filename, use_cache = True):
     objs =  parse_nocache(filename)
     logger.warning("Saving new cache to %s"%cached_file)
     f = open(cached_file,'w')
-    pickle.dump(objs,f)
+    data = {"version": __version__, "content": objs}
+
+    pickle.dump(data,f)
     f.close()
     logger.warning("Finished saving new cache to %s"%cached_file)
     logger.debug("Loaded %s"%str(objs))

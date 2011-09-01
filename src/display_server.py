@@ -48,7 +48,7 @@ import numpy
 from mathaux import *
 from ctypes import *
 from kinematic_server import KinematicServer
-from OpenGL.GL.shaders import *
+from shaders import *
 from shader import Shader
 
 try:
