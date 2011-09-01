@@ -30,13 +30,13 @@ logger.setLevel(logging.DEBUG)
 
 import os
 import OpenGL
-OpenGL.FORWARD_COMPATIBLE_ONLY = True
+#OpenGL.FORWARD_COMPATIBLE_ONLY = True
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from OpenGL.GLX import *
 from OpenGL.GL.EXT.framebuffer_object import *
-from OpenGL.GL.shaders import *
+from shaders import *
 
 
 class Shader(object):

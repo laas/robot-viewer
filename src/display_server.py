@@ -16,7 +16,7 @@
 #! /usr/bin/env python
 import os
 import OpenGL
-OpenGL.FORWARD_COMPATIBLE_ONLY = True
+# OpenGL.FORWARD_COMPATIBLE_ONLY = True
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
