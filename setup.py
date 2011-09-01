@@ -29,7 +29,7 @@ Main features:
                     'robotviewer.idl.robotviewer_corba__POA',
                 ],
       package_dir={'robotviewer':'src'},
-      package_data={'robotviewer': ['vrml.sbnf','obj.sbnf',
+      package_data={'robotviewer': ['vrml.sbnf','obj.sbnf','fragment_shader.c','vertex_shader.c'
                                     ]},
       requires=['sphinx (>=0.6)','pyopengl'],
       data_files=[('bin',['bin/robotviewer','bin/robotviewer-gtk']),
