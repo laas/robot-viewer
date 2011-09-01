@@ -27,7 +27,7 @@ from kinematics import Robot, GenericObject
 import traceback
 
 shaders = {}
-
+MODERN_SHADER = False
 
 import logging, os, sys
 logger = logging.getLogger("robotviewer.display_element")
@@ -38,7 +38,7 @@ class NullHandler(logging.Handler):
 
 logger.addHandler(NullHandler())
 
-
+SHOW_NORMALS = False
 USE_VBO = False
 
 def ifenabled(meth):
@@ -146,6 +146,19 @@ class GlPrimitive(GenericObject):
                 glNormal3f( geo.normals[3*i], geo.normals[3*i+1], geo.normals[3*i+2])
                 glVertex3f( geo.coord[3*i], geo.coord[3*i+1], geo.coord[3*i+2])
             glEnd()
+
+            if SHOW_NORMALS:
+                glBegin(GL_LINES)
+                for i in geo.tri_idxs:
+                    n = [geo.normals[3*i], geo.normals[3*i+1], geo.normals[3*i+2]]
+                    v = [geo.coord[3*i], geo.coord[3*i+1], geo.coord[3*i+2]]
+                    glVertex3f(v[0], v[1], v[2])
+                    glVertex3f(v[0] + 0.01*n[0],
+                               v[1] + 0.01*n[1],
+                               v[2] + 0.01*n[2],
+                               )
+                glEnd()
+
         glEndList();
         return new_list
 
@@ -157,29 +170,32 @@ class GlPrimitive(GenericObject):
 
         glPushMatrix()
 
-        if self.mesh:
-            app = self.mesh.app
-            #print app.specularColor, app.emissiveColor, app.diffuseColor, app.ambientColor
-            if app.specularColor:
-                shaders[glutGetWindow()].uMaterialSpecularColor = app.specularColor
-
-            if app.emissiveColor:
-                shaders[glutGetWindow()].uMaterialEmissiveColor = app.emissiveColor
-
-            if app.diffuseColor:
-                shaders[glutGetWindow()].uMaterialDiffuseColor = app.diffuseColor
-
-            if app.ambientColor:
-                shaders[glutGetWindow()].uMaterialAmbientColor = app.ambientColor
-
-
         Tmatrix = self.globalTransformation
         R=Tmatrix[0:3,0:3]
         p=Tmatrix[0:3,3]
         agax=rot2AngleAxis(R)
         glTranslatef(p[0],p[1],p[2])
         glRotated(agax[0],agax[1],agax[2],agax[3])
-        glCallList(self.gl_list_ids[win])
+
+        if MODERN_SHADER:
+            if self.mesh:
+                app = self.mesh.app
+                #print app.specularColor, app.emissiveColor, app.diffuseColor, app.ambientColor
+                if app.specularColor:
+                    shaders[glutGetWindow()].uMaterialSpecularColor = app.specularColor
+
+                if app.emissiveColor:
+                    shaders[glutGetWindow()].uMaterialEmissiveColor = app.emissiveColor
+
+                if app.diffuseColor:
+                    shaders[glutGetWindow()].uMaterialDiffuseColor = app.diffuseColor
+
+                if app.ambientColor:
+                    shaders[glutGetWindow()].uMaterialAmbientColor = app.ambientColor
+            glCallList(self.gl_list_ids[win])
+
+        else:
+            glCallList(self.gl_list_ids[win])
 
         if (not USE_VBO) or (not self.mesh) :
             glPopMatrix()

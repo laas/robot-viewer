@@ -18,7 +18,7 @@
 import numpy
 import numpy.linalg
 import re
-from math import sin,cos
+from math import sin,cos,isnan, pi
 from mathaux import *
 from collections import deque
 import logging, uuid
@@ -600,11 +600,14 @@ class Geometry():
                 for i, iid in enumerate(poly):
                     ids[i] = iid
 
+                vertices = []
                 for i in range(num_sides):
+                    vertices.append(points[ids[i]])
                     j = i + 1
                     if j == num_sides:
                         j = 0
                     vecs[j][i] = normalized(points[ids[j]] - points[ids[i]])
+
 
                 try:
                     for i in range(num_sides):
@@ -618,26 +621,34 @@ class Geometry():
                         else:
                             alphas[i] = acos(numpy.dot(vecs[i][i-1],
                                                        vecs[i+1][i]))
+
                 except Exception,error:
                     s = traceback.format_exc()
                     logger.warning("Mesh processing error: %s"%s)
 
                 for i,alpha in enumerate(alphas):
                     if i == 0:
-                        normals[ids[i]] += alpha*normalized(
-                            numpy.cross(vecs[0][num_sides-1],vecs[1][0]))
+                        normal_i = numpy.cross(vecs[0][num_sides-1],vecs[1][0])
                     elif i == num_sides - 1:
                         normal_i = numpy.cross(vecs[num_sides-1][num_sides-2],
                                                vecs[0][num_sides-1])
-                        normals[ids[i]] += alpha*normalized(normal_i)
                     else:
                         normal_i = numpy.cross(vecs[i][i-1], vecs[i+1][i])
-                        normals[ids[i]] += alpha*normalized(normal_i)
+                    if isnan(alphas[i]) or abs(alpha - pi) < 1e-6:
+                        # print "alpha is NaN for", vertices
+                        continue
+                    normals[ids[i]] += alpha*normalized(normal_i)
+                    if isnan(normals[ids[i]][0]):
+                        print "produced invalid normal", alpha, normal_i, vertices
+
             poly=[]
         if self.norm!=[]:
             self.normals = self.norm
         else:
-            for normal in normals:
+            for i,normal in enumerate(normals):
+                if isnan(norm(normal)):
+                    print "Invalid normal found", normal
+
                 normal                =  normalized(normal)
                 self.normals          += [normal[0],normal[1],normal[2]]
                 # self.norm  += self.norms

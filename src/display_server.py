@@ -149,7 +149,7 @@ class DisplayServer(KinematicServer):
         self.refresh_rate = None
         self.num_windows = 1
         self.run_once = False
-        self.modern_shader = False
+        self.modern_shader = display_element.MODERN_SHADER
         if options:
             self.__dict__.update(options.__dict__)
 
@@ -294,7 +294,7 @@ class DisplayServer(KinematicServer):
             shader.uPointLightingDiffuseColor   = (0.8,0.8,0.8)
             shader.uPointLightingSpecularColor  = (0.8,0.8,0.8)
             shader.uMaterialShininess = 1.0
-            shader.uModernShader = True
+            shader.uModernShader = self.modern_shader
             self.shaders[glutGetWindow()] = shader
 
         glutIdleFunc(self.refresh_cb)
@@ -691,6 +691,7 @@ class DisplayServer(KinematicServer):
 
         elif args[0] == '[':
             self.modern_shader = not self.modern_shader
+            display_element.MODERN_SHADER = self.modern_shader
             if self.modern_shader:
                 legacy = "OFF"
             else:
