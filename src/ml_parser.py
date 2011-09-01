@@ -45,7 +45,7 @@ def load_cache(cached_file):
         return None
 
     if ((not isinstance(data, dict)) or (not data.get('version'))
-        or LooseVersion(data.get('version')) < LooseVersion(__version__)
+        or LooseVersion(data.get('version')) != LooseVersion(__version__)
         ):
         logger.warning("Old or invalid cached file. Removing %s"%cached_file)
         return None
