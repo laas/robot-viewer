@@ -247,9 +247,14 @@ class DisplayServer(KinematicServer):
     def visible_cb(self, status):
         logger.debug("visible: {0}".format(status == GLUT_VISIBLE))
 
+
+    def dummy_cb(self):
+        return
+
     def create_window(self):
         logger.info("Creating window")
         dummy_win = glutCreateWindow("Initializing...")
+        glutDisplayFunc(self.dummy_cb)
         glutHideWindow(dummy_win)
 
         glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA
@@ -263,11 +268,11 @@ class DisplayServer(KinematicServer):
         self.shaders = display_element.shaders
         for i in range(self.num_windows):
             window = GlWindow()
+            glutDisplayFunc(self.draw_cb)
+            glutReshapeFunc(self.resize_cb)
             self.windows[window.id] = window
             glutEntryFunc(self.enter_leave_cb);
             glutVisibilityFunc(self.visible_cb);
-            glutDisplayFunc(self.draw_cb)
-            glutReshapeFunc(self.resize_cb)
             self.bind_events()
             glutPositionWindow(i*self.width,20);
             self.init_lights()

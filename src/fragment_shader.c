@@ -43,7 +43,7 @@ void legacy_main(void) {
 
   // calculate Specular Term:
   vec4 Ispec = gl_FrontLightProduct[0].specular
-    * pow(max(dot(R,E),0.0),1);
+    * pow(max(dot(R,E),0.0),1.0);
   Ispec = clamp(Ispec, 0.0, 1.0);
 
   // write Total Color:
