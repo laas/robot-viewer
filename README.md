@@ -35,6 +35,7 @@ Change the line "fedora14" to the appropriate version of your system. Install ro
 
 
 ### From source
+#### Linux
 Make sure you have the following dependency:
  
  * python 2.6 or 2.7.
@@ -49,6 +50,14 @@ Make sure you have the following dependency:
 Install this package as an usual python package:
 
     python setup.py install --prefix $YOUR_PREFIX
+
+#### Mac OSX
+ * An easy way to install dependencies for robot-viewer is using Macports: 
+    
+    port install py26-opengl py26-Numeric py26-omniORBpy
+
+ * Make sure you have the correct PATH, PYTHONPATH, etc. in ~/.profile.
+ * Install simpleparse and robot-viewer the same way as in Linux.
 
 ## Usage
  * Edit $HOME/.robotviewer/config to add your robot. robot-viewer supports vrml and kxml formats for robot representation.
