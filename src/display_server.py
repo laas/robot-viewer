@@ -150,6 +150,8 @@ class DisplayServer(KinematicServer):
         self.num_windows = 1
         self.run_once = False
         self.modern_shader = display_element.MODERN_SHADER
+        self.use_shader = True
+
         if options:
             self.__dict__.update(options.__dict__)
 
@@ -175,8 +177,8 @@ class DisplayServer(KinematicServer):
         self.capture_images = []
         self.last_refreshed = {}
 
-        self.modelAmbientLight = 0.05
-        self.lightAttenuation = 1
+        self.modelAmbientLight = 0.01
+        self.lightAttenuation = 0.05
         self.active_cameras = {}
         self.world_cameras = []
         KinematicServer.__init__(self, options, args)
@@ -283,12 +285,17 @@ class DisplayServer(KinematicServer):
             self.world_cameras.append(cam)
             window.cameras.append(cam)
 
+            print "use_shader=", self.use_shader
+            if not self.use_shader:
+                continue
+
             p = os.path.abspath(os.path.dirname(__file__))
             vs_text = open(os.path.join(p,'vertex_shader.c')).read()
             fs_text = open(os.path.join(p,'fragment_shader.c')).read()
             program = compileProgram(compileShader(vs_text, GL_VERTEX_SHADER),
                                               compileShader(fs_text, GL_FRAGMENT_SHADER),
                                               )
+
             shader = Shader(program)
             glUseProgram(program)
             self.specular_highlights = True
@@ -688,13 +695,13 @@ class DisplayServer(KinematicServer):
             self.render_skeleton_flag = not self.render_skeleton_flag
             print "render skeleton:", self.render_skeleton_flag
 
-        elif args[0] == 'p':
+        elif args[0] == 'p' and self.use_shader:
             self.specular_highlights = not self.specular_highlights
             for id in self.windows:
                 glutSetWindow(id)
                 self.shaders[id].uShowSpecularHighlights = self.specular_highlights
 
-        elif args[0] == '[':
+        elif args[0] == '[' and self.use_shader:
             self.modern_shader = not self.modern_shader
             display_element.MODERN_SHADER = self.modern_shader
             if self.modern_shader:
@@ -730,44 +737,54 @@ class DisplayServer(KinematicServer):
 
         elif args[0] == 't':
             if self.transparency < 1:
-                self.transparency += 0.1
+                self.transparency += 0.05
                 for name, e in self.display_elements.items():
                     if isinstance(e, DisplayRobot):
                         e.set_transparency(self.transparency)
 
         elif args[0] == 'r':
             if self.transparency > 0:
-                self.transparency -= .1
+                self.transparency -= .05
                 for name, e in self.display_elements.items():
                     if isinstance(e, DisplayRobot):
                         e.set_transparency(self.transparency)
         elif args[0] == 'l':
             if self.modelAmbientLight < 1.0:
-                self.modelAmbientLight += 0.1
+                self.modelAmbientLight += 0.05
                 glLightModelfv(GL_LIGHT_MODEL_AMBIENT,
                                [self.modelAmbientLight,
                                 self.modelAmbientLight,
                                 self.modelAmbientLight,
                                 1])
+            print "modelAmbientLight = ", self.modelAmbientLight
+
+
         elif args[0] == 'd':
             if self.modelAmbientLight >0 :
-                self.modelAmbientLight -= 0.1
+                self.modelAmbientLight -= 0.05
                 glLightModelfv(GL_LIGHT_MODEL_AMBIENT,
                                [self.modelAmbientLight,
                                 self.modelAmbientLight,
                                 self.modelAmbientLight,
                                 1])
+            print "modelAmbientLight = ", self.modelAmbientLight
+
 
         elif args[0] == 'e':
             if self.lightAttenuation < 1.0:
-                self.lightAttenuation += 0.1
+                self.lightAttenuation += 0.01
                 glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION,
                          self.lightAttenuation)
+            print "lightAttenuation = ", self.lightAttenuation
+
+
         elif args[0] == 'o':
-            if self.lightAttenuation > 0.1 :
-                self.lightAttenuation -= 0.1
+            if self.lightAttenuation > 0.01 :
+                self.lightAttenuation -= 0.01
                 glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION,
                          self.lightAttenuation)
+            print "lightAttenuation = ", self.lightAttenuation
+
 
         elif args[0] == 'c':
             self.screen_capture()

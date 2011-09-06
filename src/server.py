@@ -108,6 +108,10 @@ def get_parser():
                       action="store_true", dest="no_gl",
                       help="start kinematic server only, no GL")
 
+    parser.add_option("--no-shader",
+                      action="store_false", dest="use_shader", default = True,
+                      help="start kinematic server only, no GL")
+
     # parser.add_option("--intel",
     #                   action="store_true", dest="intel",  default=False,
     #                   help="tell robot-viewer that it is running on an Intel card")
