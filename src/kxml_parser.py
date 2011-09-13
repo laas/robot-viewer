@@ -120,12 +120,15 @@ class Parser (object):
             assembly_obj = kinematics.GenericObject()
             assembly_obj.id = assembly_nid
             rel_pos = None
-            motion_frame = None
             self.shapes[assembly_nid] = assembly_obj
             self.shape_types[assembly_nid] = "assembly"
             rel_pos = self.findMatNode(assembly_node, self.relPosTag)
-            motion_frame = self.findMatNode(assembly_node,
-                                                    self.motionFrameTag)
+            try:
+                motion_frame = self.findMatNode(assembly_node,
+                                                self.motionFrameTag)
+            except:
+                motion_frame = None
+
             assembly_obj.translation = rel_pos[0:3,3]
             assembly_obj.rotation = rot2AxisAngle(rel_pos[0:3,0:3])
 
@@ -143,8 +146,11 @@ class Parser (object):
                 self.shape_types[polyhedron_nid] = "polyhedron"
                 poly_rel_pos = self.findMatNode(polyhedron_node,
                                                     self.relPosTag)
-                poly_motion_frame = self.findMatNode(polyhedron_node,
+                try:
+                    poly_motion_frame = self.findMatNode(polyhedron_node,
                                                          self.motionFrameTag)
+                except:
+                    poly_motion_frame = None
 
                 polyhedron_obj.translation = poly_rel_pos[0:3,3]
                 polyhedron_obj.rotation = rot2AxisAngle(poly_rel_pos[0:3,0:3])
@@ -333,11 +339,15 @@ class Parser (object):
 
         # add shape object already loaded at the beginning
         # print solid_id, self.shape_types[solid_id]
-        solid = self.shapes[solid_id]
-        solid.translation = relative_solid_position[0:3,3]
-        solid.rotation    = rot2AxisAngle(relative_solid_position[0:3,0:3])
-        # solid.add_child(self.shapes[solid_id])
-        joint.add_child(solid)
+        if not solid_id == None:
+            if solid_id not in self.shapes.keys():
+                raise Exception("Missing {0} in self.shapes.keys(): {1}"
+                                .format(solid_id, self.shapes.keys()))
+            solid = self.shapes[solid_id]
+            solid.translation = relative_solid_position[0:3,3]
+            solid.rotation    = rot2AxisAngle(relative_solid_position[0:3,0:3])
+            # solid.add_child(self.shapes[solid_id])
+            joint.add_child(solid)
 
         if isinstance(joint, kinematics.Robot):
             self.compute_localT_from_globalT_(joint)
@@ -480,7 +490,10 @@ joint.localT=
         return [ float(w) for w in s.split()]
 
     def findStringNode(self, node, node_name):
-        node = node.getElementsByTagName(node_name)[-1].childNodes[0]
+        nodes = node.getElementsByTagName(node_name)
+        if not nodes[:]:
+            raise Exception("Couldn't find any node %s"%node_name)
+        node = nodes[-1].childNodes[0]
         s = node.data
         s = s.strip()
         return s

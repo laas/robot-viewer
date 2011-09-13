@@ -612,15 +612,25 @@ class Geometry():
                 try:
                     for i in range(num_sides):
                         if i == 0:
-                            alphas[i] = acos(numpy.dot
-                                             (vecs[1][0],vecs[0][num_sides-1]))
+                            vec1 = vecs[1][0]
+                            vec2 = vecs[0][num_sides-1]
                         elif i == num_sides - 1:
-                            alphas[i] = acos(numpy.dot (
-                                vecs[0][num_sides-1],
-                                vecs[num_sides-1][num_sides-2]))
+                            vec1 =   vecs[0][num_sides-1]
+                            vec2 =   vecs[num_sides-1][num_sides-2]
                         else:
-                            alphas[i] = acos(numpy.dot(vecs[i][i-1],
-                                                       vecs[i+1][i]))
+                            vec1 = vecs[i][i-1]
+                            vec2 = vecs[i+1][i]
+
+                        if abs(numpy.dot(vec1, vec2) + 1) < 1e-6:
+                            alphas[i] = pi
+                        elif abs(numpy.dot(vec1, vec2) - 1) < 1e-6:
+                            alphas[i] = 0
+                        else:
+                            try:
+                                alphas[i] = acos(numpy.dot(vec1, vec2))
+                            except ValueError:
+                                print "Math domain error: acos({0})".format(numpy.dot(vec1, vec2))
+
 
                 except Exception,error:
                     s = traceback.format_exc()
@@ -638,8 +648,8 @@ class Geometry():
                         # print "alpha is NaN for", vertices
                         continue
                     normals[ids[i]] += alpha*normalized(normal_i)
-                    if isnan(normals[ids[i]][0]):
-                        print "produced invalid normal", alpha, normal_i, vertices
+                    #if isnan(normals[ids[i]][0]):
+                    #    print "produced invalid normal", alpha, normal_i, vertices
 
             poly=[]
         if self.norm!=[]:
