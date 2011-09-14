@@ -62,6 +62,7 @@ class GenericObject(object):
         self.id=None
         self.list_by_type = {}
         self.uuid = str(uuid.uuid1())
+
     def get_list(self, type):
         try:
             return self.list_by_type[type]
@@ -74,7 +75,11 @@ class GenericObject(object):
 
     @property
     def joint_list(self):
-        return self.get_list(Joint)
+        return self.get_list(Joint) + self.get_list(Robot)
+
+    @property
+    def robot_list(self):
+        return self.get_list(Robot)
 
     def get_op_point(self, id):
         if not isinstance(self, Robot):
@@ -481,6 +486,9 @@ class Robot(Joint):
         for joint in self.joint_list:
             if joint.jointType in ["free","freeflyer"]:
                 self.waist=joint
+
+        if not self.waist:
+            raise Exception("Couldn't find the waist joint (freeflyer)")
 
         self.update_joint_dict()
 
