@@ -144,5 +144,5 @@ class ManPageFormatter(optparse.HelpFormatter):
         return ''.join(result)
 
 
-build.sub_commands.append(('build_manpage', None))
+
 
