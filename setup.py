@@ -20,6 +20,7 @@ class install_pc(install):
         s = """prefix={0}
 datarootdir={0}/share
 Name: {1}
+Description:
 Version: {2}
 """.format(self.prefix,
            self.config_vars['dist_name'],
