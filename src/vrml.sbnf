@@ -28,7 +28,27 @@ eventDirection   := 'eventIn'/'eventOut'
 extFieldDecl     := fieldExposure,ts,dataType,ts,name,ts
 ExtProtoURL      := '['?,(ts,SFString)*, ts, ']'?, ts  # just an MFString by another name :)
 <ROUTE>          := 'ROUTE',ts, name,'.',name, ts, 'TO', ts, name,'.',name, ts
-Node             := (Def)?,nodegi,ts,'{',ts,(Proto/ExternProto/ROUTE/Attr)*,ts,'}', ts
+
+>nodeContent<    := '{',ts,(Proto/ExternProto/ROUTE/Attr)*,ts,'}', ts
+
+visionSensor     := "VisionSensor",ts,nodeContent
+forceSensor      := "ForceSensor",ts,nodeContent
+humanoid         := "Humanoid",ts,nodeContent
+joint            := "Joint",ts,nodeContent
+genericObject    := "Group"/"Segment"/"Transform"/"AccelerationSensor"/"Gyro",ts,nodeContent
+inline           := "Inline",ts,nodeContent
+shape            := "Shape",ts,nodeContent
+appearance       := "Appearance",ts,nodeContent
+material         := "Material",ts,nodeContent
+indexedFaceSet   := "IndexedFaceSet",ts,nodeContent
+coordinate       := "Coordinate",ts,nodeContent
+
+<navigationInfo>    := "NavigationInfo",ts,nodeContent
+<background>      := "Background",ts,nodeContent
+<viewpoint>        := "Viewpoint",ts,nodeContent
+
+
+unknownNode      := nodegi,ts,nodeContent
 <Script>         := (Def)?,'Script',ts,'{',ts,(ScriptFieldDecl/ScriptEventDecl/Proto/ExternProto/ROUTE/Attr)*,ts,'}', ts
 ScriptEventDecl  := eventDirection, ts, dataType, ts, name, ts, ('IS', ts, IS,ts)?
 ScriptFieldDecl  := fieldExposure,ts,dataType,ts,name,ts,(('IS', ts,IS,ts)/Field),ts
@@ -36,6 +56,9 @@ SFNull           := 'NULL', ts
 
 # should really have an optimised way of declaring a different reporting name for the same production...
 Def              :='DEF',ts,name,ts
+DefNode          := Def,NodewoDef
+>NodewoDef<      := visionSensor/forceSensor/shape/indexedFaceSet/coordinate/appearance/material/inline/genericObject/humanoid/joint/navigationInfo/background/viewpoint/unknownNode
+>Node<           := DefNode/NodewoDef
 USE              := name
 IS               := name
 >nodegi<         := name

@@ -40,10 +40,17 @@ path = os.path.abspath(os.path.dirname(__file__))
 grammar_file = os.path.join(path,"vrml.sbnf" )
 VRMLPARSERDEF = open(grammar_file).read()
 
+
 class VrmlNode(dict):
     def __init__(self, n = None):
         self.name = n
         self['name'] = n
+
+class Definition(str):
+    pass
+
+class Attribute(tuple):
+    pass
 
 class VrmlProcessor(DispatchProcessor):
     """
@@ -52,145 +59,143 @@ class VrmlProcessor(DispatchProcessor):
         self.def_dict = {}
         self.root_path = root_path
 
-    def Node(self,(tag,start,stop,subtags), buffer ):
-        defname = None
-        if subtags[0][0] == "name":
-            name = dispatch(self, subtags[0], buffer)
-            vrml_node = VrmlNode(name)
-            children = dispatchList(self, subtags, buffer)
-            for pair in children[1:]:
-                vrml_node[pair[0]] = pair[1]
+    def DefNode(self,(tag,start,stop,subtags), buffer ):
+        key, n = dispatchList(self, subtags, buffer)
+        self.def_dict[key] = n
+        return n
 
-        elif subtags[0][0] == "Def":
-            name = dispatch(self, subtags[1], buffer)
-            defname = dispatch(self, subtags[0], buffer)
-            vrml_node = VrmlNode(name)
-            children = dispatchList(self, subtags, buffer)
-            for pair in children[2:]:
-                vrml_node[pair[0]] = pair[1]
-
-        processed_node = vrml_node
-
-        if vrml_node.name == "Appearance":
-            processed_node = Appearance()
-            if 'material' not in vrml_node.keys():
-                logger.warning("No material node found for %s"%vrml_node)
-            else:
-                try:
-                    mat = vrml_node['material']
-                    processed_node.__dict__.update(vrml_node['material'][0])
-                    for color in ["diffuseColor", "ambientColor",
-                                  "emissiveColor","specularColor",]:
-                        val = processed_node.__dict__[color]
-                        if not val:
-                            continue
-                        val = [float(w) for w in val]
-                        processed_node.__dict__[color] = val
-
-
-
-                except:
-                    logger.exception("Exception on:\nvrml_node={0}\nbuffer={1}..."
-                                 .format(vrml_node,buffer[start:max(stop,start+200)]))
-                    raise
-
-        elif vrml_node.name == "IndexedFaceSet":
-            processed_node = Geometry()
-            processed_node.coord = vrml_node['coord'][0]['point']
-            processed_node.idx = vrml_node['coordIndex']
-
-        elif ( isinstance(vrml_node,dict) and 'appearance' in vrml_node.keys()
-               and 'geometry' in vrml_node.keys()):
-            processed_node = Mesh()
-            processed_node.app = vrml_node['appearance'][0]
-            processed_node.geo = vrml_node['geometry'][0]
-
-        elif vrml_node.name == "Transform":
-            processed_node = GenericObject()
-            for key in 'translation', 'rotation':
-                if key in vrml_node.keys():
-                    processed_node.__dict__[key] = vrml_node[key]
-
-            if 'children' in vrml_node.keys():
-                children = vrml_node['children']
-                for child in children:
-                    if isinstance(child, GenericObject):
-                        if 'scale' in vrml_node.keys() and isinstance(child,GenericObject):
-                            for grandchild in child.children:
-                                grandchild.geo.scale(vrml_node['scale'])
-                        processed_node.add_child(child)
-                        child.parent = processed_node
+    def inline(self,(tag,start,stop,subtags), buffer ):
+        attrs = dispatchList(self, subtags, buffer)
+        for key, val in attrs:
+            if key == 'url':
+                vrml_path = val
+                if self.root_path:
+                    vrml_path = os.path.join(self.root_path, vrml_path)
+                    if os.path.isfile(vrml_path):
+                        data = parse(vrml_path)
+                        return data[0]
                     else:
-                        logger.debug("Ignoring transform child %s"%str(child))
+                        logger.exception("Couldnt find %s"%(vrml_path))
 
-        elif vrml_node.name == "Group":
-            processed_node = GenericObject()
-            if 'children' in vrml_node.keys():
-                children = vrml_node['children']
-                for child in children:
-                    processed_node.add_child(child)
+    def genericObject(self,(tag,start,stop,subtags), buffer ):
+        node = GenericObject()
+        attrs = dispatchList(self, subtags, buffer)
+        for key, val in attrs:
+            if key == 'children':
+                l = val
+                for c in val:
+                    if not isinstance(c, GenericObject):
+                        logger.debug("Ignoring child %s"%str(c))
+                        continue
+                    node.add_child(c)
+            elif key == "scale":
+                node.scale(val)
+            elif key in ['translation','rotation']:
+                node.__dict__[key] = val
+        return node
+
+    def visionSensor(self,(tag,start,stop,subtags), buffer ):
+        node = Camera()
+        attrs = dispatchList(self, subtags, buffer)
+        for key, val in attrs:
+            if key == 'children':
+                l = val
+                for c in val:
+                    if not isinstance(c, GenericObject):
+                        logger.debug("Ignoring child %s"%str(c))
+                        continue
+                    node.add_child(c)
+            elif key in ['translation','rotation']:
+                node.__dict__[key] = val
+        return node
+
+    def forceSensor(self,(tag,start,stop,subtags), buffer ):
+        return self.genericObject((tag,start,stop,subtags), buffer )
+
+    def humanoid(self,(tag,start,stop,subtags), buffer ):
+        node = Robot()
+        attrs = dispatchList(self, subtags, buffer)
+        for key, val in attrs:
+            if key == "joints":
+                node.joint_names = val
+            elif key == 'segments':
+                node.segment_names = val
+            elif key == 'humanoidBody':
+                l = val
+                for v in l:
+                    node.add_child(v)
+            elif key in ['translation','rotation']:
+                node.__dict__[key] = val
+
+        return node
+
+    def joint(self,(tag,start,stop,subtags), buffer ):
+        node = Joint()
+        attrs = dispatchList(self, subtags, buffer)
+
+        for key, val in attrs:
+            if key == "jointId":
+                node.id = val
+            elif key == "jointType":
+                node.jointType = val
+            elif key == 'jointAxis':
+                node.axis = val
+            elif key in ['translation','rotation']:
+                node.__dict__[key] = val
+            elif key == "children":
+                for c in val:
+                    if not isinstance(c, GenericObject):
+                        logger.debug("Ignoring child %s"%str(c))
+                        continue
+                    node.add_child(c)
+        return node
 
 
-        elif vrml_node.name == "Humanoid":
-            processed_node = Robot()
-            processed_node.joint_names = vrml_node['joints']
-            processed_node.segment_names = vrml_node['segments']
-            body = vrml_node['humanoidBody'][0]
-            processed_node.add_child(body)
-            body.parent = processed_node
+    def shape(self,(tag,start,stop,subtags), buffer ):
+        node = Mesh()
+        attrs = dispatchList(self, subtags, buffer)
+        for key, val in attrs:
+            if key == "appearance":
+                node.app = val[0][0]
+            elif key == "geometry":
+                node.geo = val[0]
+        return node
 
-        elif vrml_node.name == "Segment":
-            processed_node = GenericObject()
-            if 'children' in vrml_node.keys():
-                children = vrml_node['children']
-                for child in children:
-                    if isinstance(child, GenericObject):
-                        processed_node.add_child(child)
-                        child.parent = processed_node
-                    else:
-                        logger.debug("Ignoring segment child %s"%str(child))
 
-        elif vrml_node.name == "Inline":
-            vrml_path = vrml_node['url']
-            if self.root_path:
-                vrml_path = os.path.join(self.root_path, vrml_path)
-            if os.path.isfile(vrml_path):
-                processed_node = parse(vrml_path)[0]
-            else:
-                logger.exception("Couldnt find %s"%(vrml_path))
+    def appearance(self,(tag,start,stop,subtags), buffer ):
+        attrs = dispatchList(self, subtags, buffer)
+        for key, val in attrs:
+            if key == "material":
+                return val
 
-        elif vrml_node.name in  [ "ForceSensor"]:
-            processed_node = GenericObject()
+    def material(self,(tag,start,stop,subtags), buffer ):
+        app = Appearance()
+        attrs = dispatchList(self, subtags, buffer)
+        for key, val in attrs:
+            app.__dict__[key] = val
+        return app
 
-        elif vrml_node.name == "Joint":
-            children = vrml_node['children']
-            processed_node = Joint()
-            for key in 'translation', 'rotation':
-                if key in vrml_node.keys():
-                    processed_node.__dict__[key] = vrml_node[key]
+    def indexedFaceSet(self,(tag,start,stop,subtags), buffer ):
+        attrs = dispatchList(self, subtags, buffer)
+        geo = Geometry()
+        for key, val in attrs:
+            if key == "coordIndex":
+                geo.idx = val
+            elif key == "coord":
+                geo.coord = val[0]
+        return geo
 
-            if 'jointId' in vrml_node.keys():
-                processed_node.id = vrml_node['jointId']
-            if 'jointType' in vrml_node.keys():
-                processed_node.jointType = vrml_node['jointType']
-            if 'jointAxis' in vrml_node.keys():
-                processed_node.axis = vrml_node['jointAxis']
+    def coordinate(self,(tag,start,stop,subtags), buffer ):
+        attrs = dispatchList(self, subtags, buffer)
+        for key, val in attrs:
+            if key == "point":
+                return val
 
-            for child in children:
-                if isinstance(child, GenericObject):
-                    processed_node.add_child(child)
-                    child.parent = processed_node
-                else:
-                    logger.debug("Ignoring child %s"%str(child))
-
-        elif vrml_node.name == "VisionSensor":
-            processed_node = Camera()
-            processed_node.__dict__.update(vrml_node)
-
-        if defname:
-            self.def_dict[defname] = processed_node
-            processed_node.name = defname
-        return processed_node
+    def unknownNode(self,(tag,start,stop,subtags), buffer ):
+        s = buffer[start:stop][:100]
+        name = dispatch(self, subtags[0], buffer)
+        logger.warning("unknown Node: " + name)
+        return
 
     def name(self,(tag,start,stop,subtags), buffer ):
         return str(buffer[start:stop])
@@ -198,11 +203,11 @@ class VrmlProcessor(DispatchProcessor):
     def Attr(self,(tag,start,stop,subtags), buffer ):
         name = dispatch(self,subtags[0],buffer)
         value = dispatch(self,subtags[1],buffer)
-        return (name, value)
+        return Attribute((name, value))
 
     def Def(self,(tag,start,stop,subtags), buffer ):
         name = dispatch(self, subtags[0], buffer)
-        return name
+        return Definition(name)
 
     def Field(self,(tag,start,stop,subtags), buffer ):
         l =  dispatchList(self, subtags, buffer)
@@ -235,19 +240,21 @@ class VrmlProcessor(DispatchProcessor):
         return s
 
     def IS(self,(tag,start,stop,subtags), buffer ):
+        return None
         s = buffer[start:stop]
 
         if s not in self.def_dict.keys():
-            raise Exception("USE/IS used before node definition: %s"%s[:100])
+            raise Exception("IS used before node definition: %s"%s[:100])
 
         return self.def_dict[s]
 
 
     def USE(self,(tag,start,stop,subtags), buffer ):
+        return None
         s = buffer[start:stop]
 
         if s not in self.def_dict.keys():
-            raise Exception("USE/IS used before node definition. %s"%s[:100])
+            raise Exception("USE used before node definition. %s"%s[:100])
 
         return self.def_dict[s]
 
