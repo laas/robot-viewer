@@ -90,11 +90,18 @@ void main(void) {
     materialEmissiveColor = materialEmissiveColor * textureColor.rgb;
     alpha = textureColor.a;
   }
+
+  vec4 Idiff =  vec4(materialDiffuseColor * diffuseLightWeighting, alpha) ;
+  Idiff = clamp(Idiff, 0.0, 0.75);
+  vec4 Ispec = vec4(materialSpecularColor * specularLightWeighting, alpha);
+  Ispec = clamp(Ispec, 0.0, 0.17);
+
   gl_FragColor = vec4(
                       materialAmbientColor * ambientLightWeighting
-                      + materialDiffuseColor * diffuseLightWeighting
-                      + materialSpecularColor * specularLightWeighting
                       + materialEmissiveColor,
                       alpha
-                      );
+                      )
+                      + Idiff
+                      + Ispec ;
+
 }
