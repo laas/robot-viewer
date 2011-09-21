@@ -39,12 +39,12 @@ void legacy_main(void) {
 
   //calculate Diffuse Term:
   vec4 Idiff = gl_FrontLightProduct[0].diffuse * max(dot(N,L), 0.0);
-  Idiff = clamp(Idiff, 0.0, 1.0);
+  Idiff = clamp(Idiff, 0.0, 0.75);
 
   // calculate Specular Term:
   vec4 Ispec = gl_FrontLightProduct[0].specular
     * pow(max(dot(R,E),0.0),1.0);
-  Ispec = clamp(Ispec, 0.0, 1.0);
+  Ispec = clamp(Ispec, 0.0, 0.17);
 
   // write Total Color:
   gl_FragColor = gl_FrontLightModelProduct.sceneColor + Iamb + Idiff ;
