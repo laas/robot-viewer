@@ -79,7 +79,9 @@ class VrmlProcessor(DispatchProcessor):
 
     def genericObject(self,(tag,start,stop,subtags), buffer ):
         node = GenericObject()
+        s = buffer[start:stop][:200]
         attrs = dispatchList(self, subtags, buffer)
+        scale = None
         for key, val in attrs:
             if key == 'children':
                 l = val
@@ -88,10 +90,16 @@ class VrmlProcessor(DispatchProcessor):
                         logger.debug("Ignoring child %s"%str(c))
                         continue
                     node.add_child(c)
-            elif key == "scale":
-                node.scale(val)
             elif key in ['translation','rotation']:
                 node.__dict__[key] = val
+            elif key == "scale":
+                scale = val
+        if scale:
+            node.init()
+            try:
+                node.scale(scale)
+            except TypeError:
+                logger.warning("Failed to scale.\nratio:{0}\nShape:{1}...".format(scale, s) )
         return node
 
     def visionSensor(self,(tag,start,stop,subtags), buffer ):
@@ -154,11 +162,19 @@ class VrmlProcessor(DispatchProcessor):
     def shape(self,(tag,start,stop,subtags), buffer ):
         node = Mesh()
         attrs = dispatchList(self, subtags, buffer)
+        s = buffer[start:stop][:200]
         for key, val in attrs:
             if key == "appearance":
-                node.app = val[0][0]
+                try:
+                    node.app = val[0][0]
+                except TypeError:
+                    logger.debug("Failed to set app for shape:" + s)
             elif key == "geometry":
-                node.geo = val[0]
+                try:
+                    node.geo = val[0]
+                except TypeError:
+                    logger.warning("Failed to set app for shape:" + s)
+
         return node
 
 
@@ -183,6 +199,10 @@ class VrmlProcessor(DispatchProcessor):
                 geo.idx = val
             elif key == "coord":
                 geo.coord = val[0]
+            elif key == "normal":
+                pass
+                #geo.norm = val[0]
+                #geo.normals = val[0]
         return geo
 
     def coordinate(self,(tag,start,stop,subtags), buffer ):
@@ -191,10 +211,16 @@ class VrmlProcessor(DispatchProcessor):
             if key == "point":
                 return val
 
+    def normal(self,(tag,start,stop,subtags), buffer ):
+        attrs = dispatchList(self, subtags, buffer)
+        for key, val in attrs:
+            if key == "vector":
+                return val
+
     def unknownNode(self,(tag,start,stop,subtags), buffer ):
-        s = buffer[start:stop][:100]
+        s = buffer[start:stop][:500]
         name = dispatch(self, subtags[0], buffer)
-        logger.warning("unknown Node: " + name)
+        logger.warning("unknown Node: {0}. Excerpt of ignored node\n{1}".format(name,s))
         return
 
     def name(self,(tag,start,stop,subtags), buffer ):

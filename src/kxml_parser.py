@@ -559,7 +559,11 @@ def parse(filename):
     return parser.parse()
 
 if __name__ == '__main__':
+    logger = logging.getLogger()
+    formatter = logging.Formatter("%(name)s:%(levelname)s:%(message)s")
     sh = logging.StreamHandler()
+    sh.setFormatter(formatter)
+    # add the handlers to the logger
     sh.setLevel(logging.DEBUG)
     logger.addHandler(sh)
     robot = parse(sys.argv[1])[0]

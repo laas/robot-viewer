@@ -28,37 +28,17 @@ eventDirection   := 'eventIn'/'eventOut'
 extFieldDecl     := fieldExposure,ts,dataType,ts,name,ts
 ExtProtoURL      := '['?,(ts,SFString)*, ts, ']'?, ts  # just an MFString by another name :)
 <ROUTE>          := 'ROUTE',ts, name,'.',name, ts, 'TO', ts, name,'.',name, ts
-
->nodeContent<    := '{',ts,(Proto/ExternProto/ROUTE/Attr)*,ts,'}', ts
-
-visionSensor     := "VisionSensor",ts,nodeContent
-forceSensor      := "ForceSensor",ts,nodeContent
-humanoid         := "Humanoid",ts,nodeContent
-joint            := "Joint",ts,nodeContent
-genericObject    := "Group"/"Segment"/"Transform"/"AccelerationSensor"/"Gyro",ts,nodeContent
-inline           := "Inline",ts,nodeContent
-shape            := "Shape",ts,nodeContent
-appearance       := "Appearance",ts,nodeContent
-material         := "Material",ts,nodeContent
-indexedFaceSet   := "IndexedFaceSet",ts,nodeContent
-coordinate       := "Coordinate",ts,nodeContent
-
-<navigationInfo>    := "NavigationInfo",ts,nodeContent
-<background>      := "Background",ts,nodeContent
-<viewpoint>        := "Viewpoint",ts,nodeContent
-
-
-unknownNode      := nodegi,ts,nodeContent
 <Script>         := (Def)?,'Script',ts,'{',ts,(ScriptFieldDecl/ScriptEventDecl/Proto/ExternProto/ROUTE/Attr)*,ts,'}', ts
 ScriptEventDecl  := eventDirection, ts, dataType, ts, name, ts, ('IS', ts, IS,ts)?
 ScriptFieldDecl  := fieldExposure,ts,dataType,ts,name,ts,(('IS', ts,IS,ts)/Field),ts
 SFNull           := 'NULL', ts
 
-# should really have an optimised way of declaring a different reporting name for the same production...
 Def              :='DEF',ts,name,ts
 DefNode          := Def,NodewoDef
->NodewoDef<      := visionSensor/forceSensor/shape/indexedFaceSet/coordinate/appearance/material/inline/genericObject/humanoid/joint/navigationInfo/background/viewpoint/unknownNode
+>nodeContent<    := '{',ts,(Proto/ExternProto/ROUTE/Attr)*,ts,'}', ts
+unknownNode      := nodegi,ts,nodeContent
 >Node<           := DefNode/NodewoDef
+>NodewoDef<      := Ignored_Node/Userdefined_Nodes_Group/Standard_Node/unknownNode
 USE              := name
 IS               := name
 >nodegi<         := name
@@ -73,3 +53,97 @@ SFString         := '"',(CHARNODBLQUOTE/ESCAPEDCHAR/SIMPLEBACKSLASH)*,'"'
 <SIMPLEBACKSLASH>:= '\134'
 <ESCAPEDCHAR>    := '\\"'/'\134\134'
 <ts>             :=  ( [ \011-\015,]+ / ('#',-'\012'*,'\n')+ )*
+
+## Userdefined Nodes
+
+humanoid         := "Humanoid",ts,nodeContent
+joint            := "Joint",ts,nodeContent
+genericObject    := "Group"/"Segment"/"Transform"/"AccelerationSensor"/"Gyro",ts,nodeContent
+>Userdefined_Nodes_Group< := humanoid/joint/genericObject
+# should really have an optimised way of declaring a different reporting name for the same production...
+
+
+<Ignored_Node>   := anchor/billboard/collision/lOD/switch/audioClip/directionalLight/pointLight/script/sound/spotLight/worldInfo/sensors/cylinderSensor/planeSensor/proximitySensor/sphereSensor/timeSensor/touchSensor/visibilitySensor/fog/navigationInfo/viewpoint/background/imageTexture/color
+
+
+## Grouping nodes
+anchor := "Anchor",ts,nodeContent
+billboard := "Billboard",ts,nodeContent
+collision := "Collision",ts,nodeContent
+group := "Group",ts,nodeContent
+transform := "Transform",ts,nodeContent
+>Grouping_nodes_Group< := anchor/billboard/collision/group/transform
+
+## Special Groups
+inline := "Inline",ts,nodeContent
+lOD := "LOD",ts,nodeContent
+switch := "Switch",ts,nodeContent
+>Special_Groups_Group< := inline/lOD/switch
+
+## Common Nodes
+audioClip := "AudioClip",ts,nodeContent
+directionalLight := "DirectionalLight",ts,nodeContent
+pointLight := "PointLight",ts,nodeContent
+script := "Script",ts,nodeContent
+shape := "Shape",ts,nodeContent
+sound := "Sound",ts,nodeContent
+spotLight := "SpotLight",ts,nodeContent
+worldInfo := "WorldInfo",ts,nodeContent
+sensors := "Sensors",ts,nodeContent
+cylinderSensor := "CylinderSensor",ts,nodeContent
+planeSensor := "PlaneSensor",ts,nodeContent
+proximitySensor := "ProximitySensor",ts,nodeContent
+sphereSensor := "SphereSensor",ts,nodeContent
+timeSensor := "TimeSensor",ts,nodeContent
+touchSensor := "TouchSensor",ts,nodeContent
+visibilitySensor := "VisibilitySensor",ts,nodeContent
+>Common_Nodes_Group< := audioClip/directionalLight/pointLight/script/shape/sound/spotLight/worldInfo/sensors/cylinderSensor/planeSensor/proximitySensor/sphereSensor/timeSensor/touchSensor/visibilitySensor
+
+## Geometry
+box := "Box",ts,nodeContent
+cone := "Cone",ts,nodeContent
+cylinder := "Cylinder",ts,nodeContent
+elevationGrid := "ElevationGrid",ts,nodeContent
+extrusion := "Extrusion",ts,nodeContent
+indexedFaceSet := "IndexedFaceSet",ts,nodeContent
+indexedLineSet := "IndexedLineSet",ts,nodeContent
+pointSet := "PointSet",ts,nodeContent
+sphere := "Sphere",ts,nodeContent
+text := "Text",ts,nodeContent
+>Geometry_Group< := box/cone/cylinder/elevationGrid/extrusion/indexedFaceSet/indexedLineSet/pointSet/sphere/text
+
+## Geometric Properties
+color := "Color",ts,nodeContent
+coordinate := "Coordinate",ts,nodeContent
+normal := "Normal",ts,nodeContent
+textureCoordinate := "TextureCoordinate",ts,nodeContent
+>Geometric_Properties_Group< := color/coordinate/normal/textureCoordinate
+
+## Appearance
+appearance := "Appearance",ts,nodeContent
+fontStyle := "FontStyle",ts,nodeContent
+imageTexture := "ImageTexture",ts,nodeContent
+material := "Material",ts,nodeContent
+movieTexture := "MovieTexture",ts,nodeContent
+pixelTexture := "PixelTexture",ts,nodeContent
+textureTransform := "TextureTransform",ts,nodeContent
+>Appearance_Group< := appearance/fontStyle/imageTexture/material/movieTexture/pixelTexture/textureTransform
+
+## Interpolators
+colorInterpolator := "ColorInterpolator",ts,nodeContent
+coordinateInterpolator := "CoordinateInterpolator",ts,nodeContent
+normalInterpolator := "NormalInterpolator",ts,nodeContent
+orientationInterpolator := "OrientationInterpolator",ts,nodeContent
+positionInterpolator := "PositionInterpolator",ts,nodeContent
+scalarInterpolator := "ScalarInterpolator",ts,nodeContent
+>Interpolators_Group< := colorInterpolator/coordinateInterpolator/normalInterpolator/orientationInterpolator/positionInterpolator/scalarInterpolator
+
+## Bindable Nodes
+background := "Background",ts,nodeContent
+fog := "Fog",ts,nodeContent
+navigationInfo := "NavigationInfo",ts,nodeContent
+viewpoint := "Viewpoint",ts,nodeContent
+>Bindable_Nodes_Group< := background/fog/navigationInfo/viewpoint
+
+
+>Standard_Node< := Grouping_nodes_Group/Special_Groups_Group/Common_Nodes_Group/Geometry_Group/Geometric_Properties_Group/Appearance_Group/Interpolators_Group/Bindable_Nodes_Group
