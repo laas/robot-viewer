@@ -57,9 +57,10 @@ SFString         := '"',(CHARNODBLQUOTE/ESCAPEDCHAR/SIMPLEBACKSLASH)*,'"'
 ## Userdefined Nodes
 
 humanoid         := "Humanoid",ts,nodeContent
+visionSensor     := "VisionSensor",ts,nodeContent
 joint            := "Joint",ts,nodeContent
 genericObject    := "Group"/"Segment"/"Transform"/"AccelerationSensor"/"Gyro",ts,nodeContent
->Userdefined_Nodes_Group< := humanoid/joint/genericObject
+>Userdefined_Nodes_Group< := humanoid/joint/genericObject/visionSensor
 # should really have an optimised way of declaring a different reporting name for the same production...
 
 

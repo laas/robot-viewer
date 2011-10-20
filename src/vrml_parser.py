@@ -62,6 +62,8 @@ class VrmlProcessor(DispatchProcessor):
     def DefNode(self,(tag,start,stop,subtags), buffer ):
         key, n = dispatchList(self, subtags, buffer)
         self.def_dict[key] = n
+        if isinstance(n, GenericObject):
+            n.name = key
         return n
 
     def inline(self,(tag,start,stop,subtags), buffer ):
@@ -113,7 +115,11 @@ class VrmlProcessor(DispatchProcessor):
                         logger.debug("Ignoring child %s"%str(c))
                         continue
                     node.add_child(c)
-            elif key in ['translation','rotation']:
+            elif key in ['translation','rotation',
+                         'frontClipDistance','backClipDistance',
+                         'width','height',
+                         'type','fieldOfView','focal'
+                         ]:
                 node.__dict__[key] = val
         return node
 

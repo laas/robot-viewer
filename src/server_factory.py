@@ -67,6 +67,12 @@ def create_server( type, com_type, options, args):
                 self.server.register_function(self.getElementConfig , 'getElementConfig')
                 self.server.register_function(self.listElements , 'listElements')
                 self.server.register_function(self.listElementDofs , 'listElementDofs')
+
+                self.server.register_function(self.listCameras     , 'listCameras')
+                self.server.register_function(self.getCameraConfig , 'getCameraConfig')
+                self.server.register_function(self.getCameraInfo   , 'getCameraInfo')
+
+
                 t = threading.Thread(target = self.server.serve_forever)
                 t.start()
 

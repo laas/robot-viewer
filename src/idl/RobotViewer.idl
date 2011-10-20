@@ -40,12 +40,17 @@ module robotviewer_corba {
     void listElements(out ElementList list);
     void listElementDofs(in string element_name, out ElementList list);
 
+    void listCameras(out ElementList list);
+    void getCameraConfig(in string name, out DoubleSeq config) raises(InvalidKey);
+    void getCameraInfo(out string info);
+
     void listMeshes(out ShortSeq list);
     void getGlConfig(in short uuid , out DoubleSeq config) raises(InvalidKey);
     void printMesh(in short uuid, out string output) raises(InvalidKey);
     void Ping(out string outstring);
     void start_record();
     void stop_record();
+
 
   };
 };
