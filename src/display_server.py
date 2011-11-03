@@ -126,8 +126,9 @@ class GlWindow(object):
             self.active_camera += 1
         glutReshapeWindow(self.camera.width, self.camera.height)
         self.camera.update_perspective()
-        logger.info("Change camera to %d %s:"%(self.active_camera,
-                                                  self.camera.name))
+        logger.info("Change camera to %d %s.\n%s"%(self.active_camera,
+                                                   self.camera.name,
+                                                   self.camera))
 
 class DisplayServer(KinematicServer):
     """OpenGL server
@@ -279,10 +280,12 @@ class DisplayServer(KinematicServer):
             glutPositionWindow(i*self.width,20);
             self.init_lights()
             cam = Camera()
+            cam.translation = [3.5, 0, 1]
             cam.width = self.width
             cam.height = self.height
-            cam_name = "camera%d"%window.id
+            cam_name = "world_camera%d"%window.id
             cam.name = cam_name
+            cam.init()
             self.display_elements[cam_name] = cam
             self.world_cameras.append(cam)
             self.cameras.append(cam)
@@ -332,22 +335,23 @@ class DisplayServer(KinematicServer):
             self.window = []
 
 
-
-
-
     # The function called when our window is resized (which shouldn't happen if
     # you enable fullscreen, below)
     def resize_cb(self, width, height):
         win = glutGetWindow()
         camera = self.windows[win].camera
 
+        if not camera.name.startswith('world'):
+            return
+
         if not camera in self.world_cameras:
             glutReshapeWindow(camera.width, camera.height)
             return
         camera.width = width
         camera.height = height
+        #camera.compute_opencv_params()
+        camera.aspect = 1.0*camera.width/camera.height
         camera.update_perspective()
-
 
     def create_render_buffer(self):
         self.fbo_id = glGenFramebuffersEXT(1)
@@ -949,3 +953,31 @@ class DisplayServer(KinematicServer):
 
     def listCameras(self ):
         return [str(cam.name) for cam in self.cameras]
+
+    def getCameraConfig(self, cam_name):
+        cam_dict = dict((cam.name,cam) for cam in self.cameras)
+        cam = cam_dict.get(cam_name)
+        if not cam:
+            return []
+        return cam.get_config()
+
+    def getCameraInfo(self, cam_name):
+        cam_dict = dict((cam.name,cam) for cam in self.cameras)
+        cam = cam_dict.get(cam_name)
+        if not cam:
+            return ""
+        return str(cam)
+
+    def setCameraCVParams(self,cam_ name, width, height,
+                          fx, fy, cx, cy):
+        cam_dict = dict((cam.name,cam) for cam in self.cameras)
+        cam = cam_dict.get(cam_name)
+        if not cam:
+            return ""
+        cam.width = width
+        cam.height = height
+        cam.fx = fx
+        cam.fy = fy
+        cam.cx = cx
+        cam.cy = cy
+        cam.compute_opengl_params()
