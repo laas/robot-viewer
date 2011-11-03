@@ -43,9 +43,9 @@ module robotviewer_corba {
     void listCameras(out ElementList list);
     void getCameraConfig(in string name, out DoubleSeq config) raises(InvalidKey);
     void getCameraInfo(in string name, out string info);
-    void setCameraCVParams(in string name, in int width, in int height,
-                           in double fx, in int double fy,
-                           in double cx, in double cy) raises (InvalidKey);
+    void setCameraCVParams(in string name, in short width, in short height,
+                           in double fx, in short  fy,
+                           in double cx, in double cy) raises (InvalidKey );
 
     void listMeshes(out ShortSeq list);
     void getGlConfig(in short uuid , out DoubleSeq config) raises(InvalidKey);
