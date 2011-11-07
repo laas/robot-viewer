@@ -49,9 +49,8 @@ class ControllerWidget(RangeWidgets):
     def __init__(self, objname, clt):
         self.objname = objname
         self.clt = clt
-        print self.objname
         start_pos = self.clt.getElementConfig(self.objname)
-        print start_pos
+        print objname, " initial config:", start_pos
         names = self.clt.listElementDofs(self.objname)
 
         RangeWidgets.__init__(self, names)

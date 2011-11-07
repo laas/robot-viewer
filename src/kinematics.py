@@ -46,6 +46,7 @@ class GenericObject(object):
     """
     Base element in the kinematic tree
     """
+    count = 0
     def __init__(self):
         self.type="GenericObject"
         self.name=None
@@ -91,13 +92,20 @@ class GenericObject(object):
             return self.moving_joint_list[id]
 
     def update_config(self,config):
+        self.count += 1
+        if self.name == "CAMERA_RL":
+            print self.count, self.name, self.rpy
         self.translation = config[:3]
         self.rpy = config[3:6]
         self.rotation = euleur2AxisAngle(self.rpy)
         self.init_local_transformation()
         self.update()
+        if self.name == "CAMERA_RL":
+            print self.count, self.name, self.rpy
 
     def get_config(self):
+        if type(self) not in [Robot, GenericObject]:
+            return self.translation + self.rpy
         return self.translation + rot2rpy(self.globalTransformation)
 
     def __str__(self):
@@ -162,6 +170,7 @@ class GenericObject(object):
         self.localTransformation = numpy.eye(4)
         self.localR = axis_angle2rot(self.rotation)
         self.localTransformation[0:3,0:3]=self.localR
+        self.rpy = rot2rpy(self.localTransformation)
 
         # last column
         self.localTransformation[0:3,3]=numpy.array(self.translation)+\

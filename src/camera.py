@@ -117,6 +117,14 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         self.fy = 1.0*self.height/tan(self.fovy/2.0)
         self.fx = 1.0*self.width/self.height*self.fy/self.aspect
 
+    def set_opencv_params(self, width, height, fx, fy, cx, cy):
+        self.width = width
+        self.height = height
+        self.fx = fx
+        self.fy = fy
+        self.cx = cx
+        self.cy = cy
+        self.compute_opengl_params()
 
     def __init__(self):
         kinematics.GenericObject.__init__(self)

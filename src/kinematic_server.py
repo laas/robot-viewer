@@ -28,6 +28,8 @@ import distutils.version
 import numpy
 from mathaux import *
 import version
+import copy
+import camera
 
 logger = logging.getLogger("robotviewer.kinematic_server")
 class NullHandler(logging.Handler):
@@ -294,6 +296,7 @@ class KinematicServer(object):
             if scale:
                 new_robot.scale(scale)
             self.kinematic_elements[ename] = new_robot
+
 
         elif etype == 'object':
             ext = os.path.splitext(epath)[1].replace(".","")

@@ -50,6 +50,7 @@ from ctypes import *
 from kinematic_server import KinematicServer
 from shaders import *
 from shader import Shader
+import camera
 
 try:
     from opencv import highgui, cv, adaptors
@@ -441,6 +442,9 @@ class DisplayServer(KinematicServer):
             new_element = DisplayRobot(new_robot)
             self.display_elements[ename] = new_element
             self.kinematic_elements[ename] = new_robot
+            for cam in new_robot.get_list(camera.Camera):
+                self.kinematic_elements[cam.name] = cam
+
 
         elif etype == 'object':
             new_element = None
@@ -944,7 +948,7 @@ class DisplayServer(KinematicServer):
         if name not in self.display_elements.keys():
             return False
 
-        if t <0 or t > 1:
+        if t < 0 or t > 1:
             return False
 
         self.display_elements[name].set_transparency(t)
@@ -968,16 +972,10 @@ class DisplayServer(KinematicServer):
             return ""
         return str(cam)
 
-    def setCameraCVParams(self,cam_ name, width, height,
+    def setCameraOpenCVParams(self,cam_name, width, height,
                           fx, fy, cx, cy):
         cam_dict = dict((cam.name,cam) for cam in self.cameras)
         cam = cam_dict.get(cam_name)
         if not cam:
             return ""
-        cam.width = width
-        cam.height = height
-        cam.fx = fx
-        cam.fy = fy
-        cam.cx = cx
-        cam.cy = cy
-        cam.compute_opengl_params()
+        cam.set_opencv_params(width, height, fx, fy, cx, cy)

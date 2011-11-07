@@ -60,7 +60,11 @@ class VrmlProcessor(DispatchProcessor):
         self.root_path = root_path
 
     def DefNode(self,(tag,start,stop,subtags), buffer ):
-        key, n = dispatchList(self, subtags, buffer)
+        try:
+            key, n = dispatchList(self, subtags, buffer)
+        except ValueError:
+            print buffer[start:stop][:500]
+            raise
         self.def_dict[key] = n
         if isinstance(n, GenericObject):
             n.name = key
