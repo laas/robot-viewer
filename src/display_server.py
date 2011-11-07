@@ -50,6 +50,7 @@ from ctypes import *
 from kinematic_server import KinematicServer
 from shaders import *
 from shader import Shader
+import camera
 
 try:
     from opencv import highgui, cv, adaptors
@@ -126,8 +127,9 @@ class GlWindow(object):
             self.active_camera += 1
         glutReshapeWindow(self.camera.width, self.camera.height)
         self.camera.update_perspective()
-        logger.info("Change camera to %d %s"%(self.active_camera,
-                                              self.camera.name))
+        logger.info("Change camera to %d %s.\n%s"%(self.active_camera,
+                                                   self.camera.name,
+                                                   self.camera))
 
 class DisplayServer(KinematicServer):
     """OpenGL server
@@ -135,23 +137,23 @@ class DisplayServer(KinematicServer):
 
     width = 640
     height = 480
+    cameras = []
+    config_file = None
+    no_cache = False
+    use_vbo = False
+    strict = False
+    off_screen = False
+    stream = None
+    refresh_rate = None
+    num_windows = 1
+    run_once = False
+    modern_shader = display_element.MODERN_SHADER
+    use_shader = True
     def __init__(self,options = None, args = None):
         """
 
         Arguments:
         """
-        self.config_file = None
-        self.no_cache = False
-        self.use_vbo = False
-        self.strict = False
-        self.off_screen = False
-        self.stream = None
-        self.refresh_rate = None
-        self.num_windows = 1
-        self.run_once = False
-        self.modern_shader = display_element.MODERN_SHADER
-        self.use_shader = True
-
         if options:
             self.__dict__.update(options.__dict__)
 
@@ -184,12 +186,10 @@ class DisplayServer(KinematicServer):
         KinematicServer.__init__(self, options, args)
         logger.debug("Initializing OpenGL")
         self.init_gl()
-        self.parse_config()
-        self.add_cameras()
         self._mouseButton = None
         self._oldMousePos = [ 0, 0 ]
         self.wired_frame_flag = False
-
+        self.parse_config()
         if options and options.skeleton:
             self.render_mesh_flag = False
             self.render_skeleton_flag = True
@@ -199,7 +199,9 @@ class DisplayServer(KinematicServer):
 
         self.skeleton_size = 2
         self.transparency = 0
+        self.add_cameras()
 
+        # finish up and print instructions
         # key interaction from console
         self.queued_keys = collections.deque()
         self.quit = False
@@ -229,8 +231,8 @@ class DisplayServer(KinematicServer):
         for key, value in self.display_elements.items():
             if isinstance(value, DisplayObject):
                 cameras = value.get_list(Camera)
-                for id, window in self.windows.items():
-                    window.cameras += cameras
+                print key, cameras
+                self.cameras += cameras
 
     def __del__(self):
         if self.recording:
@@ -279,12 +281,16 @@ class DisplayServer(KinematicServer):
             glutPositionWindow(i*self.width,20);
             self.init_lights()
             cam = Camera()
+            cam.translation = [3.5, 0, 1]
             cam.width = self.width
             cam.height = self.height
-            self.display_elements["camera%d"%window.id] = cam
+            cam_name = "world_camera%d"%window.id
+            cam.name = cam_name
+            cam.init()
+            self.display_elements[cam_name] = cam
             self.world_cameras.append(cam)
-            window.cameras.append(cam)
-
+            self.cameras.append(cam)
+            window.cameras = self.cameras
             print "use_shader=", self.use_shader
             if not self.use_shader:
                 continue
@@ -330,22 +336,23 @@ class DisplayServer(KinematicServer):
             self.window = []
 
 
-
-
-
     # The function called when our window is resized (which shouldn't happen if
     # you enable fullscreen, below)
     def resize_cb(self, width, height):
         win = glutGetWindow()
         camera = self.windows[win].camera
 
+        if not camera.name.startswith('world'):
+            return
+
         if not camera in self.world_cameras:
             glutReshapeWindow(camera.width, camera.height)
             return
         camera.width = width
         camera.height = height
+        #camera.compute_opencv_params()
+        camera.aspect = 1.0*camera.width/camera.height
         camera.update_perspective()
-
 
     def create_render_buffer(self):
         self.fbo_id = glGenFramebuffersEXT(1)
@@ -435,6 +442,9 @@ class DisplayServer(KinematicServer):
             new_element = DisplayRobot(new_robot)
             self.display_elements[ename] = new_element
             self.kinematic_elements[ename] = new_robot
+            for cam in new_robot.get_list(camera.Camera):
+                self.kinematic_elements[cam.name] = cam
+
 
         elif etype == 'object':
             new_element = None
@@ -938,8 +948,34 @@ class DisplayServer(KinematicServer):
         if name not in self.display_elements.keys():
             return False
 
-        if t <0 or t > 1:
+        if t < 0 or t > 1:
             return False
 
         self.display_elements[name].set_transparency(t)
         return True
+
+
+    def listCameras(self ):
+        return [str(cam.name) for cam in self.cameras]
+
+    def getCameraConfig(self, cam_name):
+        cam_dict = dict((cam.name,cam) for cam in self.cameras)
+        cam = cam_dict.get(cam_name)
+        if not cam:
+            return []
+        return cam.get_config()
+
+    def getCameraInfo(self, cam_name):
+        cam_dict = dict((cam.name,cam) for cam in self.cameras)
+        cam = cam_dict.get(cam_name)
+        if not cam:
+            return ""
+        return str(cam)
+
+    def setCameraOpenCVParams(self,cam_name, width, height,
+                          fx, fy, cx, cy):
+        cam_dict = dict((cam.name,cam) for cam in self.cameras)
+        cam = cam_dict.get(cam_name)
+        if not cam:
+            return ""
+        cam.set_opencv_params(width, height, fx, fy, cx, cy)

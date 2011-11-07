@@ -33,12 +33,19 @@ module robotviewer_corba {
     boolean destroyElement(in string name) raises(InvalidKey);
     boolean enableElement(in string name) raises(InvalidKey) ;
     boolean disableElement(in string name) raises(InvalidKey) ;
-    boolean setTransparency(in string name, in double transparency) raises(InvalidKey) ;
+    boolean setTransparency(in string name, in double transparency) raises(InvalidKey);
     boolean updateElementConfig(in string name, in DoubleSeq config) raises(InvalidKey);
     void getElementConfig(in string name, out DoubleSeq config) raises(InvalidKey);
 
     void listElements(out ElementList list);
     void listElementDofs(in string element_name, out ElementList list);
+
+    void listCameras(out ElementList list);
+    void getCameraConfig(in string name, out DoubleSeq config) raises(InvalidKey);
+    void getCameraInfo(in string name, out string info);
+    void setCameraOpenCVParams(in string name, in short width, in short height,
+                           in double fx, in double  fy,
+                           in double cx, in double cy) raises (InvalidKey );
 
     void listMeshes(out ShortSeq list);
     void getGlConfig(in short uuid , out DoubleSeq config) raises(InvalidKey);
@@ -46,6 +53,7 @@ module robotviewer_corba {
     void Ping(out string outstring);
     void start_record();
     void stop_record();
+
 
   };
 };
