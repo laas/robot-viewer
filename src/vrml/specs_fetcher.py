@@ -37,7 +37,8 @@ def main():
         # print pre.name
         h = HTMLParser.HTMLParser()
         s = h.unescape(s)
-        print s
+        s = s.lstrip()
+        print 'PROTO', s
 
 
 if __name__ == '__main__':

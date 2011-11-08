@@ -1,0 +1,60 @@
+# Copyright (c) 2010-2011, Duong Dang <mailto:dang.duong@gmail.com>
+# This file is part of robot-viewer.
+
+# robot-viewer is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# robot-viewer is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+
+# You should have received a copy of the GNU Lesser General Public License
+# along with robot-viewer. If not, see <http://www.gnu.org/licenses/>.
+
+
+<header>         := -[\n]*
+>vrmlScene<      := rootItem*
+>rootItem<       := ts,(Proto/ExternProto/ROUTE/('USE',ts,USE,ts)/Script/Node),ts
+Proto            := 'PROTO',ts,nodegi,ts,'[',ts,(fieldDecl/eventDecl)*,']', ts, '{', ts, vrmlScene,ts, '}', ts
+fieldDecl        := fieldExposure,ts,dataType,ts,name,ts,Field,ts
+<fieldExposure>     := 'field'/'exposedField'
+dataType         := 'SFBool'/'SFString'/'SFFloat'/'SFTime'/'SFVec3f'/'SFVec2f'/'SFRotation'/'SFInt32'/'SFImage'/'SFColor'/'SFNode'/'MFBool'/'MFString'/'MFFloat'/'MFTime'/'MFVec3f'/'MFVec2f'/'MFRotation'/'MFInt32'/'MFColor'/'MFNode'
+<eventDecl>        := eventDirection, ts, dataType, ts, name, ts
+eventDirection   := 'eventIn'/'eventOut'
+<ExternProto>    := 'EXTERNPROTO',ts,nodegi,ts,'[',ts,(extFieldDecl/eventDecl)*,']', ts, ExtProtoURL
+extFieldDecl     := fieldExposure,ts,dataType,ts,name,ts
+ExtProtoURL      := '['?,(ts,SFString)*, ts, ']'?, ts  # just an MFString by another name :)
+<ROUTE>          := 'ROUTE',ts, name,'.',name, ts, 'TO', ts, name,'.',name, ts
+
+#Node             := (Def)?,nodegi,ts,'{',ts,(Proto/ExternProto/ROUTE/Attr)*,ts,'}', ts
+Def              :='DEF',ts,name,ts
+DefNode          := Def,NodewoDef
+>nodeContent<    := '{',ts,(Proto/ExternProto/ROUTE/Attr)*,ts,'}', ts
+unknownNode      := nodegi,ts,nodeContent
+>Node<           := DefNode/NodewoDef
+NodewoDef        := nodegi,ts,'{',ts,(Proto/ExternProto/ROUTE/Attr)*,ts,'}', ts
+
+
+<Script>         := (Def)?,'Script',ts,'{',ts,(ScriptFieldDecl/ScriptEventDecl/Proto/ExternProto/ROUTE/Attr)*,ts,'}', ts
+ScriptEventDecl  := eventDirection, ts, dataType, ts, name, ts, ('IS', ts, IS,ts)?
+ScriptFieldDecl  := fieldExposure,ts,dataType,ts,name,ts,(('IS', ts,IS,ts)/Field),ts
+SFNull           := 'NULL', ts
+
+# should really have an optimised way of declaring a different reporting name for the same production...
+USE              := name
+IS               := name
+>nodegi<         := name
+Attr             := name, ts, (('IS', ts,IS,ts)/Field), ts
+Field            := ( '[',ts,((SFNumber/SFBool/SFString/('USE',ts,USE,ts)/Script/Node),ts)*, ']', ts )/((SFNumber/SFBool/SFNull/SFString/('USE',ts,USE,ts)/Script/Node),ts)+
+
+name             := -[][0-9{}\000-\020"'#,.\\ ],  -[][{}\000-\020"'#,.\\ ]*
+SFNumber         := [-+]*, ( ('0',[xX],[0-9]+) / ([0-9.]+,([eE],[-+0-9.]+)?))
+SFBool           := 'TRUE'/'FALSE'
+SFString         := '"',(CHARNODBLQUOTE/ESCAPEDCHAR/SIMPLEBACKSLASH)*,'"'
+<CHARNODBLQUOTE> :=  -[\134"]+
+<SIMPLEBACKSLASH>:= '\134'
+<ESCAPEDCHAR>    := '\\"'/'\134\134'
+<ts>             :=  ( [ \011-\015,]+ / ('#',-'\012'*,'\n')+ )*

@@ -38,9 +38,10 @@ True
 >>> vecs = MFVector3f('[ 1 42 666, 7, 94, 0 ]')
 >>> vecs == [[1, 42, 666],[7,0,0],[94,0,0],[0,0,0]]
 True
+>>> MFString('''[ "One, Two, Three", "He said, 'Immel did it!'" ]''')
+['One, Two, Three', "He said, 'Immel did it!'"]
 """
 
-import node
 import abc
 import re
 
@@ -48,17 +49,19 @@ def listify(parser):
     def list_parser(s):
         s = s.lstrip('[')
         s = s.rstrip(']')
-        return [parser(w) for w in s.split(",")]
+        s.strip()
+        return [parser(w) for w in s.split(",") if w !=""]
     return list_parser
 
 
 def SFBool(s):
+    s = s.strip()
     if s == "FALSE":
         return False
     elif s == "TRUE":
         return True
     else:
-        raise ValueError("Unknown value for SFBool: "+s)
+        raise ValueError("Unknown value for SFBool: '%s'"%s)
 
 def SFColor(s):
     words = s.split()
@@ -84,41 +87,42 @@ def SFInt32(s):
 def SFRotation(s):
     if len(s.split()) != 4:
         raise Exception("Expected 4 number for a rotation: "+s)
-    return [float(w) for w in s.split()]
+    return [float(w) for w in s.split() if w!= '']
 
 
 def SFString(s):
     return eval(s)
 
-def SFVector2f(s):
+def MFString(s):
+    return eval(s)
+
+def SFVec2f(s):
     res = [0., 0.]
     for i, w in enumerate(s.split()):
         res[i] = float(w)
     return res
 
 
-def SFVector3f(s):
+def SFVec3f(s):
     res = [0., 0., 0.]
     for i, w in enumerate(s.split()):
         res[i] = float(w)
     return res
 
-
-def SFNode(Field):
-    def parse(self, s):
-        self.data = nodes.parse(s)
+def SFNode(s):
+    return None
 
 
+def SFImage(s):
+    return s
 MFColor = listify(SFColor)
 MFFloat = listify(SFFloat)
 MFInt32 = listify(SFInt32)
 MFRotation = listify(SFRotation)
-MFString = listify(SFString)
 SFTime = SFString
-SFImage = SFString
 MFTime = listify(SFTime)
-MFVector2f = listify(SFVector2f)
-MFVector3f = listify(SFVector3f)
+MFVec2f = listify(SFVec2f)
+MFVec3f = listify(SFVec3f)
 MFNode = listify(SFNode)
 
 if __name__ == '__main__':
