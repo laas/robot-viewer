@@ -27,12 +27,13 @@ from numbers import Number
 import fields
 import pprint
 import inspect
+import copy
 
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass
 
-logger = logging.getLogger("robotviewer.vrml_parser")
+logger = logging.getLogger("robotviewer.vrml.parser")
 logger.addHandler(NullHandler())
 
 path = os.path.abspath(os.path.dirname(__file__))
@@ -76,28 +77,60 @@ def validate_field(fdata, ftype):
     return fdata
 
 class Node(object):
-    parent = None
-    children = []
-    ISs = {}
+    _parent = None
+    _route = []
+    _aliases = []
 
-    # def __init__(self):
-    #     object.__init__(self)
-    #     if Node not in [self.__class__, self.__class__.__bases__[0]]:
-    #         print self.ISs
+    def __getattr__(self, att):
+        for route, name, alias in self._aliases:
+            if alias == att:
+                return getattr(self.get_descendant(route), name)
+        raise AttributeError("Invalid tribute {0}".format(att))
+
+    def __setattr__(self, att, value):
+        for route, name, alias in self._aliases:
+            if alias == att:
+                logger.debug("setting {0} {1} {2} {3} {4} \non {5}".
+                            format(route, name, alias, att, value, self))
+                desc = self.get_descendant(route)
+                res =  setattr(desc, name, value)
+                if name == 'children':
+                    for child in desc.children:
+                        child._parent = desc
+                return res
+        return object.__setattr__(self, att, value)
 
     @property
     def depth(self):
+        if self._parent == None:
+            return 0
+        return 1 + self._parent.depth
+
+    def get_descendant(self, route):
+        result = self
         count = 0
-        obj = self
-        while obj.parent != None:
+        while count < len(route):
+            i = route[len(route)- 1 - count]
+            result = result.children[i]
             count += 1
-            obj = obj.parent
-        return count
+        return result
 
     def __str__(self):
-        s = "{0}{1} ({2})".format(self.depth*" ",self.__class__.__name__, len(self.children))
-        #for child in self.children:
-        #    s += "\n{0}".format(child)
+        s = "{0}{1}{2}:".format(self.depth, self.depth*"-",self.__class__.__name__, )
+        try:
+            name = getattr(self, 'name')
+        except AttributeError:
+            name = ""
+        s += name
+
+        #s += "{0}".format(self._parent.__class__.__name__)'
+        try:
+            children = getattr(self, 'children')
+        except AttributeError:
+            children = []
+       # s += "({0})".format(len(children))
+        for child in children:
+            s += "\n{0}".format(child)
         return s
 
 class VrmlProcessor(DispatchProcessor):
@@ -107,12 +140,13 @@ class VrmlProcessor(DispatchProcessor):
         self.def_dict = {}
         self.root_path = root_path
         self.prototypes = prototypes
+        self.proto_aliases = []
 
     def DefNode(self,(tag,start,stop,subtags), buffer ):
         try:
             key, n = dispatchList(self, subtags, buffer)
         except ValueError:
-            print buffer[start:stop][:500]
+            logger.exception(buffer[start:stop][:500])
             raise
         self.def_dict[key] = n
         n.name = key
@@ -121,24 +155,27 @@ class VrmlProcessor(DispatchProcessor):
     def NodewoDef(self,(tag,start,stop,subtags), buffer ):
         name = dispatch(self, subtags[0], buffer)
         node = self.prototypes[name]()
-
+        node._route = []
         attrs = [ a for a in dispatchList(self, subtags[1:], buffer)
                   if type(a) == Attribute ]
 
         for key, value in attrs:
             if type(value) == ISDef:
-                node.ISs[key] = value
+                self.proto_aliases.append((node._route, key, value))
             else:
-                node.__dict__[key] = value
+                setattr(node, key, value)
 
+        children = []
+        try:
+            children = getattr(node, 'children')
+        except AttributeError:
+            pass
+        if children == None: children = []
+        for i,child in enumerate([c for c in children if isinstance(c, Node)]):
+            child._parent = node
+            child._route.append(i)
 
-
-        if node.children == None:
-            node.children = []
-
-        for child in [c for c in node.children if isinstance(c, Node)]:
-            child.parent = node
-
+        # logger.debug("Created node {0}".format(node))
         return node
 
     def inline(self,(tag,start,stop,subtags), buffer ):
@@ -156,19 +193,45 @@ class VrmlProcessor(DispatchProcessor):
 
     def Proto(self,(tag,start,stop,subtags), buffer ):
         proto_name = dispatch(self, subtags[0], buffer)
+        proto_attrs = {}
+        base_class = Node
+        base_attrs = {}
 
-        nodes = [n for n in dispatchList(self, subtags[1:], buffer) if isinstance(n, Node)]
+        children_tags = dispatchList(self, subtags[1:], buffer)
+        # print proto_name, self.proto_aliases
+        nodes = [n for n in children_tags if isinstance(n, Node)]
         if nodes[:]:
             #print buffer[start:stop]
             base_node = nodes[0]
             base_class = base_node.__class__
-        else:
-            base_class = Node
+            base_attrs = [ (name, getattr(base_node, name)) for name in dir(base_node)
+                               if not (name.startswith('_') or callable(getattr(base_node, name))
+                                       )
+                           ]
 
-        fields = [f for f in dispatchList(self, subtags[1:], buffer) if type(f) == tuple]
-        proto_attrs = {}
+            def init(cls, *kargs, **kwargs):
+                for name, value in base_attrs:
+                    cls.__dict__[name] = copy.copy(value)
+
+            proto_attrs['__init__'] = init
+
+
+
+        fields = [f for f in children_tags if type(f) == tuple]
+
+        self.proto_aliases = [a for a in self.proto_aliases if not (a[0] == [] and a[1] == a[2])]
+
         for ftype, fname, fdata in fields:
-            proto_attrs[fname] = fdata
+            aliased = False
+            for key in [a[2] for a in self.proto_aliases]:
+                if key == fname:
+                    aliased = True
+            if not aliased:
+                proto_attrs[fname] = fdata
+            else:
+                #print "Ignoring {0} in {1}".format(fname, proto_name)
+                pass
+        proto_attrs['_aliases'] = copy.deepcopy(self.proto_aliases)
 
         class Proto(base_class):
             __metaclass__ = Prototype
@@ -176,9 +239,15 @@ class VrmlProcessor(DispatchProcessor):
             attrs = proto_attrs
 
         self.prototypes[proto_name] = Proto
+
         if base_class != Node:
-            logger.info("new prototype {0} (inherit from {1})".format(proto_name,
-                                                                      Proto.__bases__[0].__name__))
+            logger.debug("new prototype {0} ({1}): {2}".format(proto_name,
+                                                                        base_class.__name__,
+                                                                        str(proto_attrs)))
+
+        if self.proto_aliases:
+             logger.debug("prototype aliases {0}: {1}".format(Proto.__name__, self.proto_aliases))
+        self.proto_aliases = []
         return Proto
 
     def name(self,(tag,start,stop,subtags), buffer ):
@@ -270,10 +339,10 @@ def main():
     logger.setLevel(logging.DEBUG)
     sh = logging.StreamHandler()
     sh.setLevel(logging.DEBUG)
+    sh.setLevel(logging.INFO)
     logger.addHandler(sh)
     formatter = logging.Formatter("%(name)s:%(levelname)s:%(message)s")
     sh.setFormatter(formatter)
-    logger.info('hello')
 
     parser = optparse.OptionParser(
         usage='\n\t%prog [options]',
@@ -287,8 +356,8 @@ def main():
         results = parser.parse_file(args[0])
         results = [r for r in results if type(r.__class__) != type]
         for result in results:
-            #print result, result.__dict__.get('name'), dir(result)
-            # print result
-            continue
+            print (result)#, result._aliases, result.__dict__.get('children'), dir(result)
+            if result.__class__.__name__ == "Humanoid":
+                print result.humanoidBody#, result.humanoidBody[0]._parent
 if __name__ == '__main__':
     main()
