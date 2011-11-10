@@ -36,11 +36,6 @@ class NullHandler(logging.Handler):
 logger = logging.getLogger("robotviewer.vrml.parser")
 logger.addHandler(NullHandler())
 
-path = os.path.abspath(os.path.dirname(__file__))
-grammar_file = os.path.join(path,"vrml.sbnf" )
-VRMLPARSERDEF = open(grammar_file).read()
-
-
 class VrmlNode(dict):
     def __init__(self, n = None):
         self.name = n
@@ -74,18 +69,26 @@ def validate_field(fdata, ftype):
     #         raise "invalid field {0} of type {1}".format(fdata, ftype)
     # elif
     # FIXME
+    if ftype == "SFInt32":
+        fdata = int(fdata)
     return fdata
 
 class Node(object):
     _parent = None
     _route = []
     _aliases = []
-
+    children = []
+    _declared = []
     def __getattr__(self, att):
         for route, name, alias in self._aliases:
             if alias == att:
-                return getattr(self.get_descendant(route), name)
-        raise AttributeError("Invalid tribute {0}".format(att))
+                try:
+                    return getattr(self.get_descendant(route), name)
+                except:
+                    logger.exception("Failed to delegate alias {0} to {1} in {2}".
+                                     format(att, route, self))
+                    raise
+        raise AttributeError("Invalid tribute {0} in {1}".format(att, self.__class__.__name__))
 
     def __setattr__(self, att, value):
         for route, name, alias in self._aliases:
@@ -116,19 +119,30 @@ class Node(object):
         return result
 
     def __str__(self):
-        s = "{0}{1}{2}:".format(self.depth, self.depth*"-",self.__class__.__name__, )
+        s = "|{0}{1}:{2}:".format(self.depth*"_",self.depth, self.__class__.__name__, )
         try:
             name = getattr(self, 'name')
         except AttributeError:
             name = ""
         s += name
+        s += " "
 
         #s += "{0}".format(self._parent.__class__.__name__)'
-        try:
-            children = getattr(self, 'children')
-        except AttributeError:
-            children = []
+        children = self.children
        # s += "({0})".format(len(children))
+
+        attrs = [(key, getattr(self, key)) for key in self._declared if (key != "children")]
+        for key, value in attrs:
+            s += key + ":"
+            if isinstance(value, list):
+                s += "["
+                s += ",".join(str(v) for v in value[:10])
+                if len(value) > 10:
+                    s += ",...."
+                s += "]"
+            else:
+                s += str(value)
+            s += ","
         for child in children:
             s += "\n{0}".format(child)
         return s
@@ -158,19 +172,21 @@ class VrmlProcessor(DispatchProcessor):
         node._route = []
         attrs = [ a for a in dispatchList(self, subtags[1:], buffer)
                   if type(a) == Attribute ]
-
+        node._declared = []
         for key, value in attrs:
             if type(value) == ISDef:
                 self.proto_aliases.append((node._route, key, value))
             else:
-                setattr(node, key, value)
+                try:
+                    getattr(node, key)
 
-        children = []
-        try:
-            children = getattr(node, 'children')
-        except AttributeError:
-            pass
-        if children == None: children = []
+                except AttributeError:
+                    raise RuntimeError("Invalide declaration of {0}, {1} in {2}"
+                                       .format(key, value, node))
+                setattr(node, key, value)
+                node._declared.append(key)
+
+        children = node.children
         for i,child in enumerate([c for c in children if isinstance(c, Node)]):
             child._parent = node
             child._route.append(i)
@@ -212,7 +228,6 @@ class VrmlProcessor(DispatchProcessor):
             def init(cls, *kargs, **kwargs):
                 for name, value in base_attrs:
                     cls.__dict__[name] = copy.copy(value)
-
             proto_attrs['__init__'] = init
 
 
@@ -312,12 +327,20 @@ class VrmlProcessor(DispatchProcessor):
     dataType = name
 
 class VrmlParser(Parser):
-    def __init__(self, grammar = VRMLPARSERDEF, root_node = "vrmlScene"):
+    def __init__(self, grammar = None, root_node = "vrmlScene"):
+        path = os.path.abspath(os.path.dirname(__file__))
+        if not grammar:
+            grammar_file = os.path.join(path,"vrml.sbnf" )
+            # print("Using grammar {0}".format(grammar_file))
+            grammar = open(grammar_file).read()
+        #logger.info("Grammar: {0}".format(grammar))
         Parser.__init__(self, grammar, root_node)
+        logging.info("created parser instance")
         self.root_path = ""
         self.prototypes = {}
         spec_data = open(os.path.join(path, 'standard_nodes.wrl')).read()
         self.parse(spec_data)
+        logging.info("Parsed vrml2.0 specs")
 
     def buildProcessor( self ):
         return VrmlProcessor(root_path = self.root_path, prototypes = self.prototypes)
@@ -327,18 +350,33 @@ class VrmlParser(Parser):
         self.root_path = path
         return self.parse(open(fname).read())[1]
 
+    def parse(self, *args, **kwargs):
+        res = Parser.parse(self, *args, **kwargs)
+        l = res[1][:]
+        count = 0
+        while count < len(l):
+            l += l[count].children
+            count += 1
+        for e in l:
+            if e.__class__.__name__ == "Inline":
+                url = os.path.join(self.root_path, e.url)
+                logger.info("Parse inlined vrml {0}".format(url))
+                e.children = Parser.parse(self, open(url).read())[1]
+                for child in e.children:
+                    child._parent = e
+
+        return res[0], res[1], res[2]
+
 def parse(filename):
     vrml_dir_path = os.path.abspath(os.path.dirname(filename))
-    parser = VrmlParser(vrml_dir_path )
-    data = open(filename).read()
-    parser.parse(data)
+    parser = VrmlParser()
+    return parser.parse_file(filename)
 
 def main():
     import optparse
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
     sh = logging.StreamHandler()
-    sh.setLevel(logging.DEBUG)
     sh.setLevel(logging.INFO)
     logger.addHandler(sh)
     formatter = logging.Formatter("%(name)s:%(levelname)s:%(message)s")
@@ -351,13 +389,17 @@ def main():
                       action="store_true", dest="verbose", default=False,
                       help="be verbose")
     (options, args) = parser.parse_args(sys.argv[1:])
+    if options.verbose:
+        sh.setLevel(logging.DEBUG)
+
     parser = VrmlParser()
     if args[:]:
         results = parser.parse_file(args[0])
         results = [r for r in results if type(r.__class__) != type]
         for result in results:
-            print (result)#, result._aliases, result.__dict__.get('children'), dir(result)
+            print (result)#, dir(result), result.children
             if result.__class__.__name__ == "Humanoid":
-                print result.humanoidBody#, result.humanoidBody[0]._parent
+                print result.humanoidBody#, result.humanoidBody[0]._parent3
+            pass
 if __name__ == '__main__':
     main()
