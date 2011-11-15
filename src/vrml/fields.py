@@ -44,18 +44,39 @@ True
 
 import abc
 import re
+import tokenize
+import io
+
+def nocomment(s):
+    result = []
+    g = tokenize.generate_tokens(io.BytesIO(s).readline)
+    for toknum, tokval, _, _, _  in g:
+        # print(toknum,tokval)
+        if toknum != tokenize.COMMENT:
+            result.append((toknum, tokval))
+    return tokenize.untokenize(result)
+
+
+
+def clean(f):
+    def new_f(s):
+        s = s.strip()
+        s = nocomment(s)
+        s = s.strip()
+        return f(s)
+    return new_f
 
 def listify(parser):
     def list_parser(s):
+        s = nocomment(s)
+        s = s.strip()
         s = s.lstrip('[')
         s = s.rstrip(']')
-        s.strip()
         return [parser(w) for w in s.split(",") if w !=""]
     return list_parser
 
-
+@clean
 def SFBool(s):
-    s = s.strip()
     if s == "FALSE":
         return False
     elif s == "TRUE":
@@ -63,6 +84,7 @@ def SFBool(s):
     else:
         raise ValueError("Unknown value for SFBool: '%s'"%s)
 
+@clean
 def SFColor(s):
     words = s.split()
     if len(words) != 3:
@@ -75,55 +97,51 @@ def SFColor(s):
         l.append(v)
     return l
 
-
+@clean
 def SFFloat(s):
     return float(s)
 
+@clean
+def MFFloat(s):
+    s = s.lstrip('[')
+    s = s.rstrip(']')
+    s = s.replace(","," ")
+    return [float(w) for w in s.split() if w !=""]
 
+
+@clean
 def SFInt32(s):
     return int(s)
 
-
+@clean
 def SFRotation(s):
     if len(s.split()) != 4:
         raise Exception("Expected 4 number for a rotation: "+s)
     return [float(w) for w in s.split() if w!= '']
 
-
-def SFString(s):
-    return eval(s)
-
-def MFString(s):
-    return eval(s)
-
+@clean
 def SFVec2f(s):
     res = [0., 0.]
     for i, w in enumerate(s.split()):
         res[i] = float(w)
     return res
 
-
+@clean
 def SFVec3f(s):
     res = [0., 0., 0.]
     for i, w in enumerate(s.split()):
         res[i] = float(w)
     return res
 
-def SFNode(s):
-    return None
 
-
+@clean
 def SFImage(s):
     return s
+
 MFColor = listify(SFColor)
-MFFloat = listify(SFFloat)
-MFInt32 = listify(SFInt32)
 MFRotation = listify(SFRotation)
-SFTime = SFString
-MFTime = listify(SFTime)
 MFVec2f = listify(SFVec2f)
 MFVec3f = listify(SFVec3f)
-MFNode = listify(SFNode)
 
 if __name__ == '__main__':
     import doctest

@@ -19,7 +19,7 @@ prologue="""
 def ee 0.000001
 
 def O (0,0,0) % origo
-def J [0,1,0] % rotation axis
+def J [0,1,0] % rotation.jointAxis
 def dx 2
 def dy dx
 def dz dx
@@ -53,7 +53,7 @@ def joint  {
 
 def viewpoint (2.5, 1, 1)
 def lookat (0, 0, 0)
-% Set upvector along the z-axis
+% Set upvector along the z.jointAxis
 def upvector [0,0,1]
 
 
@@ -72,9 +72,9 @@ def sketch(robot):
     for j in robot.moving_joint_list[:20]:
         T = j.globalTransformation
         T1 = numpy.eye(4)
-        if j.axis in ['y','Y']:
+        if j.jointAxis in ['y','Y']:
             T1 = tf.rotation_matrix(math.pi/2, [0,0,1])
-        if j.axis in ['z','Z']:
+        if j.jointAxis in ['z','Z']:
             T1 = tf.rotation_matrix(math.pi/2, [0,1,0])
         T = numpy.dot(T,T1)
         relT = numpy.dot(numpy.linalg.inv(oldT),T)

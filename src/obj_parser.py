@@ -27,8 +27,8 @@ def get_parser():
     return parser
 
 class ObjProcessor(DispatchProcessor):
-    def __init__(self, mesh):
-        self.mesh = mesh
+    def __init__(self, shape):
+        self.shape = shape
 
 
     def basis_matrix(self,(tag,start,stop,subtags), buffer ):
@@ -100,11 +100,11 @@ class ObjProcessor(DispatchProcessor):
     def face(self,(tag,start,stop,subtags), buffer ):
         '''FIXME'''
         logger.debug('dispatching face')
-        if self.mesh.geo.idx != []:
-            self.mesh.geo.idx.append(-1)
+        if self.shape.geo.idx != []:
+            self.shape.geo.idx.append(-1)
         for id, texture, normal in dispatchList(self, subtags, buffer):
             id -= 1
-            self.mesh.geo.idx.append(id)
+            self.shape.geo.idx.append(id)
 
 
 
@@ -333,7 +333,7 @@ class ObjProcessor(DispatchProcessor):
     def vertex(self,(tag,start,stop,subtags), buffer ):
         '''FIXME'''
         logger.debug('dispatching vertex')
-        self.mesh.geo.coord += dispatchList(self, subtags, buffer)
+        self.shape.geo.coord += dispatchList(self, subtags, buffer)
 
     def ver_tex(self,(tag,start,stop,subtags), buffer ):
         '''FIXME'''
@@ -369,10 +369,10 @@ class ObjProcessor(DispatchProcessor):
 class ObjParser(Parser):
     def __init__(self, *args, **kwargs):
         Parser.__init__(self,*args, **kwargs)
-        self.mesh = kinematics.Mesh()
+        self.shape = kinematics.Shape()
 
     def buildProcessor(self):
-        return ObjProcessor(self.mesh)
+        return ObjProcessor(self.shape)
 
 
 def parse(filename):
@@ -381,8 +381,8 @@ def parse(filename):
     DEF = open(grammar_file).read()
     parser = ObjParser(DEF, 'ObjFile')
     parser.parse(open(filename).read())
-    parser.mesh.init()
-    return [parser.mesh]
+    parser.shape.init()
+    return [parser.shape]
 
 
 def main():

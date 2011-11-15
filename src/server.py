@@ -18,18 +18,6 @@
 import sys,imp, os, stat, glob
 from optparse import OptionParser
 import logging
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-import version
-__version__ = version.__version__
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
-# create formatter and add it to the handlers
-#formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-formatter = logging.Formatter("%(name)s:%(levelname)s:%(message)s")
-ch.setFormatter(formatter)
-# add the handlers to the logger
-logger.addHandler(ch)
 from server_factory import create_server, CORBA, XML_RPC, KINEMATIC, DISPLAY
 
 def get_parser():
@@ -112,6 +100,10 @@ def get_parser():
                       action="store_false", dest="use_shader", default = True,
                       help="start kinematic server only, no GL")
 
+    parser.add_option("--log-module",
+                      action="store", dest="log_module",
+                      help="limite logging to this module only (to be used with -v)")
+
     # parser.add_option("--intel",
     #                   action="store_true", dest="intel",  default=False,
     #                   help="tell robot-viewer that it is running on an Intel card")
@@ -135,6 +127,47 @@ def main():
     default_config_dir = os.path.join( prefix_dir,
                                       "share","robot-viewer")
 
+    # os.system("source $ROBOTPKG_BASE/OpenHRP/bin/unix/config.sh")
+    parser = get_parser()
+    (options, args) = parser.parse_args()
+
+    if options.version:
+        print __version__
+        sys.exit(0)
+
+    type = DISPLAY
+    if options.no_gl:
+        type = KINEMATIC
+    if options.server == "CORBA":
+        com_type = CORBA
+    elif options.server == "XML-RPC":
+        com_type = XML_RPC
+    else:
+        raise Exception ("Not supported server type %s"%options.server)
+
+    if options.log_module:
+        logger = logging.getLogger("robotviewer."+options.log_module)
+    else:
+        logger = logging.getLogger()
+
+    logger.handlers = []
+    import version
+    __version__ = version.__version__
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    # create formatter and add it to the handlers
+    #formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    formatter = logging.Formatter("%(name)s:%(levelname)s:%(message)s")
+    ch.setFormatter(formatter)
+    # add the handlers to the logger
+    logger.addHandler(ch)
+    logger.setLevel(logging.INFO)
+
+
+    if options.verbose:
+        ch.setLevel(logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
+
     def visit_cb(arg, dirname, names):
         for name in names:
             f = os.path.join(config_dir,name)
@@ -148,26 +181,6 @@ def main():
     config_file = os.path.join(config_dir, 'config')
 
 
-    # os.system("source $ROBOTPKG_BASE/OpenHRP/bin/unix/config.sh")
-    parser = get_parser()
-    (options, args) = parser.parse_args()
-
-    if options.version:
-        print __version__
-        sys.exit(0)
-
-
-    if options.verbose:
-        ch.setLevel(logging.DEBUG)
-    type = DISPLAY
-    if options.no_gl:
-        type = KINEMATIC
-    if options.server == "CORBA":
-        com_type = CORBA
-    elif options.server == "XML-RPC":
-        com_type = XML_RPC
-    else:
-        raise Exception ("Not supported server type %s"%options.server)
 
     server = create_server(type, com_type, options, args)
     logger.debug("created server")

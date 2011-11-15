@@ -18,310 +18,116 @@
 __author__ = "Duong Dang"
 __version__ = "0.1"
 
-import logging, os, sys
-
-from simpleparse.common import numbers, strings, comments
-from simpleparse.parser import Parser
-from simpleparse.dispatchprocessor import *
-from numbers import Number
-import pprint
-
-from kinematics import Mesh, Appearance, Geometry
-from kinematics import GenericObject, Joint, Robot
-from camera import Camera
-class NullHandler(logging.Handler):
-    def emit(self, record):
-        pass
-
+import vrml.parser
+import logging, sys
 logger = logging.getLogger("robotviewer.vrml_parser")
-logger.addHandler(NullHandler())
+import kinematics
+import shape
+import vrml.standard_nodes as nodes
+from collections import defaultdict
+class_map ={
+    "Humanoid" : kinematics.Robot,
+    "Group" : kinematics.GenericObject,
+    "Joint" : kinematics.Joint,
+    "Segment": kinematics.GenericObject,
+    "Inline": kinematics.GenericObject,
+    "Transform": kinematics.GenericObject,
+    "Shape": kinematics.Shape,
+    "IndexedFaceSet" : shape.IndexedFaceSet,
+    "Coordinate": nodes.Coordinate,
+    "Appearance": nodes.Appearance,
+    "Material": nodes.Material,
+    "Normal": nodes.Normal,
+    }
 
-path = os.path.abspath(os.path.dirname(__file__))
-grammar_file = os.path.join(path,"vrml.sbnf" )
-VRMLPARSERDEF = open(grammar_file).read()
+ignored_classes = defaultdict(int)
 
-
-class VrmlNode(dict):
-    def __init__(self, n = None):
-        self.name = n
-        self['name'] = n
-
-class Definition(str):
+class UnknownNode(Exception):
     pass
 
-class Attribute(tuple):
-    pass
 
-class VrmlProcessor(DispatchProcessor):
-    """
-    """
-    def __init__(self,root_path = None):
-        self.def_dict = {}
-        self.root_path = root_path
+def convert(obj):
+    clsname =  obj.__class__.__name__
+    # logger.debug("Converting {0} ({1})".format(clsname, repr(obj)[:100]))
 
-    def DefNode(self,(tag,start,stop,subtags), buffer ):
-        try:
-            key, n = dispatchList(self, subtags, buffer)
-        except ValueError:
-            print buffer[start:stop][:500]
-            raise
-        self.def_dict[key] = n
-        if isinstance(n, GenericObject):
-            n.name = key
-        return n
-
-    def inline(self,(tag,start,stop,subtags), buffer ):
-        attrs = dispatchList(self, subtags, buffer)
-        for key, val in attrs:
-            if key == 'url':
-                vrml_path = val
-                if self.root_path:
-                    vrml_path = os.path.join(self.root_path, vrml_path)
-                    if os.path.isfile(vrml_path):
-                        data = parse(vrml_path)
-                        return data[0]
-                    else:
-                        logger.exception("Couldnt find %s"%(vrml_path))
-
-    def genericObject(self,(tag,start,stop,subtags), buffer ):
-        node = GenericObject()
-        s = buffer[start:stop][:200]
-        attrs = dispatchList(self, subtags, buffer)
-        scale = None
-        for key, val in attrs:
-            if key == 'children':
-                l = val
-                for c in val:
-                    if not isinstance(c, GenericObject):
-                        logger.debug("Ignoring child %s"%str(c))
-                        continue
-                    node.add_child(c)
-            elif key in ['translation','rotation']:
-                node.__dict__[key] = val
-            elif key == "scale":
-                scale = val
-        if scale:
-            node.init()
-            try:
-                node.scale(scale)
-            except TypeError:
-                logger.warning("Failed to scale.\nratio:{0}\nShape:{1}...".format(scale, s) )
-        return node
-
-    def visionSensor(self,(tag,start,stop,subtags), buffer ):
-        node = Camera()
-        attrs = dispatchList(self, subtags, buffer)
-        for key, val in attrs:
-            if key == 'children':
-                l = val
-                for c in val:
-                    if not isinstance(c, GenericObject):
-                        logger.debug("Ignoring child %s"%str(c))
-                        continue
-                    node.add_child(c)
-            elif key in ['translation','rotation',
-                         'frontClipDistance','backClipDistance',
-                         'width','height',
-                         'type','fieldOfView','focal'
-                         ]:
-                node.__dict__[key] = val
-        return node
-
-    def forceSensor(self,(tag,start,stop,subtags), buffer ):
-        return self.genericObject((tag,start,stop,subtags), buffer )
-
-    def humanoid(self,(tag,start,stop,subtags), buffer ):
-        node = Robot()
-        attrs = dispatchList(self, subtags, buffer)
-        for key, val in attrs:
-            if key == "joints":
-                node.joint_names = val
-            elif key == 'segments':
-                node.segment_names = val
-            elif key == 'humanoidBody':
-                l = val
-                for v in l:
-                    node.add_child(v)
-            elif key in ['translation','rotation']:
-                node.__dict__[key] = val
-
-        return node
-
-    def joint(self,(tag,start,stop,subtags), buffer ):
-        node = Joint()
-        attrs = dispatchList(self, subtags, buffer)
-
-        for key, val in attrs:
-            if key == "jointId":
-                node.id = val
-            elif key == "jointType":
-                node.jointType = val
-            elif key == 'jointAxis':
-                node.axis = val
-            elif key in ['translation','rotation']:
-                node.__dict__[key] = val
-            elif key == "children":
-                for c in val:
-                    if not isinstance(c, GenericObject):
-                        logger.debug("Ignoring child %s"%str(c))
-                        continue
-                    node.add_child(c)
-        return node
-
-
-    def shape(self,(tag,start,stop,subtags), buffer ):
-        node = Mesh()
-        attrs = dispatchList(self, subtags, buffer)
-        s = buffer[start:stop][:200]
-        for key, val in attrs:
-            if key == "appearance":
-                try:
-                    node.app = val[0][0]
-                except TypeError:
-                    logger.debug("Failed to set app for shape:" + s)
-            elif key == "geometry":
-                try:
-                    node.geo = val[0]
-                except TypeError:
-                    logger.warning("Failed to set app for shape:" + s)
-
-        return node
-
-
-    def appearance(self,(tag,start,stop,subtags), buffer ):
-        attrs = dispatchList(self, subtags, buffer)
-        for key, val in attrs:
-            if key == "material":
-                return val
-
-    def material(self,(tag,start,stop,subtags), buffer ):
-        app = Appearance()
-        attrs = dispatchList(self, subtags, buffer)
-        for key, val in attrs:
-            app.__dict__[key] = val
-        return app
-
-    def indexedFaceSet(self,(tag,start,stop,subtags), buffer ):
-        attrs = dispatchList(self, subtags, buffer)
-        geo = Geometry()
-        for key, val in attrs:
-            if key == "coordIndex":
-                geo.idx = val
-            elif key == "coord":
-                geo.coord = val[0]
-            elif key == "normal":
-                pass
-                #geo.norm = val[0]
-                #geo.normals = val[0]
-        return geo
-
-    def coordinate(self,(tag,start,stop,subtags), buffer ):
-        attrs = dispatchList(self, subtags, buffer)
-        for key, val in attrs:
-            if key == "point":
-                return val
-
-    def normal(self,(tag,start,stop,subtags), buffer ):
-        attrs = dispatchList(self, subtags, buffer)
-        for key, val in attrs:
-            if key == "vector":
-                return val
-
-    def unknownNode(self,(tag,start,stop,subtags), buffer ):
-        s = buffer[start:stop][:500]
-        name = dispatch(self, subtags[0], buffer)
-        logger.warning("unknown Node: {0}. Excerpt of ignored node\n{1}".format(name,s))
-        return
-
-    def name(self,(tag,start,stop,subtags), buffer ):
-        return str(buffer[start:stop])
-
-    def Attr(self,(tag,start,stop,subtags), buffer ):
-        name = dispatch(self,subtags[0],buffer)
-        value = dispatch(self,subtags[1],buffer)
-        return Attribute((name, value))
-
-    def Def(self,(tag,start,stop,subtags), buffer ):
-        name = dispatch(self, subtags[0], buffer)
-        return Definition(name)
-
-    def Field(self,(tag,start,stop,subtags), buffer ):
-        l =  dispatchList(self, subtags, buffer)
-        if ( len(l) == 1 and (isinstance(l[0], Number)
-                              or isinstance(l[0],basestring) )):
-            return l[0]
+    if not clsname in class_map.keys():
+        if clsname != "NoneType" and clsname[0].isupper():
+            logger.exception("Ignoring node {0}".format(clsname))
+            ignored_classes[clsname] += 1
+            raise UnknownNode()
+        elif clsname == "list":
+            return [convert(o) for o in obj]
         else:
-            return l
+            return obj
+    res = class_map[clsname]()
 
-
-    def SFNumber(self,(tag,start,stop,subtags), buffer ):
-        s = buffer[start:stop]
+    keys = [ key for key in dir(obj)
+             if not (key.startswith('_')
+                     or key == "children" or callable(getattr(obj, key))
+                     )]
+    for key in keys:
         try:
-            return int(s)
-        except:
-            return float(s)
+            value = convert(getattr(obj, key))
+        except UnknownNode:
+            continue
 
-    def SFBool(self,(tag,start,stop,subtags), buffer ):
-        s = buffer[start:stop]
-        if s.upper() == "TRUE":
-            return True
-        elif s.upper() == "FALSE":
-            return False
-        else:
-            raise Exception("Failed to read a bool %s"%s)
+        if not key in dir(res):
+            continue
 
-    def SFString(self,(tag,start,stop,subtags), buffer ):
-        s = buffer[start:stop]
-        s=s.replace('"',"")
-        return s
+        if callable(getattr(res, key)):
+            continue
+        try:
+            res.__dict__[key] = value
+        except AttributeError:
+            logger.debug("Ignoring key {0} while converting {1}".format(key, repr(obj)[:100]))
 
-    def IS(self,(tag,start,stop,subtags), buffer ):
-        return None
-        s = buffer[start:stop]
+    for child in obj.children:
+        try:
+            converted_child = convert(child)
+        except UnknownNode:
+            continue
 
-        if s not in self.def_dict.keys():
-            raise Exception("IS used before node definition: %s"%s[:100])
+        logger.debug("Adding {0} {1} to {2}".format(type(converted_child),
+                                             id(converted_child), id(res)))
+        res.add_child(converted_child)
 
-        return self.def_dict[s]
-
-
-    def USE(self,(tag,start,stop,subtags), buffer ):
-        return None
-        s = buffer[start:stop]
-
-        if s not in self.def_dict.keys():
-            raise Exception("USE used before node definition. %s"%s[:100])
-
-        return self.def_dict[s]
-
-class VrmlParser(Parser):
-    def __init__(self, root_path, *args, **kwargs):
-        Parser.__init__(self,*args, **kwargs)
-        self.root_path = root_path
-
-
-    def buildProcessor( self ):
-        return VrmlProcessor(self.root_path)
+    return res
 
 def parse(filename):
-    vrml_dir_path = os.path.abspath(os.path.dirname(filename))
-    parser = VrmlParser(vrml_dir_path, VRMLPARSERDEF, "vrmlScene" )
-    data = open(filename).read()
-    objs = parser.parse(data)[1]
-    objs = [ o for o in objs if isinstance(o,GenericObject)]
-    for obj in objs:
-        obj.init()
-        logger.debug("Load {0} from {1}, with {2} mesh(es)".format(obj.name, filename, len(obj.mesh_list)))
-    return objs
+    vrml_objs = vrml.parser.parse(filename)
+    res = []
+    for obj in vrml_objs:
+        if isinstance(obj, type):
+            continue
+        try:
+            converted = convert(obj)
+        except UnknownNode:
+            continue
+        if (isinstance(converted, kinematics.GenericObject)):
+            res.append(converted)
+            converted.init()
 
+    if ignored_classes.keys():
+        s = "The following nodes have not been processed:\n"
+        for clsname, no in ignored_classes.items():
+            s += "{0} ({1} instances)\n".format(clsname, no)
+        s += "If these nodes affect your scene, add them to {0} or contact robot-viewer's maintainer".format(__file__)
+        logger.warning(s)
+
+    return res
 
 def main():
     import optparse
-    logger = logging.getLogger("kinematics")
-    logger.setLevel(logging.DEBUG)
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    logger.handlers = []
+    formatter = logging.Formatter("%(asctime)s:%(name)s:%(levelname)s:%(message)s",
+                                  )
+
     sh = logging.StreamHandler()
-    sh.setLevel(logging.DEBUG)
     logger.addHandler(sh)
+    sh.setFormatter(formatter)
+    sh.setLevel(logging.INFO)
     parser = optparse.OptionParser(
         usage='\n\t%prog [options]',
         version='%%prog %s' % __version__)
@@ -329,10 +135,14 @@ def main():
                       action="store_true", dest="verbose", default=False,
                       help="be verbose")
     (options, args) = parser.parse_args(sys.argv[1:])
+    if options.verbose:
+        sh.setLevel(logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
     res = parse(args[0])
+
     for r in res:
-        #print r.mesh_list
-        print r
+        #print r
+        continue
 
 if __name__ == '__main__':
     main()

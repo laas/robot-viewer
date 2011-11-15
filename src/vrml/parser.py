@@ -24,24 +24,26 @@ from simpleparse.common import numbers, strings, comments
 from simpleparse.parser import Parser
 from simpleparse.dispatchprocessor import *
 from numbers import Number
-import fields
 import pprint
 import inspect
 import copy
-
+from decimal import Decimal
+from decimal import Decimal
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass
 
 logger = logging.getLogger("robotviewer.vrml.parser")
 logger.addHandler(NullHandler())
+logger.setLevel(logging.INFO)
+
 
 class VrmlNode(dict):
     def __init__(self, n = None):
         self.name = n
         self['name'] = n
 
-class Definition(str):
+class definition_str(str):
     pass
 
 class Attribute(tuple):
@@ -52,9 +54,17 @@ class ISDef(str):
 
 class Prototype(type):
     def __new__(cls, name, bases, dct):
-        proto_name = dct['name']
-        attrs = dct['attrs']
+        try:
+            proto_name = dct['name']
+            attrs = dct['attrs']
+        except:
+            attrs = {}
+
         return type.__new__(cls, proto_name , bases, attrs)
+
+def compare(a, b):
+    diff = sum([(a[i] - b[i])**2 for i in range(len(a))])
+    return diff < 1e-6
 
 
 def validate_field(fdata, ftype):
@@ -71,6 +81,7 @@ def validate_field(fdata, ftype):
     # FIXME
     if ftype == "SFInt32":
         fdata = int(fdata)
+
     return fdata
 
 class Node(object):
@@ -79,6 +90,8 @@ class Node(object):
     _aliases = []
     children = []
     _declared = []
+    _ftypes = []
+
     def __getattr__(self, att):
         for route, name, alias in self._aliases:
             if alias == att:
@@ -88,7 +101,7 @@ class Node(object):
                     logger.exception("Failed to delegate alias {0} to {1} in {2}".
                                      format(att, route, self))
                     raise
-        raise AttributeError("Invalid tribute {0} in {1}".format(att, self.__class__.__name__))
+        raise AttributeError("Invalid Tribute {0} in {1}".format(att, self.__class__.__name__))
 
     def __setattr__(self, att, value):
         for route, name, alias in self._aliases:
@@ -103,11 +116,19 @@ class Node(object):
                 return res
         return object.__setattr__(self, att, value)
 
-    @property
+    @classmethod
+    def ftype(cls, fname):
+        if fname in cls._ftypes:
+            return cls._ftypes.get(fname)
+        base = cls.__bases__[0]
+        if base == object:
+            return None
+        return base.ftype(fname)
+
     def depth(self):
         if self._parent == None:
             return 0
-        return 1 + self._parent.depth
+        return 1 + self._parent.depth()
 
     def get_descendant(self, route):
         result = self
@@ -119,7 +140,7 @@ class Node(object):
         return result
 
     def __str__(self):
-        s = "|{0}{1}:{2}:".format(self.depth*"_",self.depth, self.__class__.__name__, )
+        s = "|{0}{1}:{2}:".format(self.depth()*"_",self.depth(), self.__class__.__name__, )
         try:
             name = getattr(self, 'name')
         except AttributeError:
@@ -155,6 +176,11 @@ class VrmlProcessor(DispatchProcessor):
         self.root_path = root_path
         self.prototypes = prototypes
         self.proto_aliases = []
+        self.clss = []
+
+    @property
+    def cls(self):
+        return self.clss[-1]
 
     def DefNode(self,(tag,start,stop,subtags), buffer ):
         try:
@@ -168,7 +194,9 @@ class VrmlProcessor(DispatchProcessor):
 
     def NodewoDef(self,(tag,start,stop,subtags), buffer ):
         name = dispatch(self, subtags[0], buffer)
-        node = self.prototypes[name]()
+        cls = self.prototypes[name]
+        self.clss.append(cls)
+        node = self.cls()
         node._route = []
         attrs = [ a for a in dispatchList(self, subtags[1:], buffer)
                   if type(a) == Attribute ]
@@ -192,6 +220,7 @@ class VrmlProcessor(DispatchProcessor):
             child._route.append(i)
 
         # logger.debug("Created node {0}".format(node))
+        self.clss.pop()
         return node
 
     def inline(self,(tag,start,stop,subtags), buffer ):
@@ -236,7 +265,10 @@ class VrmlProcessor(DispatchProcessor):
 
         self.proto_aliases = [a for a in self.proto_aliases if not (a[0] == [] and a[1] == a[2])]
 
+
+        proto_ftypes = {}
         for ftype, fname, fdata in fields:
+            proto_ftypes[fname] = ftype
             aliased = False
             for key in [a[2] for a in self.proto_aliases]:
                 if key == fname:
@@ -247,6 +279,7 @@ class VrmlProcessor(DispatchProcessor):
                 #print "Ignoring {0} in {1}".format(fname, proto_name)
                 pass
         proto_attrs['_aliases'] = copy.deepcopy(self.proto_aliases)
+        proto_attrs['_ftypes'] = copy.deepcopy(proto_ftypes)
 
         class Proto(base_class):
             __metaclass__ = Prototype
@@ -269,13 +302,23 @@ class VrmlProcessor(DispatchProcessor):
         return str(buffer[start:stop])
 
     def Attr(self,(tag,start,stop,subtags), buffer ):
-        name = dispatch(self,subtags[0],buffer)
-        value = dispatch(self,subtags[1],buffer)
-        return Attribute((name, value))
+        fname = dispatch(self,subtags[0],buffer)
+        ftype = self.cls.ftype(fname)
+        if subtags[1][0] == "Field":
+            fdata = self.parse_field(ftype, subtags[1], buffer)
+            if not ftype:
+                logger.exception("Unknown type for {0} in class {1}. {2}\n {3}...".
+                                 format(fname, self.cls.__name__,
+                                        self.cls._ftypes, buffer[start-100:stop]
+                                    ))
+        else:
+            fdata = dispatch(self, subtags[1], buffer)
+        return Attribute((fname, fdata))
 
     def Def(self,(tag,start,stop,subtags), buffer ):
         name = dispatch(self, subtags[0], buffer)
-        return Definition(name)
+        return definition_str(name)
+
 
     def Field(self,(tag,start,stop,subtags), buffer ):
         l =  dispatchList(self, subtags, buffer)
@@ -285,14 +328,26 @@ class VrmlProcessor(DispatchProcessor):
         else:
             return l
 
+        return dispatchList(self, subtags, buffer)
+
     def SFNull(self,(tag,start,stop,subtags), buffer ):
         return None
 
     def SFNumber(self,(tag,start,stop,subtags), buffer ):
+        """
+        >>> parser = VrmlParser(root_node = "Fields")
+        >>> parser.parse('1')[1]
+        [1.0]
+        """
         s = buffer[start:stop]
         return float(s)
 
     def SFBool(self,(tag,start,stop,subtags), buffer ):
+        """
+        >>> parser = VrmlParser(root_node = "Fields")
+        >>> parser.parse('FALSE')[1]
+        [False]
+        """
         s = buffer[start:stop]
         if s.upper() == "TRUE":
             return True
@@ -320,9 +375,20 @@ class VrmlProcessor(DispatchProcessor):
         return ISDef(s)
 
     def fieldDecl(self,(tag,start,stop,subtags), buffer ):
-        ftype, fname, fdata = dispatchList(self, subtags, buffer)
-        fdata = validate_field(fdata, ftype)
+        ftype, fname = dispatchList(self, subtags[:2], buffer)
+
+        fdata = self.parse_field(ftype, subtags[2], buffer)
         return ftype, fname, fdata
+
+    def parse_field(self, ftype, tag, buffer):
+        fdata =  dispatch(self, tag, buffer)
+        if ftype == "SFNode":
+            fdata = fdata[0]
+        elif ftype == "SFInt32":
+            fdata = int(fdata)
+        elif ftype == "MFInt32":
+            fdata = [int(e) for e in fdata]
+        return fdata
 
     dataType = name
 
@@ -335,12 +401,12 @@ class VrmlParser(Parser):
             grammar = open(grammar_file).read()
         #logger.info("Grammar: {0}".format(grammar))
         Parser.__init__(self, grammar, root_node)
-        logging.info("created parser instance")
+        logging.debug("created parser instance")
         self.root_path = ""
         self.prototypes = {}
         spec_data = open(os.path.join(path, 'standard_nodes.wrl')).read()
         self.parse(spec_data)
-        logging.info("Parsed vrml2.0 specs")
+        logging.debug("Parsed vrml2.0 specs")
 
     def buildProcessor( self ):
         return VrmlProcessor(root_path = self.root_path, prototypes = self.prototypes)
@@ -352,7 +418,7 @@ class VrmlParser(Parser):
 
     def parse(self, *args, **kwargs):
         res = Parser.parse(self, *args, **kwargs)
-        l = res[1][:]
+        l = [r for r in res[1] if isinstance(r, Node)]
         count = 0
         while count < len(l):
             l += l[count].children
@@ -360,16 +426,50 @@ class VrmlParser(Parser):
         for e in l:
             if e.__class__.__name__ == "Inline":
                 url = os.path.join(self.root_path, e.url)
-                logger.info("Parse inlined vrml {0}".format(url))
+                logger.debug("Parse inlined vrml {0}".format(url))
                 e.children = Parser.parse(self, open(url).read())[1]
                 for child in e.children:
                     child._parent = e
-
+        code = "from parser import Node\n\n"
+        for name, prototype in self.prototypes.items():
+            obj = prototype()
+            attrs = [(key, getattr(obj, key)) for key in dir(obj)
+                     if not ( key.startswith("_") or callable(getattr(obj, key))
+                              or key == "children")]
+            code += "class {0}({1}):\n".format(name, prototype.__bases__[0].__name__)
+            #print obj, dir(obj), "\n---\n", obj._ftypes, "\n---\n",attrs
+            code += "    def __init__(self):\n"
+            for key, value in attrs:
+                code += "        self.{0} = {1} #{2}\n".format(key, repr(value),  prototype.ftype(key))
+            code += "\n"
+        f = open("/tmp/robotviewer_protos.py",'w')
+        f.write(code)
+        f.close()
+        logger.debug("internally generated foloowing classes:\n{0}".format(code))
         return res[0], res[1], res[2]
+
+def _test():
+    """Inline Doctest activated. Cool! :D
+    This means that whenever the module is called in python
+
+    > python thismodule.py -v
+
+    the doctest function will try all the tests implemented in doctest.
+    """
+    import doctest
+    doctest.testmod()
+
+
+parser = VrmlParser()
+for proto_name, proto in parser.prototypes.items():
+    exec("{0} = proto".format(proto_name))
+
+logger = logging.getLogger("robotviewer.vrml.parser")
+logger.addHandler(NullHandler())
+logger.setLevel(logging.INFO)
 
 def parse(filename):
     vrml_dir_path = os.path.abspath(os.path.dirname(filename))
-    parser = VrmlParser()
     return parser.parse_file(filename)
 
 def main():
@@ -391,13 +491,16 @@ def main():
     (options, args) = parser.parse_args(sys.argv[1:])
     if options.verbose:
         sh.setLevel(logging.DEBUG)
+    if not args[:]:
+        _test()
+        return
 
     parser = VrmlParser()
     if args[:]:
         results = parser.parse_file(args[0])
         results = [r for r in results if type(r.__class__) != type]
         for result in results:
-            print (result)#, dir(result), result.children
+            print result#, dir(result), result.children
             if result.__class__.__name__ == "Humanoid":
                 print result.humanoidBody#, result.humanoidBody[0]._parent3
             pass

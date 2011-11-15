@@ -57,10 +57,10 @@ class KinematicServer(object):
         self.parse_config()
 
     @property
-    def meshes(self):
+    def shapes(self):
         res = []
         for name, obj in self.kinematic_elements.items():
-            res += obj.mesh_list
+            res += obj.shape_list
         return res
 
     def set_robot_joint_rank(self,robot_name, joint_rank_xml):
@@ -429,30 +429,30 @@ class KinematicServer(object):
             l += [j.name]
         return l
 
-    def listMeshes(self):
+    def listShapees(self):
         results = []
         for name, element in self.kinematic_elements.items():
-            for mesh in element.mesh_list:
-                results.append(mesh.uuid)
+            for shape in element.shape_list:
+                results.append(shape.uuid)
         return results
 
-    def printMesh(self, uuid):
+    def printShape(self, uuid):
         import json
         try:
-            mesh = [ m for m in self.meshes if m.uuid == uuid][0]
+            shape = [ m for m in self.shapes if m.uuid == uuid][0]
             logger.exception("Invalid key, available keys are %s"
-                             %str([m.uuid for m in self.meshes])
+                             %str([m.uuid for m in self.shapes])
                              )
-            return json.dumps({'vertexPositions' : mesh.geo.coord,
-                               'indices' : mesh.geo.tri_idxs,
-                               'vertexNormals' : mesh.geo.norm,
+            return json.dumps({'vertexPositions' : shape.geo.coord,
+                               'indices' : shape.geo.tri_idxs,
+                               'vertexNormals' : shape.geo.norm,
                               })
         except KeyError:
             return json.dumps({})
 
     def getGlConfig(self, uuid):
-        mesh = [ m for m in self.meshes if m.uuid == uuid][0]
-        Tmatrix = mesh.globalTransformation
+        shape = [ m for m in self.shapes if m.uuid == uuid][0]
+        Tmatrix = shape.globalTransformation
         R=Tmatrix[0:3,0:3]
         p=Tmatrix[0:3,3]
         agax=rot2AngleAxis(R)
@@ -468,8 +468,26 @@ class KinematicServer(object):
             time.sleep(1e-3)
 
 if __name__ == '__main__':
-    server = KinematicServer()
-    print server.listMeshes()
-    print server.getGlConfig(server.listMeshes()[0])
-    server.run()
+    import optparse, sys
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    sh = logging.StreamHandler()
+    sh.setLevel(logging.INFO)
+    logger.addHandler(sh)
+    formatter = logging.Formatter("%(name)s:%(levelname)s:%(message)s")
+    sh.setFormatter(formatter)
+    __version__ = 1.9
+    parser = optparse.OptionParser(
+        usage='\n\t%prog [options]',
+        version='%%prog %s' % __version__)
+    parser.add_option("-v", "--verbose",
+                      action="store_true", dest="verbose", default=False,
+                      help="be verbose")
+    (options, args) = parser.parse_args(sys.argv[1:])
+    if options.verbose:
+        sh.setLevel(logging.DEBUG)
 
+    server = KinematicServer()
+    print server.listShapees()
+    print server.getGlConfig(server.listShapees()[0])
+    server.run()

@@ -296,7 +296,7 @@ Kinematic parameters
 ====================
 parent            : {parent}
 translation       : {translation}
-rotation(axis,ang): {rotation}
+rotation.jointAxis,ang): {rotation}
 rotation(euleur)  : {rpy}
 T_parent(M44)     : \n{T_local}
 T_world(M44)      : \n{T_world}

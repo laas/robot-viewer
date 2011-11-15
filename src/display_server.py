@@ -191,10 +191,10 @@ class DisplayServer(KinematicServer):
         self.wired_frame_flag = False
         self.parse_config()
         if options and options.skeleton:
-            self.render_mesh_flag = False
+            self.render_shape_flag = False
             self.render_skeleton_flag = True
         else:
-            self.render_mesh_flag = True
+            self.render_shape_flag = True
             self.render_skeleton_flag = False
 
         self.skeleton_size = 2
@@ -207,7 +207,7 @@ class DisplayServer(KinematicServer):
         self.quit = False
         self.usage="Keyboard shortcuts:\n"
         for key, effect in [("q", "Quit the program"),
-                            ("m", "Turn meshes on/off"),
+                            ("m", "Turn shapes on/off"),
                             ("s", "Turn skeletons on/off"),
                             ("w", "Turn wireframe on/off"),
                             ("p", "Turn specular highlights on/off"),
@@ -437,8 +437,7 @@ class DisplayServer(KinematicServer):
                 raise Exception("file %s contains %d robots, expected 1."
                                 %(epath, len(robots)))
             new_robot = robots[0]
-            if scale:
-                new_robot.scale(scale)
+
             new_element = DisplayRobot(new_robot)
             self.display_elements[ename] = new_element
             self.kinematic_elements[ename] = new_robot
@@ -557,8 +556,8 @@ class DisplayServer(KinematicServer):
                 continue
             if obj.pending_display_change:
                 obj.pending_display_change = True
-                for mesh in obj.mesh_list:
-                    mesh.gl_primitive.generate_gl_list()
+                for shape in obj.shape_list:
+                    shape.gl_primitive.generate_gl_list()
 
         # Clear Screen And Depth Buffer
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -575,7 +574,7 @@ class DisplayServer(KinematicServer):
             #    logger.info( item[0], item[1]._enabled)
             try:
                 if isinstance(ele, DisplayRobot):
-                    ele.render(self.render_mesh_flag,
+                    ele.render(self.render_shape_flag,
                                self.render_skeleton_flag,
                                )
                 else:
@@ -699,8 +698,8 @@ class DisplayServer(KinematicServer):
 
 
         elif args[0] == 'm':
-            self.render_mesh_flag = not self.render_mesh_flag
-            print "render mesh:", self.render_mesh_flag
+            self.render_shape_flag = not self.render_shape_flag
+            print "render shape:", self.render_shape_flag
         elif args[0] == 's':
             self.render_skeleton_flag = not self.render_skeleton_flag
             print "render skeleton:", self.render_skeleton_flag
@@ -726,7 +725,7 @@ class DisplayServer(KinematicServer):
 
         elif args[0] == 'w':
             self.wired_frame_flag = not self.wired_frame_flag
-            print "render mesh:", self.wired_frame_flag
+            print "render shape:", self.wired_frame_flag
             if self.wired_frame_flag:
                 glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
             else:

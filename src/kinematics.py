@@ -60,9 +60,15 @@ class GenericObject(object):
         self.localTransformation = None
         self.globalTransformation = None
         self.localR=numpy.eye(3)
-        self.id=None
         self.list_by_type = {}
         self.uuid = str(uuid.uuid1())
+        self.scale = [1., 1., 1.]
+
+    def cumul_scale(self):
+        if not self.parent:
+            return self.scale
+        parent_scale = self.parent.cumul_scale()
+        return [self.scale[i]*parent_scale[i] for i in range(3)]
 
     def get_list(self, type):
         try:
@@ -71,8 +77,8 @@ class GenericObject(object):
             return []
 
     @property
-    def mesh_list(self):
-        return self.get_list(Mesh)
+    def shape_list(self):
+        return self.get_list(Shape)
 
     @property
     def joint_list(self):
@@ -111,32 +117,32 @@ class GenericObject(object):
     def __str__(self):
         s= "%s \t= %s\n"%(self.type,self.name)
         s+="jointType\t= %s\n"%self.jointType
-        s+= "id\t\t= "+str(self.id)
+        s+= "id\t\t= "+str(id(self))
         s+= "\ntranslation\t= "+str(self.translation)
         s+= "\nrotation\t= "+str(self.rotation)
 
         s+= "\nPARENT\t\t= "
         if self.parent:
             parent=self.parent
-            s+= "%s "%(parent.type) + str(parent.name) +" id="+str(parent.id)+";  "
+            s+= "%s "%(parent.type) + str(parent.name) +" id="+str(id(parent))+";  "
 
         s+= "\nCHILDREN (%d)\t= "%len(self.children)
         for child in self.children:
-            s+= "%s "%(child.type) + str(child.name) +" id="+str(child.id)+";  "
+            s+= "%s "%(child.type) + str(child.name) +" id="+str(id(child))+";  "
 
         s+= "\nT=\n"+str(self.globalTransformation)
         s+= "\nlocalT=\n"+str(self.localTransformation)
 
         return s
 
-    def scale(self, scale):
-        for i in range(3):
-            self.translation[i]*=scale[i]
-            sc = scale[i]
-            self.localTransformation[i,3] *= sc
+    # def scale(self, scale):
+    #     for i in range(3):
+    #         self.translation[i]*=scale[i]
+    #         sc = scale[i]
+    #         self.localTransformation[i,3] *= sc
 
-        for child in self.children:
-            child.scale(scale)
+    #     for child in self.children:
+    #         child.scale(scale)
 
 
     def add_child(self,a_child):
@@ -199,7 +205,11 @@ class GenericObject(object):
          * call :func:`kinematics.GenericObject.init_local_transformation` on itself
          * call init() on all children
         """
-        self.init_local_transformation()
+        logger.debug("Initializing {0}".format(id(self)))
+        try:
+            self.init_local_transformation()
+        except:
+            logger.exception("Failed to init {0}".format(self))
         self.update_global_transformation()
         def _union(l1, l2):
             return list(set(l1).union(set(l2)))
@@ -216,13 +226,12 @@ class GenericObject(object):
                                                         self.list_by_type[key],)
             except Exception, error:
                 print error, "on object %s"%child.name
-
         self.remove_generic_objects()
         self.update()
 
     def remove_generic_objects(self):
         generic_children = [child for child in self.children
-                          if (type(child) == GenericObject and child.children[:])]
+                            if (type(child) == GenericObject and child.children[:])]
         while generic_children[:]:
             for child in generic_children:
                 for grandchild in child.children[:]:
@@ -232,6 +241,7 @@ class GenericObject(object):
                     grandchild.localR = grandchild.localTransformation[:3,:3]
                     grandchild.rotaion = rot2AxisAngle(grandchild.localR)
                     grandchild.rpy = rot2rpy(grandchild.localR)
+                    grandchild.scale = [grandchild.scale[i]*child.scale[i] for i in range(3)]
                     self.add_child(grandchild)
                 self.children.remove(child)
                 del child
@@ -288,59 +298,10 @@ class GenericObject(object):
                 children += child.get_children_joints()
         return children
 
-class Mesh(GenericObject):
-    def __init__(self):
-        GenericObject.__init__(self)
-        self.type="mesh"
-        self.name=None
-        self.localR1=numpy.eye(3)  # due to offset of coordonee
-        self.app=Appearance()
-        self.geo=Geometry()
-
-    def init(self):
-        GenericObject.init(self)
-        self.geo.compute_normals()
-
-
-
-    def scale(self, scale_vec):
-        GenericObject.scale(self,scale_vec)
-        self.geo.scale(scale_vec)
-
-    def __str__(self):
-        s=""
-        s+="\nrotation="+str(self.rotation)
-        s+="\ntranslation="+str(self.translation)
-        s+="Apparence: %s\n"%str(self.app)
-        s+="\n"
-        s+="Geometry: %s\n"%str(self.geo)
-        return s
-
-    def bounding_box_local(self):
-        no_points = len(self.geo.coord)/3
-        xs = [self.geo.coord[3*i] for i in range(no_points)]
-        ys = [self.geo.coord[3*i+1] for i in range(no_points)]
-        zs = [self.geo.coord[3*i+2] for i in range(no_points)]
-        bbox =  [ [min(xs), min(ys), min(zs)],
-                  [max(xs), max(ys), max(zs)]
-                   ]
-        return bbox
-
-    def bounding_box_global(self):
-        bbox = self.bounding_box_local()
-        bbox[0] = numpy.dot(self.globalTransformation,
-                         numpy.array(bbox[0] + [0]))[:3]
-        bbox[1] = numpy.dot(self.globalTransformation,
-                         numpy.array(bbox[1] + [0]))[:3]
-        return bbox
-
-    bounding_box = bounding_box_local
-
-
 #*****************************#
 #           JOINT             #
 #*****************************#
-
+import alias
 class Joint(GenericObject):
     """
     Joint class
@@ -353,15 +314,17 @@ class Joint(GenericObject):
         self.jointType=None
         self.isRobot=False
         self.angle=0
-        self.axis=""
         self.localR1=numpy.eye(3)  # due to cordinate offset
         self.localR2=numpy.eye(3)  # due to self rotation (revolute joint)
         self.op_point = GenericObject()
         self.add_child(self.op_point)
+        self.jointId = None
+        self.jointAxis = ""
+
 
     def __str__(self):
         s = GenericObject.__str__(self)
-        s+= "\naxis\t\t= "+str(self.axis)
+        s+= "\naxis\t\t= "+str(self.jointAxis)
         s+= "\nangle\t\t= "+str(self.angle)
         return s
 
@@ -377,9 +340,9 @@ class Joint(GenericObject):
             self.localTransformation[0:3,3]=numpy.array(self.translation)+\
                 numpy.dot(numpy.eye(3)-self.localR,numpy.array(self.center))
         elif ( self.type=="joint" and self.jointType in [ "rotate", "rotation", "revolute"]
-               and self.id >= 0):
-            self.localR2=axis_name_angle2rot(self.axis,self.angle)
-            self.localR=numpy.dot(self.localR1, self.localR2)
+               and self.jointId >= 0):
+            self.localR2=axis_name_angle2rot(self.jointAxis,self.angle)
+            self.locdalR=numpy.dot(self.localR1, self.localR2)
             self.localTransformation[0:3,0:3]=self.localR
 
     def init_local_transformation(self):
@@ -405,7 +368,7 @@ class Robot(Joint):
         Joint.__init__(self)
         self.ndof = 0
         self.type= "Robot"
-        self.id= BASE_NODE_ID
+        self.jointId= BASE_NODE_ID
         self.joint_dict= {}
         self.joint_names = []
         self.segment_names = []
@@ -415,7 +378,7 @@ class Robot(Joint):
     def __str__(self):
         s = Joint.__str__(self)
         s += "\nNumber of dof: %d"%self.ndof
-        s += "\nNumber meshes: %d"%len(self.mesh_list)
+        s += "\nNumber shapes: %d"%len(self.shape_list)
         return s
 
     def update_config(self, config):
@@ -423,6 +386,7 @@ class Robot(Joint):
         self.waist.translation = config[0:3]
         self.waist.rpy = config[3:6]
         self.init_local_transformation()
+        logger.debug("Updating {0} with config {1}".format(self.name, config))
         self.update()
 
     def set_angles(self,angles):
@@ -437,6 +401,7 @@ class Robot(Joint):
                                                                                   len(angles)) )
         for i,angle in enumerate(angles):
             self.moving_joint_list[i].angle = angle
+            print angle
 
     def print_joints(self):
         """
@@ -474,18 +439,21 @@ class Robot(Joint):
     def update_joint_dict(self):
         self.joint_dict = dict()
         for joint in self.joint_list:
-            self.joint_dict[joint.id] = joint
+            self.joint_dict[joint.jointId] = joint
 
     def update_moving_joint_list(self):
-        self.moving_joint_list = [ j for j in self.joint_list if isinstance(j.id,int)
-                                   and j.id != BASE_NODE_ID ]
-        self.moving_joint_list.sort(key = lambda x: x.id)
+        for j in self.joint_list:
+            if j.jointId != None:
+                j.jointId = int(j.jointId)
+        self.moving_joint_list = [ j for j in self.joint_list if isinstance(j.jointId,int)
+                                   and j.jointId != BASE_NODE_ID ]
+        self.moving_joint_list.sort(key = lambda x: x.jointId)
         self.ndof = len(self.moving_joint_list)
 
     def init(self):
         """ Do the following initializations in order:
 
-         * build joint_list and mesh_list
+         * build joint_list and shape_list
          * call :func:`kinematics.Joint.init_local_transformation` on itself
          * call init() on all children
         """
@@ -505,177 +473,71 @@ class Robot(Joint):
         self.update_global_transformation()
         self.update_moving_joint_list()
 
-        for mesh in self.mesh_list:
-            mesh.app.transparency = 0
+        for shape in self.shape_list:
+            shape.appearance.material.transparency = 0
 
-            for color in (mesh.app.diffuseColor,mesh.app.ambientColor,
-                          mesh.app.specularColor,mesh.app.emissiveColor):
+            for color in (shape.appearance.material.diffuseColor,
+                          shape.appearance.material.specularColor,
+                          shape.appearance.material.emissiveColor):
                 if color == None:
                     continue
                 if type(color) != list:
-                    raise Exception("Invalid color for mesh %s"%str(mesh))
+                    raise Exception("Invalid color for shape %s"%str(shape))
 
                 if len(color) != 3:
-                    raise Exception("Invalid len for a color in mesh %s"
-                                    %str(mesh.name))
+                    raise Exception("Invalid len for a color in shape %s"
+                                    %str(shape.name))
 
 
-        if not self.mesh_list[:]:
-            logger.warning("Robot contains 0 mesh.")
+        if not self.shape_list[:]:
+            logger.warning("Robot contains 0 shape.")
 
-
-
-class Appearance():
+class Shape(GenericObject):
+    appearance = None
+    children = []
+    depth = 0
+    geometry = None
     def __init__(self):
-        self.diffuseColor   = None
-        self.ambientColor   = None
-        self.specularColor  = None
-        self.emissiveColor  = None
-        self.shininess      = None
-        self.transparency   = None
-        self.ambientIntensity= 0.0
+        GenericObject.__init__(self)
+        self.name=None
+        self.localR1=numpy.eye(3)  # due to offset of coordonee
+
+
+    def init(self):
+        GenericObject.init(self)
+        logger.debug("Computing normal for Shape {0}".format(id(self)))
+        self.geometry.compute_normals()
+
+
+    # def scale(self, scale_vec):
+    #     GenericObject.scale(self,scale_vec)
+    #     self.geometry.scale(scale_vec)
 
     def __str__(self):
         s=""
-        s+="\ndiffuseColor="+str(self.diffuseColor)
-        s+="\nspecularColor="+str(self.specularColor)
-        s+="\nemissiveColor="+str(self.emissiveColor)
-        s+="\nshininess="+str(self.shininess)
-        s+="\ntransparency="+str(self.transparency)
-        s+="\nambientIntensity="+str(self.ambientIntensity)
+        s+="\nrotation="+str(self.rotation)
+        s+="\ntranslation="+str(self.translation)
+        s+="Apparence: %s\n"%str(self.appearance)
+        s+="\n"
+        s+="Geometry: %s\n"%str(self.geometry)
         return s
 
-class Geometry():
-    def __init__(self):
-        self.coord=[]
-        self.idx=[]
-        self.norm=[]
-        self.tri_idxs  = []
-        self.quad_idxs = []
-        self.poly_idxs = []
-        self.tri_count  = 0
-        self.quad_count = 0
-        self.normals = self.norm
-    def __str__(self):
-        s="Geometry:"
-        s+="%d points and %d faces"%(len(self.coord)/3,len(self.idx)/4)
-        return s
-    def scale(self,scale_vec):
-        if len(scale_vec) !=3 :
-            raise Exception("Expected scale_vec of dim 3, got %s"%str(scale_vec))
+    def bounding_box_local(self):
+        no_points = len(self.geometry.coord)/3
+        xs = [self.geometry.coord[3*i] for i in range(no_points)]
+        ys = [self.geometry.coord[3*i+1] for i in range(no_points)]
+        zs = [self.geometry.coord[3*i+2] for i in range(no_points)]
+        bbox =  [ [min(xs), min(ys), min(zs)],
+                  [max(xs), max(ys), max(zs)]
+                   ]
+        return bbox
 
-        scale_x = scale_vec[0]
-        scale_y = scale_vec[1]
-        scale_z = scale_vec[2]
+    def bounding_box_global(self):
+        bbox = self.bounding_box_local()
+        bbox[0] = numpy.dot(self.globalTransformation,
+                         numpy.array(bbox[0] + [0]))[:3]
+        bbox[1] = numpy.dot(self.globalTransformation,
+                         numpy.array(bbox[1] + [0]))[:3]
+        return bbox
 
-        for i in range(len(self.coord)/3):
-            self.coord[3*i]   *= scale_x
-            self.coord[3*i+1] *= scale_y
-            self.coord[3*i+2] *= scale_z
-
-
-    def compute_normals(self):
-        npoints=len(self.coord)/3
-        if self.norm==[]:
-            normals=[]
-            points=[]
-            for k in range(npoints):
-                normals.append(numpy.array([0.0,0.0,0.0]))
-                points.append(numpy.array([self.coord[3*k],self.coord[3*k+1],
-                                           self.coord[3*k+2]]))
-
-        poly=[]
-        ii=0
-        for a_idx in self.idx:
-            if a_idx!=-1:
-                poly.append(a_idx)
-                continue
-            num_sides = len(poly)
-            # if num_sides not in (3,4):
-            #     logger.warning("""n=%d.  Only support tri and quad mesh for
-            #                       the moment"""%num_sides)
-            #     poly=[]
-            #     continue
-            # a_idx=-1 and poly is a triangle
-            if num_sides == 3:
-                self.tri_idxs += poly
-            elif num_sides == 4:
-                self.quad_idxs += poly
-            else:
-                self.poly_idxs.append(poly)
-
-            if self.norm == []:
-                # update the norm vector
-                # update the normals using G. Thurmer, C. A. Wuthrich,
-                # "Computing vertex normals from polygonal facets"
-                # Journal of Graphics Tools, 3 1998
-                ids  = (num_sides)*[None]
-                vecs = []
-                for i in range(num_sides):
-                    vecs.append((num_sides)*[None])
-                alphas = (num_sides)*[0]
-                for i, iid in enumerate(poly):
-                    ids[i] = iid
-
-                vertices = []
-                for i in range(num_sides):
-                    vertices.append(points[ids[i]])
-                    j = i + 1
-                    if j == num_sides:
-                        j = 0
-                    vecs[j][i] = normalized(points[ids[j]] - points[ids[i]])
-
-
-                try:
-                    for i in range(num_sides):
-                        if i == 0:
-                            vec1 = vecs[1][0]
-                            vec2 = vecs[0][num_sides-1]
-                        elif i == num_sides - 1:
-                            vec1 =   vecs[0][num_sides-1]
-                            vec2 =   vecs[num_sides-1][num_sides-2]
-                        else:
-                            vec1 = vecs[i][i-1]
-                            vec2 = vecs[i+1][i]
-
-                        if abs(numpy.dot(vec1, vec2) + 1) < 1e-6:
-                            alphas[i] = pi
-                        elif abs(numpy.dot(vec1, vec2) - 1) < 1e-6:
-                            alphas[i] = 0
-                        else:
-                            try:
-                                alphas[i] = acos(numpy.dot(vec1, vec2))
-                            except ValueError:
-                                print "Math domain error: acos({0})".format(numpy.dot(vec1, vec2))
-
-
-                except Exception,error:
-                    s = traceback.format_exc()
-                    logger.warning("Mesh processing error: %s"%s)
-
-                for i,alpha in enumerate(alphas):
-                    if i == 0:
-                        normal_i = numpy.cross(vecs[0][num_sides-1],vecs[1][0])
-                    elif i == num_sides - 1:
-                        normal_i = numpy.cross(vecs[num_sides-1][num_sides-2],
-                                               vecs[0][num_sides-1])
-                    else:
-                        normal_i = numpy.cross(vecs[i][i-1], vecs[i+1][i])
-                    if isnan(alphas[i]) or abs(alpha - pi) < 1e-6:
-                        # print "alpha is NaN for", vertices
-                        continue
-                    normals[ids[i]] += alpha*normalized(normal_i)
-                    #if isnan(normals[ids[i]][0]):
-                    #    print "produced invalid normal", alpha, normal_i, vertices
-
-            poly=[]
-        if self.norm!=[]:
-            self.normals = self.norm
-        else:
-            for i,normal in enumerate(normals):
-                if isnan(norm(normal)):
-                    print "Invalid normal found", normal
-
-                normal                =  normalized(normal)
-                self.normals          += [normal[0],normal[1],normal[2]]
-                # self.norm  += self.norms
+    bounding_box = bounding_box_local

@@ -48,8 +48,8 @@ USE              := name
 IS               := name
 >nodegi<         := name
 Attr             := name, ts, (('IS', ts,IS,ts)/Field), ts
+>Fields<         := Field*
 Field            := ( '[',ts,((SFNumber/SFBool/SFString/('USE',ts,USE,ts)/Script/Node),ts)*, ']', ts )/((SFNumber/SFBool/SFNull/SFString/('USE',ts,USE,ts)/Script/Node),ts)+
-
 name             := -[][0-9{}\000-\020"'#,.\\ ],  -[][{}\000-\020"'#,.\\ ]*
 SFNumber         := [-+]*, ( ('0',[xX],[0-9]+) / ([0-9.]+,([eE],[-+0-9.]+)?))
 SFBool           := 'TRUE'/'FALSE'
