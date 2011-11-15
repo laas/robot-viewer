@@ -342,7 +342,7 @@ class Joint(GenericObject):
         elif ( self.type=="joint" and self.jointType in [ "rotate", "rotation", "revolute"]
                and self.jointId >= 0):
             self.localR2=axis_name_angle2rot(self.jointAxis,self.angle)
-            self.locdalR=numpy.dot(self.localR1, self.localR2)
+            self.localR=numpy.dot(self.localR1, self.localR2)
             self.localTransformation[0:3,0:3]=self.localR
 
     def init_local_transformation(self):
@@ -401,7 +401,6 @@ class Robot(Joint):
                                                                                   len(angles)) )
         for i,angle in enumerate(angles):
             self.moving_joint_list[i].angle = angle
-            print angle
 
     def print_joints(self):
         """
@@ -475,18 +474,6 @@ class Robot(Joint):
 
         for shape in self.shape_list:
             shape.appearance.material.transparency = 0
-
-            for color in (shape.appearance.material.diffuseColor,
-                          shape.appearance.material.specularColor,
-                          shape.appearance.material.emissiveColor):
-                if color == None:
-                    continue
-                if type(color) != list:
-                    raise Exception("Invalid color for shape %s"%str(shape))
-
-                if len(color) != 3:
-                    raise Exception("Invalid len for a color in shape %s"
-                                    %str(shape.name))
 
 
         if not self.shape_list[:]:

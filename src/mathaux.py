@@ -104,7 +104,7 @@ def axis_name_angle2rot(axis,a):
         return np.array([(cos(a) ,   0    , sin(a)),\
                         (0      ,   1    ,      0),\
                         (-sin(a),   0    , cos(a))])
-    return np.eye(3)
+    raise RuntimeError("Unknown axis {0}".format(axis))
 
 # http://www.euclideanspace.com/maths/geometry/rotations/conversions/angleToMatrix/index.htm
 def axis_angle2rot(array):

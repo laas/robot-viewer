@@ -109,14 +109,6 @@ class GlPrimitive(GenericObject):
             app.material.specularColor = [1, 1, 1]
 
 
-        if self.shape.parent == None:
-            for key in ['emissiveColor', 'emissiveColor','ambientColor']:
-                if not app.material.__dict__[key]:
-                    app.material.__dict__[key] = [0.2, 0.2, 0.2]
-            if not app.material.shininess:
-                app.material.shininess = 5
-
-
         for (key, value) in [ (GL_SPECULAR,app.material.specularColor),
                               (GL_EMISSION,app.material.emissiveColor ),
                               (GL_AMBIENT_AND_DIFFUSE,app.material.diffuseColor ),
@@ -146,7 +138,7 @@ class GlPrimitive(GenericObject):
 
             if not geometry.tri_idxs[:] or not geometry.normal or not geometry.normal.vector:
                 geometry.compute_normals()
-            scale = self.shape.cumul_scale()
+            #scale = self.shape.cumul_scale()
 
             glBegin(GL_TRIANGLES)
             for i in geometry.tri_idxs:
@@ -154,10 +146,15 @@ class GlPrimitive(GenericObject):
                       geometry.normal.vector[i][1],
                       geometry.normal.vector[i][2],
                       ]
-                v =  [ geometry.coord.point[3*i]*scale[0],
-                       geometry.coord.point[3*i+1]*scale[1],
-                       geometry.coord.point[3*i+2]*scale[2],
+                v =  [ geometry.coord.point[3*i],
+                       geometry.coord.point[3*i+1],
+                       geometry.coord.point[3*i+2],
                        ]
+
+                # v[0] *= scale[0]
+                # v[1] *= scale[1]
+                # v[2] *= scale[2]
+
                 logger.debug("object  {0}: {1} {2}".format(id(geometry), v, n))
                 glNormal3f( n[0], n[1], n[2])
                 glVertex3f( v[0], v[1], v[2])
@@ -200,8 +197,7 @@ class GlPrimitive(GenericObject):
         agax=rot2AngleAxis(R)
         glTranslatef(p[0],p[1],p[2])
         glRotated(agax[0],agax[1],agax[2],agax[3])
-        # sphere = gluNewQuadric()
-        # gluSphere(sphere, 0.02, 10, 10)
+
         logger.debug("Caling glList {0} at ({1}, {2})".format(self.gl_list_ids[win],
                                                               p, agax))
         if MODERN_SHADER:
@@ -391,12 +387,12 @@ class Vbo(object):
         self.quad_idx_vboId  = -1
         self.poly_idx_vboIds  = []
 
-        self.verts = shape.geometry.coord
+        self.verts = shape.geometry.coord.point
 
         if not shape.geometry.normal.vector[:] or not shape.geometry.tri_idxs[:]:
             shape.geometry.compute_normals()
 
-        self.normal.vector = shape.geometry.normal.vector
+        self.normal = shape.geometry.normal.vector
         self.tri_idxs  = shape.geometry.tri_idxs
         self.quad_idxs = shape.geometry.quad_idxs
         self.poly_idxs = shape.geometry.poly_idxs
@@ -431,7 +427,7 @@ class Vbo(object):
         logger.debug("Populating VBO for normals: vboID %d"%self.nor_vboId)
         glBindBufferARB( GL_ARRAY_BUFFER_ARB,self.nor_vboId );
         glBufferDataARB( GL_ARRAY_BUFFER_ARB,
-                             numpy.array (self.normal.vector, dtype=numpy.float32),
+                             numpy.array (self.normal, dtype=numpy.float32),
                              GL_STATIC_DRAW_ARB );
         glBindBufferARB( GL_ARRAY_BUFFER_ARB,0 );
         logger.debug("Generated VBO for normals: vboID %d"%self.nor_vboId)
@@ -479,7 +475,7 @@ class Vbo(object):
         s+="quad_idx_vboId\t=%d\n"%self.quad_idx_vboId
 
         s+="len (_verts)\t=%d\n"%(len(self.verts))
-        s+="len (_norms)\t=%d\n"%(len(self.normal.vector))
+        s+="len (_norms)\t=%d\n"%(len(self.normal))
         s+="len (_idxs)\t=%d\n"%(len(self.tri_idxs))
         s+="]"
         return s
