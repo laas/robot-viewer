@@ -25,6 +25,8 @@ import kinematics
 import shape
 import vrml.standard_nodes as nodes
 from collections import defaultdict
+import camera
+
 class_map ={
     "Humanoid" : kinematics.Robot,
     "Group" : kinematics.GenericObject,
@@ -38,6 +40,7 @@ class_map ={
     "Appearance": nodes.Appearance,
     "Material": nodes.Material,
     "Normal": nodes.Normal,
+    "VisionSensor": camera.Camera,
     }
 
 ignored_classes = defaultdict(int)
@@ -141,7 +144,7 @@ def main():
     res = parse(args[0])
 
     for r in res:
-        #print r
+        print r
         continue
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 from parser import Node
 
-class NavigationInfo(Node):
+class NavigationInfo(object):
     def __init__(self):
         self.avatarSize = [0.25, 1.6000000000000001, 0.75] #MFFloat
         self.headlight = True #SFBool
@@ -8,7 +8,7 @@ class NavigationInfo(Node):
         self.type = 'WALK' #MFString
         self.visibilityLimit = 0.0 #SFFloat
 
-class FontStyle(Node):
+class FontStyle(object):
     def __init__(self):
         self.family = 'SERIF' #SFString
         self.horizontal = True #SFBool
@@ -20,24 +20,24 @@ class FontStyle(Node):
         self.style = 'PLAIN' #SFString
         self.topToBottom = True #SFBool
 
-class Group(Node):
+class Group(object):
     def __init__(self):
         self.bboxCenter = [0.0, 0.0, 0.0] #SFVec3f
         self.bboxSize = [-1.0, -1.0, -1.0] #SFVec3f
 
-class SphereSensor(Node):
+class SphereSensor(object):
     def __init__(self):
         self.autoOffset = True #SFBool
         self.enabled = True #SFBool
         self.offset = [0.0, 1.0, 0.0, 0.0] #SFRotation
 
-class LOD(Node):
+class LOD(object):
     def __init__(self):
         self.center = [0.0, 0.0, 0.0] #SFVec3f
         self.level = [] #MFNode
         self.range = [] #MFFloat
 
-class PlaneSensor(Node):
+class PlaneSensor(object):
     def __init__(self):
         self.autoOffset = True #SFBool
         self.enabled = True #SFBool
@@ -45,13 +45,13 @@ class PlaneSensor(Node):
         self.minPosition = [0.0, 0.0] #SFVec2f
         self.offset = [0.0, 0.0, 0.0] #SFVec3f
 
-class ImageTexture(Node):
+class ImageTexture(object):
     def __init__(self):
         self.repeatS = True #SFBool
         self.repeatT = True #SFBool
         self.url = [] #MFString
 
-class IndexedFaceSet(Node):
+class IndexedFaceSet(object):
     def __init__(self):
         self.ccw = True #SFBool
         self.color = None #SFNode
@@ -68,7 +68,7 @@ class IndexedFaceSet(Node):
         self.texCoord = None #SFNode
         self.texCoordIndex = [] #MFInt32
 
-class Transform(Node):
+class Transform(object):
     def __init__(self):
         self.bboxCenter = [0.0, 0.0, 0.0] #SFVec3f
         self.bboxSize = [-1.0, -1.0, -1.0] #SFVec3f
@@ -78,14 +78,14 @@ class Transform(Node):
         self.scaleOrientation = [0.0, 0.0, 1.0, 0.0] #SFRotation
         self.translation = [0.0, 0.0, 0.0] #SFVec3f
 
-class TextureTransform(Node):
+class TextureTransform(object):
     def __init__(self):
         self.center = [0.0, 0.0] #SFVec2f
         self.rotation = 0.0 #SFFloat
         self.scale = [1.0, 1.0] #SFVec2f
         self.translation = [0.0, 0.0] #SFVec2f
 
-class DirectionalLight(Node):
+class DirectionalLight(object):
     def __init__(self):
         self.ambientIntensity = 0.0 #SFFloat
         self.color = [1.0, 1.0, 1.0] #SFColor
@@ -93,17 +93,17 @@ class DirectionalLight(Node):
         self.intensity = 1.0 #SFFloat
         self.on = True #SFBool
 
-class PointSet(Node):
+class PointSet(object):
     def __init__(self):
         self.color = None #SFNode
         self.coord = None #SFNode
 
-class CoordinateInterpolator(Node):
+class CoordinateInterpolator(object):
     def __init__(self):
         self.key = [] #MFFloat
         self.keyValue = [] #MFVec3f
 
-class ElevationGrid(Node):
+class ElevationGrid(object):
     def __init__(self):
         self.ccw = True #SFBool
         self.color = None #SFNode
@@ -119,11 +119,11 @@ class ElevationGrid(Node):
         self.zDimension = 0 #SFInt32
         self.zSpacing = 0.0 #SFFloat
 
-class TextureCoordinate(Node):
+class TextureCoordinate(object):
     def __init__(self):
         self.point = [] #MFVec2f
 
-class MovieTexture(Node):
+class MovieTexture(object):
     def __init__(self):
         self.loop = False #SFBool
         self.repeatS = True #SFBool
@@ -133,7 +133,7 @@ class MovieTexture(Node):
         self.stopTime = 0.0 #SFTime
         self.url = [] #MFString
 
-class Sound(Node):
+class Sound(object):
     def __init__(self):
         self.direction = [0.0, 0.0, 1.0] #SFVec3f
         self.intensity = 1.0 #SFFloat
@@ -146,27 +146,27 @@ class Sound(Node):
         self.source = None #SFNode
         self.spatialize = True #SFBool
 
-class ScalarInterpolator(Node):
+class ScalarInterpolator(object):
     def __init__(self):
         self.key = [] #MFFloat
         self.keyValue = [] #MFFloat
 
-class OrientationInterpolator(Node):
+class OrientationInterpolator(object):
     def __init__(self):
         self.key = [] #MFFloat
         self.keyValue = [] #MFRotation
 
-class ColorInterpolator(Node):
+class ColorInterpolator(object):
     def __init__(self):
         self.key = [] #MFFloat
         self.keyValue = [] #MFColor
 
-class WorldInfo(Node):
+class WorldInfo(object):
     def __init__(self):
         self.info = [] #MFString
         self.title = '' #SFString
 
-class Viewpoint(Node):
+class Viewpoint(object):
     def __init__(self):
         self.description = '' #SFString
         self.fieldOfView = 0.78539800000000004 #SFFloat
@@ -174,11 +174,11 @@ class Viewpoint(Node):
         self.orientation = [0.0, 0.0, 1.0, 0.0] #SFRotation
         self.position = [0.0, 0.0, 10.0] #SFVec3f
 
-class Normal(Node):
+class Normal(object):
     def __init__(self):
         self.vector = [] #MFVec3f
 
-class Material(Node):
+class Material(object):
     def __init__(self):
         self.ambientIntensity = 0.20000000000000001 #SFFloat
         self.diffuseColor = [0.80000000000000004, 0.80000000000000004, 0.80000000000000004] #SFColor
@@ -187,12 +187,12 @@ class Material(Node):
         self.specularColor = [0.0, 0.0, 0.0] #SFColor
         self.transparency = 0.0 #SFFloat
 
-class PositionInterpolator(Node):
+class PositionInterpolator(object):
     def __init__(self):
         self.key = [] #MFFloat
         self.keyValue = [] #MFVec3f
 
-class Background(Node):
+class Background(object):
     def __init__(self):
         self.backUrl = [] #MFString
         self.bottomUrl = [] #MFString
@@ -205,22 +205,22 @@ class Background(Node):
         self.skyColor = [0.0, 0.0, 0.0] #MFColor
         self.topUrl = [] #MFString
 
-class NormalInterpolator(Node):
+class NormalInterpolator(object):
     def __init__(self):
         self.key = [] #MFFloat
         self.keyValue = [] #MFVec3f
 
-class Script(Node):
+class Script(object):
     def __init__(self):
         self.directOutput = False #SFBool
         self.mustEvaluate = False #SFBool
         self.url = [] #MFString
 
-class Box(Node):
+class Box(object):
     def __init__(self):
         self.size = [2.0, 2.0, 2.0] #SFVec3f
 
-class Extrusion(Node):
+class Extrusion(object):
     def __init__(self):
         self.beginCap = True #SFBool
         self.ccw = True #SFBool
@@ -233,7 +233,7 @@ class Extrusion(Node):
         self.solid = True #SFBool
         self.spine = [0.0, 0.0, 0.0, 0.0, 1.0, 0.0] #MFVec3f
 
-class TimeSensor(Node):
+class TimeSensor(object):
     def __init__(self):
         self.cycleInterval = 1.0 #SFTime
         self.enabled = True #SFBool
@@ -241,32 +241,32 @@ class TimeSensor(Node):
         self.startTime = 0.0 #SFTime
         self.stopTime = 0.0 #SFTime
 
-class Appearance(Node):
+class Appearance(object):
     def __init__(self):
         self.material = None #SFNode
         self.texture = None #SFNode
         self.textureTransform = None #SFNode
 
-class PixelTexture(Node):
+class PixelTexture(object):
     def __init__(self):
         self.image = [0.0, 0.0, 0.0] #SFImage
         self.repeatS = True #SFBool
         self.repeatT = True #SFBool
 
-class TouchSensor(Node):
+class TouchSensor(object):
     def __init__(self):
         self.enabled = True #SFBool
 
-class Switch(Node):
+class Switch(object):
     def __init__(self):
         self.choice = [] #MFNode
         self.whichChoice = -1 #SFInt32
 
-class Sphere(Node):
+class Sphere(object):
     def __init__(self):
         self.radius = 1.0 #SFFloat
 
-class PointLight(Node):
+class PointLight(object):
     def __init__(self):
         self.ambientIntensity = 0.0 #SFFloat
         self.attenuation = [1.0, 0.0, 0.0] #SFVec3f
@@ -276,23 +276,23 @@ class PointLight(Node):
         self.on = True #SFBool
         self.radius = 100.0 #SFFloat
 
-class ProximitySensor(Node):
+class ProximitySensor(object):
     def __init__(self):
         self.center = [0.0, 0.0, 0.0] #SFVec3f
         self.enabled = True #SFBool
         self.size = [0.0, 0.0, 0.0] #SFVec3f
 
-class Coordinate(Node):
+class Coordinate(object):
     def __init__(self):
         self.point = [] #MFVec3f
 
-class Inline(Node):
+class Inline(object):
     def __init__(self):
         self.bboxCenter = [0.0, 0.0, 0.0] #SFVec3f
         self.bboxSize = [-1.0, -1.0, -1.0] #SFVec3f
         self.url = [] #MFString
 
-class Anchor(Node):
+class Anchor(object):
     def __init__(self):
         self.bboxCenter = [0.0, 0.0, 0.0] #SFVec3f
         self.bboxSize = [-1.0, -1.0, -1.0] #SFVec3f
@@ -300,7 +300,7 @@ class Anchor(Node):
         self.parameter = [] #MFString
         self.url = [] #MFString
 
-class Cylinder(Node):
+class Cylinder(object):
     def __init__(self):
         self.bottom = True #SFBool
         self.height = 2.0 #SFFloat
@@ -308,17 +308,17 @@ class Cylinder(Node):
         self.side = True #SFBool
         self.top = True #SFBool
 
-class VisibilitySensor(Node):
+class VisibilitySensor(object):
     def __init__(self):
         self.center = [0.0, 0.0, 0.0] #SFVec3f
         self.enabled = True #SFBool
         self.size = [0.0, 0.0, 0.0] #SFVec3f
 
-class Color(Node):
+class Color(object):
     def __init__(self):
         self.color = [] #MFColor
 
-class IndexedLineSet(Node):
+class IndexedLineSet(object):
     def __init__(self):
         self.color = None #SFNode
         self.colorIndex = [] #MFInt32
@@ -326,7 +326,7 @@ class IndexedLineSet(Node):
         self.coord = None #SFNode
         self.coordIndex = [] #MFInt32
 
-class AudioClip(Node):
+class AudioClip(object):
     def __init__(self):
         self.description = '' #SFString
         self.loop = False #SFBool
@@ -335,32 +335,32 @@ class AudioClip(Node):
         self.stopTime = 0.0 #SFTime
         self.url = [] #MFString
 
-class Collision(Node):
+class Collision(object):
     def __init__(self):
         self.bboxCenter = [0.0, 0.0, 0.0] #SFVec3f
         self.bboxSize = [-1.0, -1.0, -1.0] #SFVec3f
         self.collide = True #SFBool
         self.proxy = None #SFNode
 
-class Shape(Node):
+class Shape(object):
     def __init__(self):
         self.appearance = None #SFNode
         self.geometry = None #SFNode
 
-class Fog(Node):
+class Fog(object):
     def __init__(self):
         self.color = [1.0, 1.0, 1.0] #SFColor
         self.fogType = 'LINEAR' #SFString
         self.visibilityRange = 0.0 #SFFloat
 
-class Cone(Node):
+class Cone(object):
     def __init__(self):
         self.bottom = True #SFBool
         self.bottomRadius = 1.0 #SFFloat
         self.height = 2.0 #SFFloat
         self.side = True #SFBool
 
-class CylinderSensor(Node):
+class CylinderSensor(object):
     def __init__(self):
         self.autoOffset = True #SFBool
         self.diskAngle = 0.26200000000000001 #SFFloat
@@ -369,20 +369,20 @@ class CylinderSensor(Node):
         self.minAngle = 0.0 #SFFloat
         self.offset = 0.0 #SFFloat
 
-class Text(Node):
+class Text(object):
     def __init__(self):
         self.fontStyle = None #SFNode
         self.length = [] #MFFloat
         self.maxExtent = 0.0 #SFFloat
         self.string = [] #MFString
 
-class Billboard(Node):
+class Billboard(object):
     def __init__(self):
         self.axisOfRotation = [0.0, 1.0, 0.0] #SFVec3f
         self.bboxCenter = [0.0, 0.0, 0.0] #SFVec3f
         self.bboxSize = [-1.0, -1.0, -1.0] #SFVec3f
 
-class SpotLight(Node):
+class SpotLight(object):
     def __init__(self):
         self.ambientIntensity = 0.0 #SFFloat
         self.attenuation = [1.0, 0.0, 0.0] #SFVec3f

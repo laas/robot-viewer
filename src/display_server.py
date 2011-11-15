@@ -180,7 +180,7 @@ class DisplayServer(KinematicServer):
         self.last_refreshed = {}
 
         self.modelAmbientLight = 0.01
-        self.lightAttenuation = 0.05
+        self.lightAttenuation = 0.01
         self.active_cameras = {}
         self.world_cameras = []
         KinematicServer.__init__(self, options, args)
@@ -887,7 +887,7 @@ class DisplayServer(KinematicServer):
         glEnable (GL_BLEND)
         glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        lightZeroPosition = [-3.0,3.0,3.0,1.0]
+        lightZeroPosition = [-30.0,30.0,30.0,1.0]
         lightZeroColor = [1.0,1.0,1.0,1.0] #green tinged
         glLightfv(GL_LIGHT0, GL_POSITION, lightZeroPosition)
         glLightfv(GL_LIGHT0, GL_DIFFUSE, lightZeroColor)

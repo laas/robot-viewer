@@ -27,7 +27,6 @@ from kinematics import Robot, GenericObject
 import traceback
 
 shaders = {}
-MODERN_SHADER = True
 
 import logging, os, sys
 logger = logging.getLogger("robotviewer.display_element")
@@ -40,6 +39,7 @@ class NullHandler(logging.Handler):
 
 SHOW_NORMALS = False
 USE_VBO = False
+MODERN_SHADER = True
 
 def ifenabled(meth):
     def new_meth(cls, *args, **kwargs):
@@ -99,39 +99,20 @@ class GlPrimitive(GenericObject):
         logger.debug("Generated new gllist for a shape {0}".format(new_list))
 
         app = self.shape.appearance
-        glNewList(new_list, GL_COMPILE);
+        glNewList(new_list, GL_COMPILE)
         # if not app.transparency:
         #     app.transparency = 0
         # elif type(app.transparency) == list:
         #     app.transparency = app.transparency[0]
+        #print app.material.diffuseColor
+        ambientColor = [app.material.ambientIntensity*app.material.diffuseColor[i] for i in range(3)]
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, app.material.diffuseColor + [1.])
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambientColor + [1.])
+        glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, 5)
+        glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, app.material.emissiveColor + [1.] )
+        glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, app.material.specularColor + [1.] )
+        #glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, app.material.emissionColor)
 
-        if not app.material.specularColor:
-            app.material.specularColor = [1, 1, 1]
-
-
-        for (key, value) in [ (GL_SPECULAR,app.material.specularColor),
-                              (GL_EMISSION,app.material.emissiveColor ),
-                              (GL_AMBIENT_AND_DIFFUSE,app.material.diffuseColor ),
-                              # (GL_AMBIENT,app.material.ambientColor ),
-                              (GL_SHININESS,app.material.shininess),
-                              # (GL_TRANSPARENCY,app.material.transparency)
-                              ]:
-            if value:
-                try:
-                    if key != GL_SHININESS:
-                        glMaterialfv(GL_FRONT_AND_BACK, key, value +
-                                     [1-app.material.transparency])
-                    else:
-                        glMaterialfv(GL_FRONT_AND_BACK, key, value)
-                except:
-                    logger.exception("Failed to set material key={0}, value={1}".
-                                     format(key,value))
-            else:
-                joint_name = "None"
-                if self.shape.get_parent_joint():
-                    joint_name = self.shape.get_parent_joint().name
-                logger.debug("Self.Shape %s of joint %s: Missing %s in material"
-                               %(self.shape.name, joint_name, key.name))
         if not USE_VBO:
             geometry = self.shape.geometry
             logger.debug("Generating glList for {0}".format(geometry))
@@ -198,8 +179,8 @@ class GlPrimitive(GenericObject):
         glTranslatef(p[0],p[1],p[2])
         glRotated(agax[0],agax[1],agax[2],agax[3])
 
-        logger.debug("Caling glList {0} at ({1}, {2})".format(self.gl_list_ids[win],
-                                                              p, agax))
+        # logger.debug("Caling glList {0} at ({1}, {2})".format(self.gl_list_ids[win],
+        #                                                       p, agax))
         if MODERN_SHADER:
             if self.shape:
                 app = self.shape.appearance
@@ -217,7 +198,6 @@ class GlPrimitive(GenericObject):
                 # if app.material.ambientColor:
                 #     shaders[glutGetWindow()].uMaterialAmbientColor = app.material.ambientColor
             glCallList(self.gl_list_ids[win])
-
         else:
             glCallList(self.gl_list_ids[win])
 

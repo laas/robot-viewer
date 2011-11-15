@@ -436,7 +436,7 @@ class VrmlParser(Parser):
             attrs = [(key, getattr(obj, key)) for key in dir(obj)
                      if not ( key.startswith("_") or callable(getattr(obj, key))
                               or key == "children")]
-            code += "class {0}({1}):\n".format(name, prototype.__bases__[0].__name__)
+            code += "class {0}({1}):\n".format(name, "object")#prototype.__bases__[0].__name__)
             #print obj, dir(obj), "\n---\n", obj._ftypes, "\n---\n",attrs
             code += "    def __init__(self):\n"
             for key, value in attrs:
