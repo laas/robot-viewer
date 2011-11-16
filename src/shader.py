@@ -47,6 +47,7 @@ class Shader(object):
         """
         """
         self.program = program
+        self.locations = {}
         self.created = True
 
     def __setattr__(self, name, value):
@@ -54,7 +55,9 @@ class Shader(object):
             object.__setattr__(self, name, value)
             return
 
-        location = glGetUniformLocation(self.program, name)
+        if not self.locations.has_key(name):
+            self.locations[name] = glGetUniformLocation(self.program, name)
+        location = self.locations[name]
 
         if isinstance(value, int):
             glUniform1i(location, value)
