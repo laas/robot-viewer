@@ -204,9 +204,7 @@ class GenericObject(object):
         else:
             self.globalTransformation=numpy.dot\
                 (self.parent.globalTransformation,self.localTransformation)
-            self._R_axis_angle = mathaux.rot2AxisAngle(self.globalTransformation)
 
-        self._R_axis_angle = mathaux.rot2AxisAngle(self.globalTransformation)
         return
 
 

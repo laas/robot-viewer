@@ -28,7 +28,7 @@ import vrml.standard_nodes as nodes
 import numpy.linalg, numpy
 import transformations as tf
 import math
-
+import mathaux
 
 shaders = {}
 
@@ -141,7 +141,7 @@ class GlPrimitive(GenericObject):
 
         # angle, direction, point = tf.rotation_from_matrix(self.globalTransformation)
         # glRotated(angle*180./math.pi, direction[0], direction[1], direction[2])
-        ag = self._R_axis_angle
+        ag = mathaux.rot2AxisAngle(self.globalTransformation)
         glRotated(ag[3]*180./math.pi,*(ag[:3]))
 
         # logger.debug("Caling glList {0} at ({1}, {2})".format(self.gl_list_ids[win],
