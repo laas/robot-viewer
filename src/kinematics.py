@@ -475,6 +475,11 @@ class Robot(Joint):
         self.update_moving_joint_list()
 
         for shape in self.shape_list:
+            if not shape.appearance:
+                shape.appearance = nodes.Appearance()
+            if not shape.appearance.material:
+                shape.appearance.material = nodes.Material()
+
             shape.appearance.material.transparency = 0
 
 

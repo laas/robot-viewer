@@ -92,17 +92,11 @@ void main(void) {
   }
 
   vec4 Idiff =  vec4(materialDiffuseColor * diffuseLightWeighting, alpha) ;
-  Idiff = clamp(Idiff, 0.0, 0.75);
+  //Idiff = clamp(Idiff, 0.0, 0.75);
   vec4 Ispec = vec4(materialSpecularColor * specularLightWeighting, alpha);
   Ispec = clamp(Ispec, 0.0, 0.17);
-
-  gl_FragColor = ( vec4(
-                        materialAmbientColor * ambientLightWeighting
-                        + materialEmissiveColor,
-                        alpha
-                        )
-                   + Idiff
-                   + Ispec
-                   + gl_Color
-                   );
+  vec4 Iamb = vec4(materialAmbientColor * ambientLightWeighting, 0.);
+  vec4 Iemis = vec4(materialEmissiveColor, alpha);
+  gl_FragColor = ( Iamb + Idiff + Iemis + Ispec + gl_Color );
+  gl_FragColor = clamp(gl_FragColor, 0.0, 1.);
 }

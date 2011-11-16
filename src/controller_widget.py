@@ -63,4 +63,5 @@ class ControllerWidget(RangeWidgets):
         pos = [adj.value*math.pi/180 for adj in self.adjustments]
         for i in range(3):
             pos[i] *= 180/math.pi
-        self.clt.updateElementConfig(self.objname, pos)
+        if self.objname == "hrp":
+            self.clt.updateElementConfig(self.objname, pos)

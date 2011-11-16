@@ -414,6 +414,7 @@ class VrmlParser(Parser):
     def parse_file(self, fname):
         path = os.path.abspath(os.path.dirname(fname))
         self.root_path = path
+        logger.info("Parsing "+fname)
         return self.parse(open(fname).read())[1]
 
     def parse(self, *args, **kwargs):
@@ -426,7 +427,7 @@ class VrmlParser(Parser):
         for e in l:
             if e.__class__.__name__ == "Inline":
                 url = os.path.join(self.root_path, e.url)
-                logger.debug("Parse inlined vrml {0}".format(url))
+                logger.info("Parse inlined vrml {0}".format(url))
                 e.children = Parser.parse(self, open(url).read())[1]
                 for child in e.children:
                     child._parent = e

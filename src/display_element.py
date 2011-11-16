@@ -145,6 +145,7 @@ class GlPrimitive(GenericObject):
         # logger.debug("Caling glList {0} at ({1}, {2})".format(self.gl_list_ids[win],
         #                                                       p, agax))
         if MODERN_SHADER:
+            glColor3f(0., 0., 0.)
             if self.shape:
                 app = self.shape.appearance
                 if not app:

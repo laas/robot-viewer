@@ -127,7 +127,7 @@ class GlWindow(object):
             self.active_camera += 1
         glutReshapeWindow(self.camera.width, self.camera.height)
         self.camera.update_perspective()
-        logger.info("Change camera to %d %s.\n%s"%(self.active_camera,
+        logger.debug("Change camera to %d %s.\n%s"%(self.active_camera,
                                                    self.camera.name,
                                                    self.camera))
 
