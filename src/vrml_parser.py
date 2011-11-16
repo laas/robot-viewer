@@ -35,12 +35,14 @@ class_map ={
     "Inline": kinematics.GenericObject,
     "Transform": kinematics.GenericObject,
     "Shape": kinematics.Shape,
-    "IndexedFaceSet" : geometry.IndexedFaceSet,
     "Coordinate": nodes.Coordinate,
     "Appearance": nodes.Appearance,
     "Material": nodes.Material,
     "Normal": nodes.Normal,
+    "Color": nodes.Color,
     "VisionSensor": camera.Camera,
+    "IndexedFaceSet" : geometry.IndexedFaceSet,
+    "ElevationGrid" : geometry.ElevationGrid,
     }
 
 ignored_classes = defaultdict(int)

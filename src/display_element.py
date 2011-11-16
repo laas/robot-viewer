@@ -25,6 +25,7 @@ from mathaux import *
 from safeeval import safe_eval
 from kinematics import Robot, GenericObject
 import traceback
+import vrml.standard_nodes as nodes
 
 shaders = {}
 
@@ -99,12 +100,16 @@ class GlPrimitive(GenericObject):
         logger.debug("Generated new gllist for a shape {0}".format(new_list))
 
         app = self.shape.appearance
+        if not app:
+            app = nodes.Appearance()
         glNewList(new_list, GL_COMPILE)
         # if not app.transparency:
         #     app.transparency = 0
         # elif type(app.transparency) == list:
         #     app.transparency = app.transparency[0]
         #print app.material.diffuseColor
+        if not app.material:
+            app.material = nodes.Material()
         ambientColor = [app.material.ambientIntensity*app.material.diffuseColor[i]
                         for i in range(3)]
         glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE,
@@ -142,6 +147,10 @@ class GlPrimitive(GenericObject):
         if MODERN_SHADER:
             if self.shape:
                 app = self.shape.appearance
+                if not app:
+                    app = nodes.Appearance()
+                if not app.material:
+                    app.material = nodes.Material()
                 # print app.material.specularColor, app.material.emissiveColor, app.material.diffuseColor
                 if app.material.specularColor:
                     shaders[glutGetWindow()].uMaterialSpecularColor = app.material.specularColor

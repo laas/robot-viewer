@@ -96,12 +96,13 @@ void main(void) {
   vec4 Ispec = vec4(materialSpecularColor * specularLightWeighting, alpha);
   Ispec = clamp(Ispec, 0.0, 0.17);
 
-  gl_FragColor = vec4(
-                      materialAmbientColor * ambientLightWeighting
-                      + materialEmissiveColor,
-                      alpha
-                      )
-                      + Idiff
-                      + Ispec ;
-
+  gl_FragColor = ( vec4(
+                        materialAmbientColor * ambientLightWeighting
+                        + materialEmissiveColor,
+                        alpha
+                        )
+                   + Idiff
+                   + Ispec
+                   + gl_Color
+                   );
 }

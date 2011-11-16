@@ -43,8 +43,39 @@ SHOW_NORMALS = False
 logger = logging.getLogger("robotviewer.shape")
 logger.addHandler(NullHandler())
 
+class ElevationGrid(nodes.ElevationGrid):
+    def init(self):
+        pass
+
+
+    def render(self, scale):
+        Xs = [self.xSpacing*i*scale[0] for i in range(self.xDimension)]
+        Zs = [self.zSpacing*i*scale[2] for i in range(self.zDimension)]
+        for i in range(self.xDimension - 1):
+            for j in range(self.zDimension -1):
+                A = Xs[i], 0, Zs[j]
+                B = Xs[i], 0, Zs[j+1]
+                C = Xs[i+1], 0, Zs[j+1]
+                D = Xs[i+1], 0, Zs[j]
+
+                count = i*(self.xDimension-1) + j
+                color =  self.color.color[3*count:3*count+3]
+                glColor3f(color[0], color[1], color[2])
+                glBegin(GL_QUADS)
+                glNormal3f(0,1,0)
+                glVertex3f(A[0], A[1], A[2])
+                glNormal3f(0,1,0)
+                glVertex3f(B[0], B[1], B[2])
+                glNormal3f(0,1,0)
+                glVertex3f(C[0], C[1], C[2])
+                glNormal3f(0,1,0)
+                glVertex3f(D[0], D[1], D[2])
+                glEnd()
+
+
 class IndexedFaceSet(nodes.IndexedFaceSet):
     def __init__(self):
+        nodes.IndexedFaceSet.__init__(self)
         self.coord = None
         self.coordIndex = []
         self.tri_idxs  = []
@@ -71,6 +102,9 @@ class IndexedFaceSet(nodes.IndexedFaceSet):
     #         self.coord.point[3*i]   *= scale_x
     #         self.coord.point[3*i+1] *= scale_y
     #         self.coord.point[3*i+2] *= scale_z
+
+    def init(self):
+        self.compute_normals()
 
     def render(self, scale):
         logger.debug("Generating glList for {0}".format(self))

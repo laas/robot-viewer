@@ -467,9 +467,9 @@ class DisplayServer(KinematicServer):
                     for obj in objs:
                         group.add_child(obj)
                         group.init()
-                new_object = group
                 if scale:
-                    group.scale(scale)
+                    group.scale = scale
+                new_object = group
                 new_element = DisplayObject(group)
             else:
                 logger.debug("Creating element from raw script")

@@ -24,6 +24,8 @@ from collections import deque
 import logging, uuid
 import __builtin__
 import traceback
+import vrml.standard_nodes as nodes
+
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass
@@ -479,13 +481,12 @@ class Robot(Joint):
         if not self.shape_list[:]:
             logger.warning("Robot contains 0 shape.")
 
-class Shape(GenericObject):
-    appearance = None
-    children = []
-    depth = 0
-    geometry = None
+class Shape(GenericObject, nodes.Shape):
     def __init__(self):
+        nodes.Shape.__init__(self)
         GenericObject.__init__(self)
+        self.appearance = nodes.Appearance()
+        self.appearance.mateiral = nodes.Material()
         self.name=None
         self.localR1=numpy.eye(3)  # due to offset of coordonee
 
@@ -493,7 +494,7 @@ class Shape(GenericObject):
     def init(self):
         GenericObject.init(self)
         logger.debug("Computing normal for Shape {0}".format(id(self)))
-        self.geometry.compute_normals()
+        self.geometry.init()
 
 
     # def scale(self, scale_vec):
