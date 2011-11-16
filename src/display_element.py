@@ -105,8 +105,10 @@ class GlPrimitive(GenericObject):
         # elif type(app.transparency) == list:
         #     app.transparency = app.transparency[0]
         #print app.material.diffuseColor
-        ambientColor = [app.material.ambientIntensity*app.material.diffuseColor[i] for i in range(3)]
-        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, app.material.diffuseColor + [1.])
+        ambientColor = [app.material.ambientIntensity*app.material.diffuseColor[i]
+                        for i in range(3)]
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE,
+                     app.material.diffuseColor + [1.])
         glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambientColor + [1.])
         glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, 5)
         glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, app.material.emissiveColor + [1.] )
@@ -114,52 +116,8 @@ class GlPrimitive(GenericObject):
         #glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, app.material.emissionColor)
 
         if not USE_VBO:
-            geometry = self.shape.geometry
-            logger.debug("Generating glList for {0}".format(geometry))
-
-            if not geometry.tri_idxs[:] or not geometry.normal or not geometry.normal.vector:
-                geometry.compute_normals()
-            scale = self.shape.cumul_scale()
-
-            glBegin(GL_TRIANGLES)
-            for i in geometry.tri_idxs:
-                n = [ geometry.normal.vector[i][0],
-                      geometry.normal.vector[i][1],
-                      geometry.normal.vector[i][2],
-                      ]
-                v =  [ geometry.coord.point[3*i],
-                       geometry.coord.point[3*i+1],
-                       geometry.coord.point[3*i+2],
-                       ]
-
-                v[0] *= scale[0]
-                v[1] *= scale[1]
-                v[2] *= scale[2]
-
-                logger.debug("object  {0}: {1} {2}".format(id(geometry), v, n))
-                glNormal3f( n[0], n[1], n[2])
-                glVertex3f( v[0], v[1], v[2])
-            glEnd()
-
-            if SHOW_NORMALS:
-                glBegin(GL_LINES)
-                for i in geometry.tri_idxs:
-                    n = [ geometry.normal.vector[i][0],
-                          geometry.normal.vector[i][1],
-                          geometry.normal.vector[i][2],
-                          ]
-
-                    v =  [ geometry.coord.point[3*i],
-                           geometry.coord.point[3*i+1],
-                           geometry.coord.point[3*i+2],
-                           ]
-
-                    glVertex3f(v[0], v[1], v[2])
-                    glVertex3f(v[0] + 0.01*n[0],
-                               v[1] + 0.01*n[1],
-                               v[2] + 0.01*n[2],
-                               )
-                glEnd()
+            scale = self.cumul_scale()
+            self.shape.geometry.render(scale)
 
         glEndList();
         return new_list

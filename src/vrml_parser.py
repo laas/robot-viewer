@@ -22,7 +22,7 @@ import vrml.parser
 import logging, sys
 logger = logging.getLogger("robotviewer.vrml_parser")
 import kinematics
-import shape
+import geometry
 import vrml.standard_nodes as nodes
 from collections import defaultdict
 import camera
@@ -35,7 +35,7 @@ class_map ={
     "Inline": kinematics.GenericObject,
     "Transform": kinematics.GenericObject,
     "Shape": kinematics.Shape,
-    "IndexedFaceSet" : shape.IndexedFaceSet,
+    "IndexedFaceSet" : geometry.IndexedFaceSet,
     "Coordinate": nodes.Coordinate,
     "Appearance": nodes.Appearance,
     "Material": nodes.Material,

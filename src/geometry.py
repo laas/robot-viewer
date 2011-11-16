@@ -26,11 +26,20 @@ import __builtin__
 import traceback
 import vrml.parser
 import vrml.standard_nodes as nodes
+import OpenGL
+# OpenGL.FORWARD_COMPATIBLE_ONLY = True
+from OpenGL.GL import *
+from OpenGL.GLUT import *
+from OpenGL.GLU import *
+from OpenGL.GL.ARB.vertex_buffer_object import *
+
+
 
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass
 
+SHOW_NORMALS = False
 logger = logging.getLogger("robotviewer.shape")
 logger.addHandler(NullHandler())
 
@@ -62,6 +71,53 @@ class IndexedFaceSet(nodes.IndexedFaceSet):
     #         self.coord.point[3*i]   *= scale_x
     #         self.coord.point[3*i+1] *= scale_y
     #         self.coord.point[3*i+2] *= scale_z
+
+    def render(self, scale):
+        logger.debug("Generating glList for {0}".format(self))
+
+        if not (self.tri_idxs[:] and self.normal
+            and self.normal.vector):
+            self.compute_normals()
+
+        glBegin(GL_TRIANGLES)
+        for i in self.tri_idxs:
+            n = [ self.normal.vector[i][0],
+                  self.normal.vector[i][1],
+                  self.normal.vector[i][2],
+                  ]
+            v =  [ self.coord.point[3*i],
+                   self.coord.point[3*i+1],
+                   self.coord.point[3*i+2],
+                   ]
+
+            v[0] *= scale[0]
+            v[1] *= scale[1]
+            v[2] *= scale[2]
+
+            logger.debug("object  {0}: {1} {2}".format(id(self), v, n))
+            glNormal3f( n[0], n[1], n[2])
+            glVertex3f( v[0], v[1], v[2])
+        glEnd()
+
+        if SHOW_NORMALS:
+            glBegin(GL_LINES)
+            for i in self.tri_idxs:
+                n = [ self.normal.vector[i][0],
+                      self.normal.vector[i][1],
+                      self.normal.vector[i][2],
+                      ]
+
+                v =  [ self.coord.point[3*i],
+                       self.coord.point[3*i+1],
+                       self.coord.point[3*i+2],
+                       ]
+
+                glVertex3f(v[0], v[1], v[2])
+                glVertex3f(v[0] + 0.01*n[0],
+                           v[1] + 0.01*n[1],
+                           v[2] + 0.01*n[2],
+                           )
+            glEnd()
 
 
     def compute_normals(self):
