@@ -43,6 +43,7 @@ class_map ={
     "VisionSensor": camera.Camera,
     "IndexedFaceSet" : geometry.IndexedFaceSet,
     "ElevationGrid" : geometry.ElevationGrid,
+    "Box" : geometry.Box,
     }
 
 ignored_classes = defaultdict(int)

@@ -1,0 +1,6 @@
+#VRML V2.0 utf8
+#A simple box (was called cube in VRML I)
+
+Shape {
+        geometry Box {}
+}

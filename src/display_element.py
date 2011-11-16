@@ -154,19 +154,9 @@ class GlPrimitive(GenericObject):
                     app = nodes.Appearance()
                 if not app.material:
                     app.material = nodes.Material()
-                # print app.material.specularColor, app.material.emissiveColor, app.material.diffuseColor
-                if app.material.specularColor:
-                    shaders[glutGetWindow()].uMaterialSpecularColor = app.material.specularColor
-                    # shaders[glutGetWindow()].uMaterialSpecularColor = [0.9, 0.9, 0.9]
-
-                if app.material.emissiveColor:
-                    shaders[glutGetWindow()].uMaterialEmissiveColor = app.material.emissiveColor
-                    # shaders[glutGetWindow()].uMaterialEmissiveColor = [0.0, 0.9, 0.5]
-                if app.material.diffuseColor:
-                    shaders[glutGetWindow()].uMaterialDiffuseColor = app.material.diffuseColor
-
-                # if app.material.ambientColor:
-                #     shaders[glutGetWindow()].uMaterialAmbientColor = app.material.ambientColor
+                shaders[glutGetWindow()].uMaterialSpecularColor = app.material.specularColor
+                shaders[glutGetWindow()].uMaterialEmissiveColor = app.material.emissiveColor
+                shaders[glutGetWindow()].uMaterialDiffuseColor = app.material.diffuseColor
             glCallList(self.gl_list_ids[win])
         else:
             glCallList(self.gl_list_ids[win])

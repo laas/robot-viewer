@@ -31,6 +31,7 @@ from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from OpenGL.GL.ARB.vertex_buffer_object import *
+from abc import ABCMeta, abstractmethod
 
 class NullHandler(logging.Handler):
     def emit(self, record):
@@ -40,37 +41,104 @@ SHOW_NORMALS = False
 logger = logging.getLogger("robotviewer.shape")
 logger.addHandler(NullHandler())
 
-class ElevationGrid(nodes.ElevationGrid):
-    def init(self):
-        pass
 
+# description of the ccw, solid, and creaseAngle fields are ignored for all nodes
+class Geometry(object):
+    __metaclass__ = ABCMeta
 
+    @abstractmethod
     def render(self, scale):
+        return
+
+    def init(self):
+        return
+
+class Box(nodes.Box, Geometry):
+    def render(self, scale = 3*[1.0]):
+        sizex = self.size[0]*scale[0]
+        sizey = self.size[1]*scale[1]
+        sizez = self.size[2]*scale[2]
+        count = 0
+        v = []
+        for x in [1, -1]:
+            for y in [1, -1]:
+                for z in [1, -1]:
+                    v.append([x*sizex,y*sizey,z*sizez])
+        v0 = v[0]
+        v1 = v[1]
+        v2 = v[2]
+        v3 = v[3]
+        v4 = v[4]
+        v5 = v[5]
+        v6 = v[6]
+        v7 = v[7]
+        glBegin(GL_QUADS)
+        glNormal3f(1,0,0)
+        glVertex3fv(v0)    # front face
+        glVertex3fv(v2)
+        glVertex3fv(v3)
+        glVertex3fv(v1)
+
+        glNormal3f(0,1,0)
+        glVertex3fv(v0)    # right face
+        glVertex3fv(v1)
+        glVertex3fv(v5)
+        glVertex3fv(v4)
+
+        glNormal3f(0,0,1)
+        glVertex3fv(v0)    # up face
+        glVertex3fv(v4)
+        glVertex3fv(v6)
+        glVertex3fv(v2)
+
+        glNormal3f(-1,0,0)
+        glVertex3fv(v4)    # back face
+        glVertex3fv(v5)
+        glVertex3fv(v7)
+        glVertex3fv(v6)
+
+        glNormal3f(0,-1,0)
+        glVertex3fv(v2)    # left face
+        glVertex3fv(v6)
+        glVertex3fv(v7)
+        glVertex3fv(v3)
+
+        glNormal3f(0,0,-1)
+        glVertex3fv(v1)    # down face
+        glVertex3fv(v3)
+        glVertex3fv(v7)
+        glVertex3fv(v5)
+
+
+        glEnd()
+
+
+
+class ElevationGrid(nodes.ElevationGrid, Geometry):
+    def render(self, scale = 3*[1.]):
         Xs = [self.xSpacing*i*scale[0] for i in range(self.xDimension)]
         Zs = [self.zSpacing*i*scale[2] for i in range(self.zDimension)]
         for i in range(self.xDimension - 1):
             for j in range(self.zDimension -1):
-                A = Xs[i], 0, Zs[j]
-                B = Xs[i], 0, Zs[j+1]
-                C = Xs[i+1], 0, Zs[j+1]
-                D = Xs[i+1], 0, Zs[j]
+                A = Xs[i],   self.height[i   + (j)  *self.zDimension], Zs[j]
+                B = Xs[i],   self.height[i   + (j+1)*self.zDimension], Zs[j+1]
+                C = Xs[i+1], self.height[i+1 + (j+1)*self.zDimension], Zs[j+1]
+                D = Xs[i+1], self.height[i+1 + (j)  *self.zDimension], Zs[j]
 
-                count = i*(self.xDimension-1) + j
+                count = i + j*(self.zDimension-1)
                 color =  self.color.color[3*count:3*count+3]
+
                 glColor3f(color[0], color[1], color[2])
                 glBegin(GL_QUADS)
                 glNormal3f(0,1,0)
                 glVertex3f(A[0], A[1], A[2])
-                glNormal3f(0,1,0)
                 glVertex3f(B[0], B[1], B[2])
-                glNormal3f(0,1,0)
                 glVertex3f(C[0], C[1], C[2])
-                glNormal3f(0,1,0)
                 glVertex3f(D[0], D[1], D[2])
                 glEnd()
 
 
-class IndexedFaceSet(nodes.IndexedFaceSet):
+class IndexedFaceSet(nodes.IndexedFaceSet, Geometry):
     def __init__(self):
         nodes.IndexedFaceSet.__init__(self)
         self.coord = None
@@ -103,7 +171,7 @@ class IndexedFaceSet(nodes.IndexedFaceSet):
     def init(self):
         self.compute_normals()
 
-    def render(self, scale):
+    def render(self, scale = 3*[1.]):
         logger.debug("Generating glList for {0}".format(self))
 
         if not (self.tri_idxs[:] and self.normal
