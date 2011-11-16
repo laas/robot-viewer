@@ -26,7 +26,7 @@ import collections
 import math
 import distutils.version
 import numpy
-from mathaux import *
+import mathaux
 import version
 import copy
 import camera
@@ -51,6 +51,7 @@ class KinematicServer(object):
     config_dir = os.environ['HOME']+'/.robotviewer/'
     config_file = os.path.join(config_dir,"config")
     global_configs = {}
+
     def __init__(self, options = {}, args = []):
         self.pendingObjects = []
         self.kinematic_elements = {}

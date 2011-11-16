@@ -16,10 +16,11 @@
 from __future__ import division
 import kinematics
 from math import sqrt,sin,cos,atan2, pi, atan, tan
-import numpy
-from mathaux import *
+import numpy, numpy.linalg
+import transformations as tf
 import copy
 import alias
+
 def norm(a):
     return sqrt(numpy.dot(a,a))
 
@@ -36,9 +37,6 @@ try:
     from OpenGL.GLU import *
 except:
     logger.exception("Could not import OpenGL modules.")
-
-def normalized(v):
-    return v/norm(v)
 
 OVERHEAD_THRESHOLD = 1 - 1e-3
 
@@ -128,12 +126,13 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
 
     def __init__(self):
         kinematics.GenericObject.__init__(self)
-        self.localR = numpy.array([ [ 0 , 0 , 1],
-                                    [ 1 , 0 , 0],
-                                    [ 0 , 1 , 0],
-                                    ]
+        self.localTransformation[:3,:3] = numpy.array([ [ 0 , 0 , 1],
+                                                        [ 1 , 0 , 0],
+                                                        [ 0 , 1 , 0],
+                                                        ]
                                   )
-        self.rotation = rot2AxisAngle(self.localR)
+        angle, direction, point = tf.rotation_from_matrix(self.localTransformation)
+        self.rotation = list(direction) + [angle]
         self.moved = True
         self.lookat = None
         self.init()
@@ -163,7 +162,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         dup    = dy*factor
         dright = dx*factor*abs(self.cam_up[2])
 
-        if (abs(normalized(self.cam_ray)[2] ) > OVERHEAD_THRESHOLD
+        if ((abs(self.cam_ray/numpy.linalg.norm(self.cam_ray))[2] ) > OVERHEAD_THRESHOLD
             and dup*self.cam_ray[2] > 0 ):
             dup = 0
 
@@ -171,15 +170,17 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         new_pos = self.lookat + new_z*self.focal
 
         # trans = new_pos - self.cam_position
-        new_x = - normalized(numpy.cross(new_z, numpy.array([0,0,1])))
+        v = (numpy.cross(new_z, numpy.array([0,0,1])))
+        v = v/numpy.linalg.norm(v)
+        new_x = - v
         new_y = numpy.cross(new_z, new_x)
-        new_R = numpy.eye(3)
+        new_R = numpy.eye(4)
 
-        new_R[:,0] =  new_x
-        new_R[:,1] =  new_y
-        new_R[:,2] =  new_z
+        new_R[:3,0] =  new_x
+        new_R[:3,1] =  new_y
+        new_R[:3,2] =  new_z
 
-        rpy = rot2rpy(new_R[:3,:3])
+        rpy = tf.euler_from_matrix(new_R)
         config = self.get_config()
         config[0] = new_pos[0]
         config[1] = new_pos[1]
@@ -189,8 +190,8 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         #config[5] = rpy[2]
 
         self.translation  = new_pos
+        self.localTransformation = new_R
         self.localTransformation[:3,3] = new_pos
-        self.localTransformation[:3,:3] = new_R
 
         #self.update()
         #print self.globalTransformation

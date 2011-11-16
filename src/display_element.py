@@ -21,11 +21,14 @@ from OpenGL.GLU import *
 from OpenGL.GL.ARB.vertex_buffer_object import *
 import numpy, time
 import kinematics
-from mathaux import *
 from safeeval import safe_eval
 from kinematics import Robot, GenericObject
 import traceback
 import vrml.standard_nodes as nodes
+import numpy.linalg, numpy
+import transformations as tf
+import math
+
 
 shaders = {}
 
@@ -76,7 +79,6 @@ class GlPrimitive(GenericObject):
             self.gl_list_ids = gl_list_ids
         if vbos:
             self.vbos = vbos
-        self.init()
 
     def set_transparency(self, transparency):
         pass
@@ -135,12 +137,12 @@ class GlPrimitive(GenericObject):
 
         glPushMatrix()
 
-        Tmatrix = self.globalTransformation
-        R=Tmatrix[0:3,0:3]
-        p=Tmatrix[0:3,3]
-        agax=rot2AngleAxis(R)
-        glTranslatef(p[0],p[1],p[2])
-        glRotated(agax[0],agax[1],agax[2],agax[3])
+        glTranslatef(*self.globalTransformation[:3,3])
+
+        # angle, direction, point = tf.rotation_from_matrix(self.globalTransformation)
+        # glRotated(angle*180./math.pi, direction[0], direction[1], direction[2])
+        ag = self._R_axis_angle
+        glRotated(ag[3]*180./math.pi,*(ag[:3]))
 
         # logger.debug("Caling glList {0} at ({1}, {2})".format(self.gl_list_ids[win],
         #                                                       p, agax))
@@ -491,8 +493,8 @@ def draw_cylinder(p1, p2, size=1, color = [0,1,0,1]):
 
     r = 0.01*size/4
     p = p2-p1
-    n_p = normalized(p)
-    h = norm(p)
+    h = numpy.linalg.norm(p)
+    n_p = p/h
     z_axis = numpy.array([0,0,1])
     axis = numpy.cross(z_axis, n_p)
     angle = acos(numpy.dot(z_axis, n_p))*180/pi

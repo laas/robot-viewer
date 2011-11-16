@@ -30,7 +30,6 @@ import kinematics
 import numpy
 import numpy.linalg
 import vrml_parser
-from mathaux import *
 import os, logging
 import ml_parser
 import copy

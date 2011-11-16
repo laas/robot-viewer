@@ -19,13 +19,14 @@ import numpy
 import numpy.linalg
 import re
 from math import sin,cos,isnan, pi
-from mathaux import *
+import transformations as tf
 from collections import deque
 import logging, uuid
 import __builtin__
 import traceback
 import vrml.standard_nodes as nodes
 
+import mathaux
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass
@@ -53,18 +54,18 @@ class GenericObject(object):
         self.type="GenericObject"
         self.name=None
         self.jointType=""
-        self.translation=[0,0,0]
+        self.translation = [0,0,0]
         self.rpy=[0,0,0]
-        self.rotation=[1,0,0,0]
+        self.rotation = [1,0,0,0]
         self.center=[0,0,0]
         self.parent=None
         self.children=[]
-        self.localTransformation = None
-        self.globalTransformation = None
-        self.localR=numpy.eye(3)
+        self.localTransformation = numpy.identity(4)
+        self.globalTransformation = numpy.identity(4)
         self.list_by_type = {}
         self.uuid = str(uuid.uuid1())
         self.scale = [1., 1., 1.]
+        self._R_axis_angle = [1., 0., 0., 0.]
 
     def cumul_scale(self):
         if not self.parent:
@@ -101,20 +102,19 @@ class GenericObject(object):
 
     def update_config(self,config):
         self.count += 1
-        if self.name == "CAMERA_RL":
-            print self.count, self.name, self.rpy
         self.translation = config[:3]
         self.rpy = config[3:6]
-        self.rotation = euleur2AxisAngle(self.rpy)
+        rot_mat = tf.euler_matrix(self.rpy[0], self.rpy[1], self.rpy[2])
+        angle, direction, point = tf.rotation_from_matrix(rot_mat)
+        self.rotation = [ direction[0],direction[1],direction[2], angle ]
         self.init_local_transformation()
         self.update()
-        if self.name == "CAMERA_RL":
-            print self.count, self.name, self.rpy
 
     def get_config(self):
         if type(self) not in [Robot, GenericObject]:
-            return self.translation + self.rpy
-        return self.translation + rot2rpy(self.globalTransformation)
+            return self.translation + list(self.rpy)
+        rpy = tf.euler_from_matrix(self.globalTransformation)
+        return self.translation + list(rpy)
 
     def __str__(self):
         s= "%s \t= %s\n"%(self.type,self.name)
@@ -176,13 +176,20 @@ class GenericObject(object):
         """
         # rotation part
         self.localTransformation = numpy.eye(4)
-        self.localR = axis_angle2rot(self.rotation)
-        self.localTransformation[0:3,0:3]=self.localR
-        self.rpy = rot2rpy(self.localTransformation)
+        # print type(self), id(self), self.rotation
+        try:
+            angle = self.rotation[3]
+        except IndexError:
+            logger.exception("Failed on {0}, rotation={1}".format(type(self),self.rotation))
+            raise
+        direction = self.rotation[:3]
+        self.localTransformation[0:3,0:3] = tf.rotation_matrix(angle, direction)[:3,:3]
+        self.rpy = tf.euler_from_matrix(self.localTransformation)
 
         # last column
         self.localTransformation[0:3,3]=numpy.array(self.translation)+\
-            numpy.dot(numpy.eye(3)-self.localR,numpy.array(self.center))
+            numpy.dot(numpy.eye(3)-self.localTransformation[:3,:3],
+                      numpy.array(self.center))
 
         # last line
         self.localTransformation[3,0:4]=[0,0,0,1]
@@ -194,11 +201,13 @@ class GenericObject(object):
         """
         if self.parent == None or self.parent.globalTransformation == None:
             self.globalTransformation = self.localTransformation
-            return
         else:
             self.globalTransformation=numpy.dot\
                 (self.parent.globalTransformation,self.localTransformation)
-            return
+            self._R_axis_angle = mathaux.rot2AxisAngle(self.globalTransformation)
+
+        self._R_axis_angle = mathaux.rot2AxisAngle(self.globalTransformation)
+        return
 
 
     def init(self):
@@ -212,6 +221,7 @@ class GenericObject(object):
             self.init_local_transformation()
         except:
             logger.exception("Failed to init {0}".format(self))
+            raise
         self.update_global_transformation()
         def _union(l1, l2):
             return list(set(l1).union(set(l2)))
@@ -240,9 +250,9 @@ class GenericObject(object):
                     grandchild.localTransformation = numpy.dot(child.localTransformation,
                                                               grandchild.localTransformation)
                     grandchild.translation =  grandchild.localTransformation[:3,3]
-                    grandchild.localR = grandchild.localTransformation[:3,:3]
-                    grandchild.rotaion = rot2AxisAngle(grandchild.localR)
-                    grandchild.rpy = rot2rpy(grandchild.localR)
+                    angle, direction, point = tf.rotation_from_matrix(grandchild.localTransformation)
+                    grandchild.rotation = list(direction) + [angle]
+                    grandchild.rpy = tf.euler_from_matrix(grandchild.localTransformation)
                     grandchild.scale = [grandchild.scale[i]*child.scale[i] for i in range(3)]
                     self.add_child(grandchild)
                 self.children.remove(child)
@@ -337,15 +347,21 @@ class Joint(GenericObject):
         .. seealso:: VRML transform calculation http://www.web3d.org/x3d/specifications/vrml/ISO-IEC-14772-VRML97/part1/nodesRef.html#Transform
         """
         if self.jointType in ["free", "freeflyer"]:
-            self.localR=euleur2rotation(self.rpy)
-            self.localTransformation[0:3,0:3]=self.localR
+            self.localTransformation = tf.euler_matrix(self.rpy[0], self.rpy[1], self.rpy[2])
             self.localTransformation[0:3,3]=numpy.array(self.translation)+\
-                numpy.dot(numpy.eye(3)-self.localR,numpy.array(self.center))
+                numpy.dot(numpy.eye(3)-self.localTransformation[0:3,:3],numpy.array(self.center))
         elif ( self.type=="joint" and self.jointType in [ "rotate", "rotation", "revolute"]
                and self.jointId >= 0):
-            self.localR2=axis_name_angle2rot(self.jointAxis,self.angle)
-            self.localR=numpy.dot(self.localR1, self.localR2)
-            self.localTransformation[0:3,0:3]=self.localR
+            if self.jointAxis in ["x","X"]:
+                axis = [1, 0, 0]
+            elif self.jointAxis in ["y","Y"]:
+                axis = [0, 1, 0]
+            elif self.jointAxis in ["z","Z"]:
+                axis = [0, 0, 1]
+            else:
+                raise RuntimeError("Invalid joint axis {0}".format(self.jointAxis))
+            self.localR2= tf.rotation_matrix(self.angle, axis)[:3,:3]
+            self.localTransformation[0:3,0:3] = numpy.dot(self.localR1, self.localR2)
 
     def init_local_transformation(self):
         """
@@ -353,12 +369,14 @@ class Joint(GenericObject):
         """
         self.localTransformation = numpy.eye(4)
         self.globalTransformation = numpy.eye(4)
-        self.localR1=axis_angle2rot(self.rotation)
-        self.localR = self.localR1
-        self.localTransformation[0:3,0:3]=self.localR
+        angle = self.rotation[3]
+        direction = self.rotation[:3]
+        self.localR1 = tf.rotation_matrix(angle, direction)[:3,:3]
+        self.localTransformation[0:3,0:3] = self.localR1
         self.update_local_transformation()
         self.localTransformation[0:3,3]=numpy.array(self.translation)+\
-            numpy.dot(numpy.eye(3)-self.localR,numpy.array(self.center))
+            numpy.dot(numpy.eye(3)-self.localTransformation[:3,:3],
+                      numpy.array(self.center))
         self.localTransformation[3,3]=1
 
 

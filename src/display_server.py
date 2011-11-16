@@ -45,7 +45,7 @@ import collections
 import StringIO, socket
 import distutils.version
 import numpy
-from mathaux import *
+import mathaux
 from ctypes import *
 from kinematic_server import KinematicServer
 from shaders import *
@@ -149,6 +149,9 @@ class DisplayServer(KinematicServer):
     run_once = False
     modern_shader = display_element.MODERN_SHADER
     use_shader = True
+    pending_configs = {}
+    last_update = 0
+
     def __init__(self,options = None, args = None):
         """
 
@@ -522,6 +525,15 @@ class DisplayServer(KinematicServer):
         return "pong"
 
     def draw_cb(self, *arg):
+        now = time.time()
+        if now - self.last_update > 0.04:
+            self.last_update = now
+            for key, value in self.pending_configs.items():
+                if value == None:
+                    continue
+                KinematicServer.updateElementConfig(self, key, value)
+                self.pending_configs[key] = None
+
         if self.quit:
             glutLeaveMainLoop()
             #glutDestroyWindow(self.window)
@@ -978,3 +990,7 @@ class DisplayServer(KinematicServer):
         if not cam:
             return ""
         cam.set_opencv_params(width, height, fx, fy, cx, cy)
+
+    def updateElementConfig(self, name, config):
+        self.pending_configs[name] = config
+        return True

@@ -13,7 +13,7 @@ from pprint import pprint
 execfile('src/version.py')
 execfile('src/build_manpage.py')
 config_dir = os.path.join("share", 'robot-viewer')
-
+import numpy
 
 class install_pc(install):
     def run(self):
@@ -79,9 +79,9 @@ Main features:
                 'install': install_pc,
                 },
 
-      #ext_modules = [Extension("robotviewer.oglc",
-      #                          sources = ["src/oglc.cc"],
-      #                          libraries = ['GL','GLU'],
-      #                          )]
+      ext_modules = [Extension(name = "robotviewer._transformations",
+                               sources = ["src/transformations.c"],
+                               include_dirs=[numpy.get_include()], extra_compile_args=[])],
+
       )
 

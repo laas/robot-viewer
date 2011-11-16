@@ -18,8 +18,7 @@
 import numpy
 import numpy.linalg
 import re
-from math import sin,cos,isnan, pi
-from mathaux import *
+from math import sin, cos, isnan, pi, acos
 from collections import deque
 import logging, uuid
 import __builtin__
@@ -32,8 +31,6 @@ from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from OpenGL.GL.ARB.vertex_buffer_object import *
-
-
 
 class NullHandler(logging.Handler):
     def emit(self, record):
@@ -210,7 +207,8 @@ class IndexedFaceSet(nodes.IndexedFaceSet):
                     j = i + 1
                     if j == num_sides:
                         j = 0
-                    vecs[j][i] = normalized(points[ids[j]] - points[ids[i]])
+                    vecs[j][i] = (points[ids[j]] - points[ids[i]])
+                    vecs[j][i] /= numpy.linalg.norm(vecs[j][i])
 
 
                 try:
@@ -250,7 +248,7 @@ class IndexedFaceSet(nodes.IndexedFaceSet):
                     if isnan(alphas[i]) or abs(alpha - pi) < 1e-6:
                         # print "alpha is NaN for", vertices
                         continue
-                    normals[ids[i]] += alpha*normalized(normal_i)
+                    normals[ids[i]] += alpha*normal_i/numpy.linalg.norm(normal_i)
                     #if isnan(normals[ids[i]][0]):
                     #    print "produced invalid normal", alpha, normal_i, vertices
             poly=[]
