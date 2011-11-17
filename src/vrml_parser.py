@@ -42,8 +42,15 @@ class_map ={
     "Color": nodes.Color,
     "VisionSensor": camera.Camera,
     "IndexedFaceSet" : geometry.IndexedFaceSet,
+    "IndexedLineSet" : geometry.IndexedLineSet,
     "ElevationGrid" : geometry.ElevationGrid,
     "Box" : geometry.Box,
+    "Cone" : geometry.Cone,
+    "Cylinder" : geometry.Cylinder,
+    "Extrusion" : geometry.Extrusion,
+    "Sphere" : geometry.Sphere,
+    "PointSet" : geometry.PointSet,
+    "Text" : geometry.Text,
     }
 
 ignored_classes = defaultdict(int)

@@ -1,0 +1,18 @@
+#VRML V2.0 utf8
+Shape {
+   appearance Appearance {
+                 material Material {
+                             diffuseColor 1 0 0
+                          }
+   }
+   geometry Text {
+               string ["To be or not to be",
+                       "That is the question"]
+               fontStyle FontStyle {
+                            family  "SANS"
+                            style   "BOLD"
+                            size    0.5
+                            justify "MIDDLE"
+                     }
+            }
+}
