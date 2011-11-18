@@ -134,7 +134,10 @@ class GlWindow(object):
 class DisplayServer(KinematicServer):
     """OpenGL server
     """
-
+    lightZeroPosition = [5.0,4.0,5.0]
+    lightZeroSpecularColor = [.8, .8, .8]
+    lightZeroDiffuseColor = [.8, .8, .8]
+    lightAmbient = [.1, .1, .1]
     width = 640
     height = 480
     cameras = []
@@ -182,7 +185,6 @@ class DisplayServer(KinematicServer):
         self.capture_images = []
         self.last_refreshed = {}
 
-        self.modelAmbientLight = 0.01
         self.lightAttenuation = 0.01
         self.active_cameras = {}
         self.world_cameras = []
@@ -217,12 +219,12 @@ class DisplayServer(KinematicServer):
                             ("[", "Toggle legacy shader on/off"),
                             ("+", "Skeleton size up"),
                             ("-", "Skeleton size down"),
-                            ("l", "lighter scene"),
-                            ("d", "dimmer scene"),
-                            ("o", "light ATTENUATION down"),
-                            ("e", "light ATTENUATION up"),
-                            ("t", "transparency up"),
-                            ("r", "transparency down"),
+                            # ("l", "lighter scene"),
+                            # ("d", "dimmer scene"),
+                            # ("o", "light ATTENUATION down"),
+                            # ("e", "light ATTENUATION up"),
+                            # ("t", "transparency up"),
+                            # ("r", "transparency down"),
                             ("c", "screen capture"),
                             ("v", "start/stop video recording"),
                             ("x", "change camera"),
@@ -310,10 +312,10 @@ class DisplayServer(KinematicServer):
             self.specular_highlights = True
             shader.uShowSpecularHighlights = self.specular_highlights
 
-            shader.uAmbientLightingColor        = (0.1,0.1,0.1)
-            shader.uPointLightingLocation       = (5.0,4.0,5.0)
-            shader.uPointLightingDiffuseColor   = (0.8,0.8,0.8)
-            shader.uPointLightingSpecularColor  = (0.8,0.8,0.8)
+            shader.uAmbientLightingColor        = self.lightAmbient
+            shader.uPointLightingLocation       = self.lightZeroPosition
+            shader.uPointLightingDiffuseColor   = self.lightZeroDiffuseColor
+            shader.uPointLightingSpecularColor  = self.lightZeroSpecularColor
             shader.uMaterialShininess = 1.0
             shader.uModernShader = self.modern_shader
             self.shaders[glutGetWindow()] = shader
@@ -770,25 +772,25 @@ class DisplayServer(KinematicServer):
                     if isinstance(e, DisplayRobot):
                         e.set_transparency(self.transparency)
         elif args[0] == 'l':
-            if self.modelAmbientLight < 1.0:
-                self.modelAmbientLight += 0.05
+            if self.lightAmbient < 1.0:
+                self.lightAmbient += 0.05
                 glLightModelfv(GL_LIGHT_MODEL_AMBIENT,
-                               [self.modelAmbientLight,
-                                self.modelAmbientLight,
-                                self.modelAmbientLight,
+                               [self.lightAmbient,
+                                self.lightAmbient,
+                                self.lightAmbient,
                                 1])
-            print "modelAmbientLight = ", self.modelAmbientLight
+            print "lightAmbient = ", self.lightAmbient
 
 
         elif args[0] == 'd':
-            if self.modelAmbientLight >0 :
-                self.modelAmbientLight -= 0.05
+            if self.lightAmbient >0 :
+                self.lightAmbient -= 0.05
                 glLightModelfv(GL_LIGHT_MODEL_AMBIENT,
-                               [self.modelAmbientLight,
-                                self.modelAmbientLight,
-                                self.modelAmbientLight,
+                               [self.lightAmbient,
+                                self.lightAmbient,
+                                self.lightAmbient,
                                 1])
-            print "modelAmbientLight = ", self.modelAmbientLight
+            print "lightAmbient = ", self.lightAmbient
 
 
         elif args[0] == 'e':
@@ -899,15 +901,11 @@ class DisplayServer(KinematicServer):
         glEnable (GL_BLEND)
         glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        lightZeroPosition = [-30.0,30.0,30.0,1.0]
-        lightZeroColor = [1.0,1.0,1.0,1.0] #green tinged
-        glLightfv(GL_LIGHT0, GL_POSITION, lightZeroPosition)
-        glLightfv(GL_LIGHT0, GL_DIFFUSE, lightZeroColor)
-        glLightfv(GL_LIGHT0, GL_SPECULAR, lightZeroColor)
+        glLightfv(GL_LIGHT0, GL_POSITION, self.lightZeroPosition)
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, self.lightZeroDiffuseColor + [1.])
+        glLightfv(GL_LIGHT0, GL_SPECULAR, self.lightZeroSpecularColor + [1.])
         glLightfv(GL_LIGHT0, GL_AMBIENT, [0,0,0,1])
-        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [self.modelAmbientLight,
-                                                self.modelAmbientLight,
-                                                self.modelAmbientLight,1])
+        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, self.lightAmbient + [1.])
 
         #glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, self.)
         glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self.lightAttenuation)

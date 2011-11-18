@@ -9,8 +9,8 @@ varying vec4 vPosition;
 uniform vec3 uMaterialAmbientColor;
 uniform vec3 uMaterialDiffuseColor;
 uniform vec3 uMaterialSpecularColor;
-uniform float uMaterialShininess;
 uniform vec3 uMaterialEmissiveColor;
+uniform float uMaterialShininess;
 
 uniform bool uShowSpecularHighlights;
 uniform bool uUseTextures;
@@ -25,45 +25,19 @@ uniform sampler2D uSampler;
 
 uniform bool uModernShader;
 
-void legacy_main(void) {
-  // Phong shader http://www.opengl.org/sdk/docs/tutorials/ClockworkCoders/lighting.php
-  vec3 v = vec3(vPosition);
-  vec3 N = vTransformedNormal;
+vec4 compute_color(vec3 materialAmbientColor,
+                   vec3 materialDiffuseColor,
+                   vec3 materialSpecularColor,
+                   vec3 materialEmissiveColor,
+                   float shininess,
+                   vec3 ambientLightWeighting,
+                   vec3 pointLightLocation,
+                   vec3 pointLightDiffuseColor,
+                   vec3 pointLightSpecularColor
+                   )
+{
 
-  vec3 L = normalize(gl_LightSource[0].position.xyz - v);
-  vec3 E = normalize(-v); // we are in Eye Coordinates, so EyePos is (0,0,0)
-  vec3 R = normalize(-reflect(L,N));
-
-  //calculate Ambient Term:
-  vec4 Iamb = gl_FrontLightProduct[0].ambient;
-
-  //calculate Diffuse Term:
-  vec4 Idiff = gl_FrontLightProduct[0].diffuse * max(dot(N,L), 0.0);
-  Idiff = clamp(Idiff, 0.0, 0.75);
-
-  // calculate Specular Term:
-  vec4 Ispec = gl_FrontLightProduct[0].specular
-    * pow(max(dot(R,E),0.0),1.0);
-  Ispec = clamp(Ispec, 0.0, 0.17);
-
-  // write Total Color:
-  gl_FragColor = gl_FrontLightModelProduct.sceneColor + Iamb + Idiff ;
-  if (uShowSpecularHighlights)
-    gl_FragColor += Ispec;
-
-}
-
-
-void main(void) {
-  if (!uModernShader)
-    {
-      legacy_main();
-      return;
-    }
-
-  vec3 ambientLightWeighting = uAmbientLightingColor;
-
-  vec3 lightDirection = normalize(uPointLightingLocation - vPosition.xyz);
+  vec3 lightDirection = normalize(pointLightLocation - vPosition.xyz);
   vec3 normal = normalize(vTransformedNormal);
 
   vec3 specularLightWeighting = vec3(0.0, 0.0, 0.0);
@@ -71,17 +45,14 @@ void main(void) {
     vec3 eyeDirection = normalize(-vPosition.xyz);
     vec3 reflectionDirection = reflect(-lightDirection, normal);
 
-    float specularLightBrightness = pow(max(dot(reflectionDirection, eyeDirection), 0.0), uMaterialShininess);
-    specularLightWeighting = uPointLightingSpecularColor * specularLightBrightness;
+    float specularLightBrightness = pow(max(dot(reflectionDirection, eyeDirection), 0.0),
+                                        shininess);
+    specularLightWeighting = pointLightSpecularColor * specularLightBrightness;
   }
 
   float diffuseLightBrightness = max(dot(normal, lightDirection), 0.0);
-  vec3 diffuseLightWeighting = uPointLightingDiffuseColor * diffuseLightBrightness;
+  vec3 diffuseLightWeighting = pointLightDiffuseColor * diffuseLightBrightness;
 
-  vec3 materialAmbientColor = uMaterialAmbientColor;
-  vec3 materialDiffuseColor = uMaterialDiffuseColor;
-  vec3 materialSpecularColor = uMaterialSpecularColor;
-  vec3 materialEmissiveColor = uMaterialEmissiveColor;
   float alpha = 1.0;
   if (uUseTextures) {
     vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
@@ -90,13 +61,54 @@ void main(void) {
     materialEmissiveColor = materialEmissiveColor * textureColor.rgb;
     alpha = textureColor.a;
   }
+  vec4 Idiff, Ispec, Iamb, Iemis, res;
+  Idiff =  vec4(materialDiffuseColor * diffuseLightWeighting, alpha) ;
+  Idiff = clamp(Idiff, 0.0, 0.75);
+  Ispec = vec4(materialSpecularColor * specularLightWeighting, alpha);
+  Ispec = clamp(Ispec, 0.0, 0.05);
+  Iamb = vec4(materialAmbientColor * ambientLightWeighting, 0.);
+  Iemis = vec4(materialEmissiveColor, alpha);
+  res = ( Iamb + Idiff + Iemis + Ispec);
+  res = res + gl_Color;
+  //res = clamp(res, 0.0, 1.);
+  return res;
+}
 
-  vec4 Idiff =  vec4(materialDiffuseColor * diffuseLightWeighting, alpha) ;
-  //Idiff = clamp(Idiff, 0.0, 0.75);
-  vec4 Ispec = vec4(materialSpecularColor * specularLightWeighting, alpha);
-  Ispec = clamp(Ispec, 0.0, 0.17);
-  vec4 Iamb = vec4(materialAmbientColor * ambientLightWeighting, 0.);
-  vec4 Iemis = vec4(materialEmissiveColor, alpha);
-  gl_FragColor = ( Iamb + Idiff + Iemis + Ispec + gl_Color );
-  gl_FragColor = clamp(gl_FragColor, 0.0, 1.);
+void main(void) {
+  if (uModernShader)
+    {
+      gl_FragColor = compute_color( uMaterialAmbientColor,
+                                    uMaterialDiffuseColor,
+                                    uMaterialSpecularColor,
+                                    uMaterialEmissiveColor,
+                                    uMaterialShininess,
+                                    uAmbientLightingColor,
+                                    uPointLightingLocation,
+                                    uPointLightingDiffuseColor,
+                                    uPointLightingSpecularColor
+                                    );
+    }
+  else
+    {
+      gl_FragColor = compute_color( gl_FrontMaterial.ambient,
+                                    //uMaterialAmbientColor,
+                                    gl_FrontMaterial.diffuse,
+                                    //uMaterialDiffuseColor,
+                                    gl_FrontMaterial.specular,
+                                    //uMaterialSpecularColor,
+                                    gl_FrontMaterial.emission,
+                                    //uMaterialEmissiveColor,
+                                    gl_FrontMaterial.shininess,
+                                    //uMaterialShininess,
+                                    gl_LightSource[0].ambient,
+                                    //vec3(0.1,0.1,0.1),
+                                    gl_LightSource[0].position.xyz,
+                                    //vec3(5.0, 4.0 ,5.0),
+                                    gl_LightSource[0].diffuse,
+                                    //vec3(0.8,0.8,0.8),
+                                    gl_LightSource[0].specular
+                                    //vec3(0.8,0.8,0.8)
+                                    );
+    }
+  return;
 }

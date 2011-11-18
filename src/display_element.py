@@ -43,7 +43,7 @@ class NullHandler(logging.Handler):
 
 SHOW_NORMALS = False
 USE_VBO = False
-MODERN_SHADER = True
+MODERN_SHADER = False
 
 def ifenabled(meth):
     def new_meth(cls, *args, **kwargs):
@@ -114,13 +114,12 @@ class GlPrimitive(GenericObject):
             app.material = nodes.Material()
         ambientColor = [app.material.ambientIntensity*app.material.diffuseColor[i]
                         for i in range(3)]
-        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE,
+        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE,
                      app.material.diffuseColor + [1.])
         glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambientColor + [1.])
-        glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, 5)
+        glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, app.material.shininess)
         glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, app.material.emissiveColor + [1.] )
         glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, app.material.specularColor + [1.] )
-        #glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, app.material.emissionColor)
 
         if not USE_VBO:
             scale = self.cumul_scale()
@@ -131,6 +130,8 @@ class GlPrimitive(GenericObject):
 
     @ifenabled
     def render(self):
+        glColor3f(0., 0., 0.)
+
         win = glutGetWindow()
         if not self.gl_list_ids.get(win):
             self.gl_list_ids[win] = self.generate_gl_list()
@@ -146,19 +147,19 @@ class GlPrimitive(GenericObject):
 
         # logger.debug("Caling glList {0} at ({1}, {2})".format(self.gl_list_ids[win],
         #                                                       p, agax))
-        if MODERN_SHADER:
-            glColor3f(0., 0., 0.)
-            if self.shape:
-                app = self.shape.appearance
-                if not app:
-                    app = nodes.Appearance()
-                if not app.material:
-                    app.material = nodes.Material()
-                shaders[glutGetWindow()].uMaterialSpecularColor = app.material.specularColor
-                shaders[glutGetWindow()].uMaterialEmissiveColor = app.material.emissiveColor
-                shaders[glutGetWindow()].uMaterialDiffuseColor = app.material.diffuseColor
-            glCallList(self.gl_list_ids[win])
-        else:
+        if self.shape:
+            app = self.shape.appearance
+            if not app:
+                app = nodes.Appearance()
+            if not app.material:
+                app.material = nodes.Material()
+
+            if MODERN_SHADER:
+                    shaders[glutGetWindow()].uMaterialSpecularColor = app.material.specularColor
+                    shaders[glutGetWindow()].uMaterialEmissiveColor = app.material.emissiveColor
+                    shaders[glutGetWindow()].uMaterialDiffuseColor = app.material.diffuseColor
+                    shaders[glutGetWindow()].uMaterialShininess = app.material.shininess
+
             glCallList(self.gl_list_ids[win])
 
 
