@@ -30,6 +30,7 @@ import kinematics
 import numpy
 import numpy.linalg
 import vrml_parser
+from mathaux import *
 import os, logging
 import ml_parser
 import copy
@@ -203,8 +204,8 @@ class Parser (object):
                 # polyhedron_obj.init()
                 # bbox = None
 
-                # for shape in polyhedron_obj.shape_list:
-                #     mbbox = shape.bounding_box_global()
+                # for mesh in polyhedron_obj.mesh_list:
+                #     mbbox = mesh.bounding_box_global()
                 #     bbox = self._merge_bboxes(bbox, mbbox)
 
                 # if bbox:
@@ -213,8 +214,8 @@ class Parser (object):
                 #        polyhedron_obj.translation[i] -= bbox_center[i]
             # assembly_obj.init()
             # bbox = None
-            # for shape in assembly_obj.shape_list:
-            #     mbbox = shape.bounding_box_global()
+            # for mesh in assembly_obj.mesh_list:
+            #     mbbox = mesh.bounding_box_global()
             #     bbox = self._merge_bboxes(bbox, mbbox)
 
             # if bbox:
@@ -241,10 +242,10 @@ class Parser (object):
         return res
 
     def _propagate_geo_param(self, obj, key, value):
-        if isinstance(obj, kinematics.Shape):
+        if isinstance(obj, kinematics.Mesh):
             old_val =  getattr(obj.app, key)
             if old_val != value:
-                logger.debug("Shape %s: %s changed from %s to %s"
+                logger.debug("Mesh %s: %s changed from %s to %s"
                              %(obj.name, key,
                                str(old_val), str(value)))
             setattr(obj.app, key, value)
@@ -291,7 +292,7 @@ class Parser (object):
              joint_.translation = joint_.localTransformation[0:3,3]
              joint_.localR = joint_.localTransformation[0:3,0:3]
 
-             joint_.localR2 =.jointAxis_name_angle2rot(joint_.jointAxis,joint_.angle)
+             joint_.localR2 = axis_name_angle2rot(joint_.axis,joint_.angle)
              joint_.localR1 = numpy.dot(joint_.localR,
                                         numpy.linalg.inv(joint_.localR2))
              joint_.rotation = rot2AxisAngle(joint_.localR1)
@@ -319,7 +320,7 @@ class Parser (object):
         joint.jointType = sotJointType
         if joint.jointType == "rotation":
             joint.angle = self.findJointValue(node)
-            joint.jointAxis = "X"
+            joint.axis = "X"
 
         current_position, relative_solid_position, solid_id = self.findJointPositions(node)
 
