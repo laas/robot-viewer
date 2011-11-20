@@ -115,7 +115,7 @@ class Parser (object):
         for assembly_node in assembly_nodes:
             assembly_nid = int(assembly_node.attributes["id"].value)
             assembly_obj = kinematics.GenericObject()
-            assembly_obj.id = assembly_nid
+            #assembly_obj.id = assembly_nid
             rel_pos = None
             self.shapes[assembly_nid] = assembly_obj
             self.shape_types[assembly_nid] = "assembly"
@@ -135,7 +135,7 @@ class Parser (object):
             for polyhedron_node in polyhedron_nodes:
                 polyhedron_nid = int(polyhedron_node.attributes["id"].value)
                 polyhedron_obj = kinematics.GenericObject()
-                polyhedron_obj.id = polyhedron_nid
+                #polyhedron_obj.id = polyhedron_nid
                 polyhedron_obj.name = self.findStringProperty(polyhedron_node,
                                                               self.nameTag)
                 assembly_obj.add_child(polyhedron_obj)
@@ -242,13 +242,16 @@ class Parser (object):
         return res
 
     def _propagate_geo_param(self, obj, key, value):
-        if isinstance(obj, kinematics.Mesh):
-            old_val =  getattr(obj.app, key)
+        if isinstance(obj, kinematics.Shape):
+            try:
+                old_val =  getattr(obj.appearance.material, key)
+            except AttributeError:
+                return
+            setattr(obj.appearance.material, key, value)
             if old_val != value:
                 logger.debug("Mesh %s: %s changed from %s to %s"
                              %(obj.name, key,
                                str(old_val), str(value)))
-            setattr(obj.app, key, value)
 
         for child in obj.children:
             self._propagate_geo_param(child, key, value)
@@ -292,7 +295,7 @@ class Parser (object):
              joint_.translation = joint_.localTransformation[0:3,3]
              joint_.localR = joint_.localTransformation[0:3,0:3]
 
-             joint_.localR2 = axis_name_angle2rot(joint_.axis,joint_.angle)
+             joint_.localR2 = axis_name_angle2rot(joint_.jointAxis,joint_.angle)
              joint_.localR1 = numpy.dot(joint_.localR,
                                         numpy.linalg.inv(joint_.localR2))
              joint_.rotation = rot2AxisAngle(joint_.localR1)
@@ -308,7 +311,7 @@ class Parser (object):
             joint = kinematics.Robot()
         else:
             joint = kinematics.Joint()
-            joint.id = int(node.attributes["id"].value)
+            joint.jointId = int(node.attributes["id"].value)
             if not parent:
                 raise Exception("Expected a parent for node %s"%node.nodeName)
             parent.add_child(joint)
@@ -320,12 +323,12 @@ class Parser (object):
         joint.jointType = sotJointType
         if joint.jointType == "rotation":
             joint.angle = self.findJointValue(node)
-            joint.axis = "X"
+            joint.jointAxis = "X"
 
         current_position, relative_solid_position, solid_id = self.findJointPositions(node)
 
         joint.globalTransformation = copy.copy(current_position)
-        self.globalTransformations[joint.id] = copy.copy(current_position)
+        self.globalTransformations[joint.jointId] = copy.copy(current_position)
 
         # recursively create child joints
         childJointNodes = filter(lambda n:n.nodeName in self.jointTypes,
@@ -351,7 +354,7 @@ class Parser (object):
             joint.init()
             for i,j in enumerate(joint.joint_list):
                 if (numpy.linalg.norm(j.globalTransformation -
-                                      self.globalTransformations[j.id])) > 1e-6:
+                                      self.globalTransformations[j.jointId])) > 1e-6:
                     msg = ("""
 Wrong transformation for %dth joint (id = %d)%s:
 computed transformation=
@@ -363,8 +366,8 @@ kxml transformation=
 joint.localT=
 %s
 """
-                                    %(i, j.id, j.name, str(j.globalTransformation),
-                                      str(self.globalTransformations[j.id]),
+                                    %(i, j.jointId, j.name, str(j.globalTransformation),
+                                      str(self.globalTransformations[j.jointId]),
                                       str(j.localTransformation),
                                       ))
                     msg += "\nParent joints:"
@@ -373,7 +376,7 @@ joint.localT=
                         msg += "\n---\n"
                         msg + str(jj)
                         msg += "\nkxml global pos = %s"%str(
-                            self.globalTransformations[jj.id])
+                            self.globalTransformations[jj.jointId])
                         jj = jj.get_parent_joint()
                     raise Exception(msg)
                     # logger.exception(msg)
