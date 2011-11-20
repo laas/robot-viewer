@@ -51,6 +51,18 @@ _0_robotviewer_corba._tc_ShortSeq = omniORB.tcInternal.createTypeCode(_0_robotvi
 omniORB.registerType(ShortSeq._NP_RepositoryId, _0_robotviewer_corba._ad_ShortSeq, _0_robotviewer_corba._tc_ShortSeq)
 del ShortSeq
 
+# typedef ... HomogeneousMatrix
+class HomogeneousMatrix:
+    _NP_RepositoryId = "IDL:robotviewer_corba/HomogeneousMatrix:1.0"
+    def __init__(self, *args, **kw):
+        raise RuntimeError("Cannot construct objects of this type.")
+_0_robotviewer_corba.HomogeneousMatrix = HomogeneousMatrix
+_0_robotviewer_corba._d_HomogeneousMatrix  = (omniORB.tcInternal.tv_sequence, omniORB.typeMapping["IDL:robotviewer_corba/DoubleSeq:1.0"], 0)
+_0_robotviewer_corba._ad_HomogeneousMatrix = (omniORB.tcInternal.tv_alias, HomogeneousMatrix._NP_RepositoryId, "HomogeneousMatrix", (omniORB.tcInternal.tv_sequence, omniORB.typeMapping["IDL:robotviewer_corba/DoubleSeq:1.0"], 0))
+_0_robotviewer_corba._tc_HomogeneousMatrix = omniORB.tcInternal.createTypeCode(_0_robotviewer_corba._ad_HomogeneousMatrix)
+omniORB.registerType(HomogeneousMatrix._NP_RepositoryId, _0_robotviewer_corba._ad_HomogeneousMatrix, _0_robotviewer_corba._tc_HomogeneousMatrix)
+del HomogeneousMatrix
+
 # interface RobotViewer
 _0_robotviewer_corba._d_RobotViewer = (omniORB.tcInternal.tv_objref, "IDL:robotviewer_corba/RobotViewer:1.0", "RobotViewer")
 omniORB.typeMapping["IDL:robotviewer_corba/RobotViewer:1.0"] = _0_robotviewer_corba._d_RobotViewer
@@ -92,7 +104,10 @@ RobotViewer._d_enableElement = (((omniORB.tcInternal.tv_string,0), ), (omniORB.t
 RobotViewer._d_disableElement = (((omniORB.tcInternal.tv_string,0), ), (omniORB.tcInternal.tv_boolean, ), {_0_robotviewer_corba.RobotViewer.InvalidKey._NP_RepositoryId: _0_robotviewer_corba.RobotViewer._d_InvalidKey})
 RobotViewer._d_setTransparency = (((omniORB.tcInternal.tv_string,0), omniORB.tcInternal.tv_double), (omniORB.tcInternal.tv_boolean, ), {_0_robotviewer_corba.RobotViewer.InvalidKey._NP_RepositoryId: _0_robotviewer_corba.RobotViewer._d_InvalidKey})
 RobotViewer._d_updateElementConfig = (((omniORB.tcInternal.tv_string,0), omniORB.typeMapping["IDL:robotviewer_corba/DoubleSeq:1.0"]), (omniORB.tcInternal.tv_boolean, ), {_0_robotviewer_corba.RobotViewer.InvalidKey._NP_RepositoryId: _0_robotviewer_corba.RobotViewer._d_InvalidKey})
+RobotViewer._d_updateElementConfig2 = (((omniORB.tcInternal.tv_string,0), omniORB.typeMapping["IDL:robotviewer_corba/HomogeneousMatrix:1.0"], omniORB.typeMapping["IDL:robotviewer_corba/DoubleSeq:1.0"]), (omniORB.tcInternal.tv_boolean, ), {_0_robotviewer_corba.RobotViewer.InvalidKey._NP_RepositoryId: _0_robotviewer_corba.RobotViewer._d_InvalidKey})
 RobotViewer._d_getElementConfig = (((omniORB.tcInternal.tv_string,0), ), (omniORB.typeMapping["IDL:robotviewer_corba/DoubleSeq:1.0"], ), {_0_robotviewer_corba.RobotViewer.InvalidKey._NP_RepositoryId: _0_robotviewer_corba.RobotViewer._d_InvalidKey})
+RobotViewer._d_getElementConfig2 = (((omniORB.tcInternal.tv_string,0), ), (omniORB.typeMapping["IDL:robotviewer_corba/HomogeneousMatrix:1.0"], omniORB.typeMapping["IDL:robotviewer_corba/DoubleSeq:1.0"]), {_0_robotviewer_corba.RobotViewer.InvalidKey._NP_RepositoryId: _0_robotviewer_corba.RobotViewer._d_InvalidKey})
+RobotViewer._d_test = ((), (omniORB.typeMapping["IDL:robotviewer_corba/DoubleSeq:1.0"], ), None)
 RobotViewer._d_listElements = ((), (omniORB.typeMapping["IDL:robotviewer_corba/ElementList:1.0"], ), None)
 RobotViewer._d_listElementDofs = (((omniORB.tcInternal.tv_string,0), ), (omniORB.typeMapping["IDL:robotviewer_corba/ElementList:1.0"], ), None)
 RobotViewer._d_listCameras = ((), (omniORB.typeMapping["IDL:robotviewer_corba/ElementList:1.0"], ), None)
@@ -134,8 +149,17 @@ class _objref_RobotViewer (CORBA.Object):
     def updateElementConfig(self, *args):
         return _omnipy.invoke(self, "updateElementConfig", _0_robotviewer_corba.RobotViewer._d_updateElementConfig, args)
 
+    def updateElementConfig2(self, *args):
+        return _omnipy.invoke(self, "updateElementConfig2", _0_robotviewer_corba.RobotViewer._d_updateElementConfig2, args)
+
     def getElementConfig(self, *args):
         return _omnipy.invoke(self, "getElementConfig", _0_robotviewer_corba.RobotViewer._d_getElementConfig, args)
+
+    def getElementConfig2(self, *args):
+        return _omnipy.invoke(self, "getElementConfig2", _0_robotviewer_corba.RobotViewer._d_getElementConfig2, args)
+
+    def test(self, *args):
+        return _omnipy.invoke(self, "test", _0_robotviewer_corba.RobotViewer._d_test, args)
 
     def listElements(self, *args):
         return _omnipy.invoke(self, "listElements", _0_robotviewer_corba.RobotViewer._d_listElements, args)
@@ -173,7 +197,7 @@ class _objref_RobotViewer (CORBA.Object):
     def stop_record(self, *args):
         return _omnipy.invoke(self, "stop_record", _0_robotviewer_corba.RobotViewer._d_stop_record, args)
 
-    __methods__ = ["createElement", "setRobotJointRank", "destroyElement", "enableElement", "disableElement", "setTransparency", "updateElementConfig", "getElementConfig", "listElements", "listElementDofs", "listCameras", "getCameraConfig", "getCameraInfo", "setCameraOpenCVParams", "listMeshes", "getGlConfig", "printMesh", "Ping", "start_record", "stop_record"] + CORBA.Object.__methods__
+    __methods__ = ["createElement", "setRobotJointRank", "destroyElement", "enableElement", "disableElement", "setTransparency", "updateElementConfig", "updateElementConfig2", "getElementConfig", "getElementConfig2", "test", "listElements", "listElementDofs", "listCameras", "getCameraConfig", "getCameraInfo", "setCameraOpenCVParams", "listMeshes", "getGlConfig", "printMesh", "Ping", "start_record", "stop_record"] + CORBA.Object.__methods__
 
 omniORB.registerObjref(RobotViewer._NP_RepositoryId, _objref_RobotViewer)
 _0_robotviewer_corba._objref_RobotViewer = _objref_RobotViewer
@@ -185,7 +209,7 @@ class RobotViewer (PortableServer.Servant):
     _NP_RepositoryId = _0_robotviewer_corba.RobotViewer._NP_RepositoryId
 
 
-    _omni_op_d = {"createElement": _0_robotviewer_corba.RobotViewer._d_createElement, "setRobotJointRank": _0_robotviewer_corba.RobotViewer._d_setRobotJointRank, "destroyElement": _0_robotviewer_corba.RobotViewer._d_destroyElement, "enableElement": _0_robotviewer_corba.RobotViewer._d_enableElement, "disableElement": _0_robotviewer_corba.RobotViewer._d_disableElement, "setTransparency": _0_robotviewer_corba.RobotViewer._d_setTransparency, "updateElementConfig": _0_robotviewer_corba.RobotViewer._d_updateElementConfig, "getElementConfig": _0_robotviewer_corba.RobotViewer._d_getElementConfig, "listElements": _0_robotviewer_corba.RobotViewer._d_listElements, "listElementDofs": _0_robotviewer_corba.RobotViewer._d_listElementDofs, "listCameras": _0_robotviewer_corba.RobotViewer._d_listCameras, "getCameraConfig": _0_robotviewer_corba.RobotViewer._d_getCameraConfig, "getCameraInfo": _0_robotviewer_corba.RobotViewer._d_getCameraInfo, "setCameraOpenCVParams": _0_robotviewer_corba.RobotViewer._d_setCameraOpenCVParams, "listMeshes": _0_robotviewer_corba.RobotViewer._d_listMeshes, "getGlConfig": _0_robotviewer_corba.RobotViewer._d_getGlConfig, "printMesh": _0_robotviewer_corba.RobotViewer._d_printMesh, "Ping": _0_robotviewer_corba.RobotViewer._d_Ping, "start_record": _0_robotviewer_corba.RobotViewer._d_start_record, "stop_record": _0_robotviewer_corba.RobotViewer._d_stop_record}
+    _omni_op_d = {"createElement": _0_robotviewer_corba.RobotViewer._d_createElement, "setRobotJointRank": _0_robotviewer_corba.RobotViewer._d_setRobotJointRank, "destroyElement": _0_robotviewer_corba.RobotViewer._d_destroyElement, "enableElement": _0_robotviewer_corba.RobotViewer._d_enableElement, "disableElement": _0_robotviewer_corba.RobotViewer._d_disableElement, "setTransparency": _0_robotviewer_corba.RobotViewer._d_setTransparency, "updateElementConfig": _0_robotviewer_corba.RobotViewer._d_updateElementConfig, "updateElementConfig2": _0_robotviewer_corba.RobotViewer._d_updateElementConfig2, "getElementConfig": _0_robotviewer_corba.RobotViewer._d_getElementConfig, "getElementConfig2": _0_robotviewer_corba.RobotViewer._d_getElementConfig2, "test": _0_robotviewer_corba.RobotViewer._d_test, "listElements": _0_robotviewer_corba.RobotViewer._d_listElements, "listElementDofs": _0_robotviewer_corba.RobotViewer._d_listElementDofs, "listCameras": _0_robotviewer_corba.RobotViewer._d_listCameras, "getCameraConfig": _0_robotviewer_corba.RobotViewer._d_getCameraConfig, "getCameraInfo": _0_robotviewer_corba.RobotViewer._d_getCameraInfo, "setCameraOpenCVParams": _0_robotviewer_corba.RobotViewer._d_setCameraOpenCVParams, "listMeshes": _0_robotviewer_corba.RobotViewer._d_listMeshes, "getGlConfig": _0_robotviewer_corba.RobotViewer._d_getGlConfig, "printMesh": _0_robotviewer_corba.RobotViewer._d_printMesh, "Ping": _0_robotviewer_corba.RobotViewer._d_Ping, "start_record": _0_robotviewer_corba.RobotViewer._d_start_record, "stop_record": _0_robotviewer_corba.RobotViewer._d_stop_record}
 
 RobotViewer._omni_skeleton = RobotViewer
 _0_robotviewer_corba__POA.RobotViewer = RobotViewer

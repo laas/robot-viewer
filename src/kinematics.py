@@ -45,6 +45,10 @@ def find_relative_transformation( obj1, obj2 ):
                      )
     return res
 
+def listify(a):
+    return [list(r) for r in a]
+
+
 class GenericObject(object):
     """
     Base element in the kinematic tree
@@ -110,11 +114,31 @@ class GenericObject(object):
         self.init_local_transformation()
         self.update()
 
+    def update_config2(self, T, q):
+        self.count += 1
+        T = numpy.array(T)
+        self.localTransformation = T
+        self.translation = T[:3,3]
+        angle, direction, point = tf.rotation_from_matrix(T)
+        self.rpy = tf.euler_from_matrix(T)
+        self.rotation = [ direction[0],direction[1],direction[2], angle ]
+        self.update()
+
+
     def get_config(self):
         if type(self) not in [Robot, GenericObject]:
             return self.translation + list(self.rpy)
         rpy = tf.euler_from_matrix(self.globalTransformation)
         return self.translation + list(rpy)
+
+
+    def get_config2(self):
+
+        if type(self) not in [Robot, GenericObject]:
+            res = listify(self.localTransformation), []
+        else:
+            res = listify(self.globalTransformation), []
+        return res
 
     def __str__(self):
         s= "%s \t= %s\n"%(self.type,self.name)
@@ -407,6 +431,12 @@ class Robot(Joint):
         logger.debug("Updating {0} with config {1}".format(self.name, config))
         self.update()
 
+    def update_config2(self, T, q):
+        self.set_angles(config[q])
+        self.waist.update_config2(T,  [])
+        logger.debug("Updating {0} with config {1}".format(self.name, config))
+        self.update()
+
     def set_angles(self,angles):
         """
         Set joint angles
@@ -434,6 +464,13 @@ class Robot(Joint):
             if self.joint_dict.has_key(i):
                 vec += [self.joint_dict[i].angle]
         return vec
+
+    def get_config2(self):
+        vec = []
+        for i in range(len(self.joint_list)):
+            if self.joint_dict.has_key(i):
+                vec += [self.joint_dict[i].angle]
+        return listify(self.waist.globalTransformation), vec
 
     def waist_pos(self,p):
         """

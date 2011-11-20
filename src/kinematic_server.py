@@ -30,7 +30,7 @@ import mathaux
 import version
 import copy
 import camera
-
+import re
 logger = logging.getLogger("robotviewer.kinematic_server")
 class NullHandler(logging.Handler):
     def emit(self, record):
@@ -294,8 +294,6 @@ class KinematicServer(object):
                 raise Exception("file %s contains %d robots, expected 1."
                                 %(epath, len(robots)))
             new_robot = robots[0]
-            if scale:
-                new_robot.scale(scale)
             self.kinematic_elements[ename] = new_robot
 
 
@@ -317,8 +315,6 @@ class KinematicServer(object):
                         group.init()
                 self.kinematic_elements[ename] = group
 
-                if scale:
-                    group.scale(scale)
             else:
                 new_object = kinematics.GenericObject()
                 self.kinematic_elements[ename] = new_object
@@ -414,6 +410,35 @@ class KinematicServer(object):
             return []
         else:
             return cfg
+
+    def updateElementConfig2(self,name, T, q ):
+        """
+        Arguments:
+        - `self`:
+        - `name`:         string, element name
+        """
+        if not self.kinematic_elements.has_key(name):
+            logger.exception("Element with that name does not exist")
+            return False
+
+        self.kinematic_elements[name].update_config2(T, q)
+        return True
+
+    def test(self):
+        return []
+
+    def getElementConfig2(self,name):
+        """
+        Arguments:
+        - `self`:
+        - `name`:         string, element name
+        """
+        if not self.kinematic_elements.has_key(name):
+            logger.exception(KeyError,
+                             "Element with that name does not exist")
+            return [],[]
+        return self.kinematic_elements[name].get_config2()
+
 
     def listElements(self):
         return [name for name in self.kinematic_elements.keys() ]

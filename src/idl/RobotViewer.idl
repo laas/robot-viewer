@@ -22,6 +22,7 @@ module robotviewer_corba {
   typedef sequence<double> DoubleSeq;
   typedef sequence<string> ElementList;
   typedef sequence<short> ShortSeq;
+  typedef sequence<DoubleSeq> HomogeneousMatrix;
   interface RobotViewer
   {
     exception InvalidKey{
@@ -35,7 +36,13 @@ module robotviewer_corba {
     boolean disableElement(in string name) raises(InvalidKey) ;
     boolean setTransparency(in string name, in double transparency) raises(InvalidKey);
     boolean updateElementConfig(in string name, in DoubleSeq config) raises(InvalidKey);
+    boolean updateElementConfig2(in string name, in HomogeneousMatrix T,
+                                 in DoubleSeq q) raises(InvalidKey);
+
     void getElementConfig(in string name, out DoubleSeq config) raises(InvalidKey);
+    void getElementConfig2(in string name, out  HomogeneousMatrix T,
+                           out DoubleSeq q) raises(InvalidKey);
+    void test(out DoubleSeq res);
 
     void listElements(out ElementList list);
     void listElementDofs(in string element_name, out ElementList list);
