@@ -20,6 +20,7 @@ from optparse import OptionParser
 import logging
 from server_factory import create_server, CORBA, XML_RPC, KINEMATIC, DISPLAY
 
+
 def get_parser():
     usage = "usage: [options]"
     description ="""the server side of robot-viewer
@@ -104,6 +105,10 @@ def get_parser():
                       action="store", dest="log_module",
                       help="limite logging to this module only (to be used with -v)")
 
+    parser.add_option("--ros",
+                      action="store_true", dest="ros",
+                      help="start a ros node")
+
     # parser.add_option("--intel",
     #                   action="store_true", dest="intel",  default=False,
     #                   help="tell robot-viewer that it is running on an Intel card")
@@ -184,6 +189,11 @@ def main():
 
     server = create_server(type, com_type, options, args)
     logger.debug("created server")
+
+    if options.ros:
+        from ros_bridge import Bridge
+        bridge = Bridge(server)
+
     server.run()
 
 if __name__ == '__main__':
