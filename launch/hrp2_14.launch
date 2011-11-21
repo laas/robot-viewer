@@ -1,0 +1,9 @@
+<launch>
+<node ns="robotviewer"  name="server" pkg="robotviewer" type="server" >
+  <param name="~jointstates" value="{'hrp':'/robot_state'}"/>
+  <param name="~cam_map" value="{'CAMERA_LU':'/wide_left/camera',
+                                'CAMERA_RU':'/wide_right/camera',
+                                'CAMERA_LL':'/narrow_left/camera',
+                                'CAMERA_RL':'/narrow_right/camera', }"/>
+</node>
+</launch>

@@ -65,6 +65,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
     cx = 160 # (width/2)
     cy = 120 # (height/2)
 
+
     class Alias:
         frontClipDistance = ('Near',)
         backClipDistance  = ('Far',)
@@ -79,6 +80,15 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
                              [ 0 , 0 , 1],
                              ]
                            )
+
+    @property
+    def P(self):
+        return numpy.array([ [ self.fx , 0 , self.cx, 0],
+                             [ 0 , self.fy , self.cy, 0],
+                             [ 0 , 0 , 1, 0],
+                             ]
+                           )
+
     @property
     def cam_up(self):
         return self.globalTransformation[:3,1]
@@ -114,6 +124,8 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         # print 'u0=', self.u0, ', cx=', self.cx
         self.fy = 1.0*self.height/tan(self.fovy/2.0)
         self.fx = 1.0*self.width/self.height*self.fy/self.aspect
+        self.update_perspective()
+
 
     def set_opencv_params(self, width, height, fx, fy, cx, cy):
         self.width = width
@@ -127,6 +139,27 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
     def __init__(self):
         self.pixels = None
         self.draw_t = 0
+        self.frame_seq = 0
+
+        self.frontClipDistance = 0.01
+        self.backClipDistance = 100
+        self.width = 320
+        self.height = 240
+        self.cam_type = "COLOR"
+        self.fieldOfView = 45*pi/180
+        self.translation = [0, 0, 0]
+        self.focal = 3.5
+        self.x0 = 0
+        self.y0 = 0
+        self.aspect = 320.0/240.0
+
+        # OpenCV params
+        self.fx = 0.
+        self.fy = 0.
+        self.cx = 160 # (width/2)
+        self.cy = 120 # (height/2)
+
+
         kinematics.GenericObject.__init__(self)
         self.localTransformation[:3,:3] = numpy.array([ [ 0 , 0 , 1],
                                                         [ 1 , 0 , 0],
@@ -138,6 +171,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         self.moved = True
         self.lookat = None
         self.init()
+        self.R = numpy.identity(3)
         self.compute_opencv_params()
         # print self.globalTransformation
 

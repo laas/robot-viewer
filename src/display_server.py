@@ -153,6 +153,7 @@ class DisplayServer(KinematicServer):
     modern_shader = display_element.MODERN_SHADER
     use_shader = True
     pending_configs = {}
+    pending_configs2 = {}
     last_update = 0
 
     def __init__(self,options = None, args = None):
@@ -540,6 +541,13 @@ class DisplayServer(KinematicServer):
                 KinematicServer.updateElementConfig(self, key, value)
                 self.pending_configs[key] = None
 
+
+            for key, value in self.pending_configs2.items():
+                if value == None:
+                    continue
+                KinematicServer.updateElementConfig2(self, key, *value)
+                self.pending_configs2[key] = None
+
         if self.quit:
             glutLeaveMainLoop()
             #glutDestroyWindow(self.window)
@@ -613,6 +621,7 @@ class DisplayServer(KinematicServer):
         #pm = YFlipPixmap(pm)
         self.windows[win].camera.pixels = pm
         self.windows[win].camera.draw_t = time.time()
+        self.windows[win].camera.frame_seq += 1
 
         if self.recording or self.stream:
             import PIL.Image
@@ -1000,4 +1009,8 @@ class DisplayServer(KinematicServer):
 
     def updateElementConfig(self, name, config):
         self.pending_configs[name] = config
+        return True
+
+    def updateElementConfig2(self, name, T, q):
+        self.pending_configs2[name] = T,q
         return True
