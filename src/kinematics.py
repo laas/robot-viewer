@@ -428,13 +428,13 @@ class Robot(Joint):
         self.waist.translation = config[0:3]
         self.waist.rpy = config[3:6]
         self.init_local_transformation()
-        logger.debug("Updating {0} with config {1}".format(self.name, config))
         self.update()
 
     def update_config2(self, T, q):
-        self.set_angles(config[q])
-        self.waist.update_config2(T,  [])
-        logger.debug("Updating {0} with config {1}".format(self.name, config))
+        if q != []:
+            self.set_angles(q)
+        if T != []:
+            self.waist.update_config2(T,  [])
         self.update()
 
     def set_angles(self,angles):

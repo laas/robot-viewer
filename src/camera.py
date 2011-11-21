@@ -125,6 +125,8 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         self.compute_opengl_params()
 
     def __init__(self):
+        self.pixels = None
+        self.draw_t = 0
         kinematics.GenericObject.__init__(self)
         self.localTransformation[:3,:3] = numpy.array([ [ 0 , 0 , 1],
                                                         [ 1 , 0 , 0],

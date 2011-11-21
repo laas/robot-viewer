@@ -295,6 +295,7 @@ class DisplayServer(KinematicServer):
             self.display_elements[cam_name] = cam
             self.world_cameras.append(cam)
             self.cameras.append(cam)
+            window.active_camera = len(self.world_cameras) -1
             window.cameras = self.cameras
             print "use_shader=", self.use_shader
             if not self.use_shader:
@@ -526,6 +527,9 @@ class DisplayServer(KinematicServer):
     def Ping(self):
         return "pong"
 
+    def post_draw(self):
+        return
+
     def draw_cb(self, *arg):
         now = time.time()
         if now - self.last_update > 0.04:
@@ -554,6 +558,7 @@ class DisplayServer(KinematicServer):
                 return res
             else:
                 return True
+
         except KeyboardInterrupt:
             glutLeaveMainLoop()
             return False
@@ -601,12 +606,18 @@ class DisplayServer(KinematicServer):
                     logger.exception("Failed to render element {0}"
                                      .format(ele))
 
+        glutSwapBuffers()
+        pm = glReadPixels(0,0,self.windows[win].camera.width ,
+                                                       self.windows[win].camera.height ,
+                                                       GL_RGB, GL_UNSIGNED_BYTE)
+        #pm = YFlipPixmap(pm)
+        self.windows[win].camera.pixels = pm
+        self.windows[win].camera.draw_t = time.time()
+
         if self.recording or self.stream:
             import PIL.Image
             win = glutGetWindow()
-            pixels = glReadPixels(0,0,self.windows[win].camera.width ,
-                                  self.windows[win].camera.height ,
-                                  GL_RGB, GL_UNSIGNED_BYTE)
+            pixels = self.windows[win].camera.pixels
             img = (PIL.Image.fromstring("RGB",
                                         (self.windows[win].camera.width ,
                                          self.windows[win].camera.height)
@@ -620,7 +631,7 @@ class DisplayServer(KinematicServer):
                 self.udp_sock.sendto(s.getvalue(), "localhost:{0}".
                                      format(self.stream))
 
-        glutSwapBuffers()
+        self.post_draw()
 
         if self.run_once:
             self.screen_capture()
@@ -630,9 +641,7 @@ class DisplayServer(KinematicServer):
     def screen_capture(self):
         import PIL.Image
         win = glutGetWindow()
-        pixels = glReadPixels(0,0,self.windows[win].camera.width ,
-                              self.windows[win].camera.height ,
-                              GL_RGB, GL_UNSIGNED_BYTE)
+        pixels = self.windows[win].camera.pixels
         im = (PIL.Image.fromstring("RGB",
                                    (self.windows[win].camera.width,
                                     self.windows[win].camera.height),

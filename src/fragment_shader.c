@@ -63,14 +63,13 @@ vec4 compute_color(vec3 materialAmbientColor,
   }
   vec4 Idiff, Ispec, Iamb, Iemis, res;
   Idiff =  vec4(materialDiffuseColor * diffuseLightWeighting, alpha) ;
-  //Idiff = clamp(Idiff, 0.0, 0.75);
   Ispec = vec4(materialSpecularColor * specularLightWeighting, alpha);
   Ispec = clamp(Ispec, 0.0, 0.1);
   Iamb = vec4(materialAmbientColor * ambientLightWeighting, 0.);
   Iemis = vec4(materialEmissiveColor, alpha);
   res = ( Iamb + Idiff + Iemis + Ispec);
   res = res + gl_Color;
-  //res = clamp(res, 0.0, 1.);
+  res = clamp(res, 0.0, 1.);
   return res;
 }
 
@@ -91,23 +90,14 @@ void main(void) {
   else
     {
       gl_FragColor = compute_color( gl_FrontMaterial.ambient,
-                                    //uMaterialAmbientColor,
                                     gl_FrontMaterial.diffuse,
-                                    //uMaterialDiffuseColor,
                                     gl_FrontMaterial.specular,
-                                    //uMaterialSpecularColor,
                                     gl_FrontMaterial.emission,
-                                    //uMaterialEmissiveColor,
                                     gl_FrontMaterial.shininess,
-                                    //uMaterialShininess,
                                     gl_LightSource[0].ambient,
-                                    //vec3(0.1,0.1,0.1),
                                     gl_LightSource[0].position.xyz,
-                                    //vec3(5.0, 4.0 ,5.0),
                                     gl_LightSource[0].diffuse,
-                                    //vec3(0.8,0.8,0.8),
                                     gl_LightSource[0].specular
-                                    //vec3(0.8,0.8,0.8)
                                     );
     }
   return;
