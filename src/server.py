@@ -69,10 +69,6 @@ def get_parser():
                       action="store_true", dest="version", default=False,
                       help="print version and exit")
 
-    parser.add_option("--off-screen",
-                       action="store_true", dest="off_screen", default=False,
-                       help="offscreen mode")
-
     parser.add_option("-r", "--refresh-rate",
                       action="store", dest="refresh_rate", type = "int", default = 1000,
                       help="set refresh rate")
@@ -89,17 +85,13 @@ def get_parser():
                       action="store", dest="height", type = "int", default = 480,
                       help="set window(s) height")
 
-    parser.add_option("--stream",
-                      action="store", dest="port", type = "int",
-                      help="stream PNG to a port (UDP)")
-
     parser.add_option("--no-gl",
                       action="store_true", dest="no_gl",
                       help="start kinematic server only, no GL")
 
     parser.add_option("--no-shader",
                       action="store_false", dest="use_shader", default = True,
-                      help="start kinematic server only, no GL")
+                      help="no shader")
 
     parser.add_option("--log-module",
                       action="store", dest="log_module",

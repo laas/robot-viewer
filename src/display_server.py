@@ -145,8 +145,6 @@ class DisplayServer(KinematicServer):
     no_cache = False
     use_vbo = False
     strict = False
-    off_screen = False
-    stream = None
     refresh_rate = None
     num_windows = 1
     run_once = False
@@ -329,19 +327,7 @@ class DisplayServer(KinematicServer):
         glutInit(sys.argv)
         logger.debug("Setting glut DisplayMode")
 
-        if not self.off_screen:
-        #if True:
-            self.create_window()
-        else:
-            import oglc
-            oglc.create_gl_context()
-            #self.create_window()
-            #glutHideWindow(self.window)
-
-            logger.info("Creating context")
-            self.create_render_buffer()
-            self.window = []
-
+        self.create_window()
 
     # The function called when our window is resized (which shouldn't happen if
     # you enable fullscreen, below)
@@ -513,16 +499,10 @@ class DisplayServer(KinematicServer):
                 print("\r")
                 self.app.queued_keys.append(key)
 
-        if self.off_screen:
-            t = InteractThread(self)
-            #t.start()
-        if not (self.run_once or self.off_screen):
+        if not (self.run_once):
             glutMainLoop()
         elif self.run_once:
             glutMainLoopEvent()
-        elif self.off_screen:
-            while True:
-                glutMainLoopEvent()
 
 
     def Ping(self):
@@ -595,8 +575,7 @@ class DisplayServer(KinematicServer):
         win = glutGetWindow()
         self.windows[win].camera.update_view()
 
-        if not self.off_screen:
-            self.windows[win].update_fps()
+        self.windows[win].update_fps()
         for name,ele in self.display_elements.items():
             #    logger.info( item[0], item[1]._enabled)
             try:
@@ -623,7 +602,7 @@ class DisplayServer(KinematicServer):
         self.windows[win].camera.draw_t = time.time()
         self.windows[win].camera.frame_seq += 1
 
-        if self.recording or self.stream:
+        if self.recording:
             import PIL.Image
             win = glutGetWindow()
             pixels = self.windows[win].camera.pixels
@@ -634,11 +613,6 @@ class DisplayServer(KinematicServer):
                    transpose(PIL.Image.FLIP_TOP_BOTTOM))
             if self.recording:
                 self.capture_images.append((time.time(),img))
-            if self.stream:
-                s = StringIO.StringIO()
-                im.save(s, "PNG")
-                self.udp_sock.sendto(s.getvalue(), "localhost:{0}".
-                                     format(self.stream))
 
         self.post_draw()
 

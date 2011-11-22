@@ -61,7 +61,7 @@ class Bridge(object):
             #im.data = cam.pixels
             im.encoding = "rgb8"
             im.is_bigendian = 0
-            #im.step = im.height
+            im.step = im.width*3 # 3 channels
             im.header.frame_id = cam.name
             im.header.stamp = rospy.Time(cam.draw_t)
             im.header.seq = cam.frame_seq
@@ -99,7 +99,7 @@ class Bridge(object):
 
         for rvcam, realcam in cam_map.items():
             rospy.Subscriber(realcam+"/camera_info", CameraInfo, self.caminfo_cb(rvcam))
-        return
+
 
         self.image_pubs = {}
         self.camera_info_pubs = {}
