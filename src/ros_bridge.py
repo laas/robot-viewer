@@ -13,7 +13,7 @@ from OpenGL.GLX import *
 from OpenGL.GL.EXT.framebuffer_object import *
 
 import time
-import PIL
+import PIL.Image
 
 class Bridge(object):
     cam_update_t = {}
@@ -27,6 +27,9 @@ class Bridge(object):
 
     def caminfo_cb(self, name):
         def cb(data):
+            if name not in self.simu_cameras:
+                return
+
             if time.time() - self.cam_update_t[name] < 0.5:
                 return
             width = data.width
@@ -37,8 +40,6 @@ class Bridge(object):
             cy = data.P[6]
             self.camera_dict[name].set_opencv_params(width, height, fx, fy, cx, cy)
             self.cam_update_t[name] = time.time()
-
-
         return cb
 
 
@@ -47,18 +48,23 @@ class Bridge(object):
         return data
 
     def publish(self):
-        win = glutGetWindow()
-        cam = self.server.windows[win].camera
-        if cam.pixels:
+        for cam_name in self.simu_cameras:
+            cam = self.camera_dict[cam_name]
+
+            cam.simulate()
+
+            if not cam.pixels:
+                return
+
             im = Image()
             im.height = cam.height
             im.width = cam.width
             image = PIL.Image.fromstring(mode="RGB",
-                                         size=(cam.width, cam.height), data=cam.pixels)
+                                         size=(cam.width, cam.height), data = cam.pixels)
             image = image.transpose(PIL.Image.FLIP_TOP_BOTTOM)
 
             im.data = image.tostring()
-            #im.data = cam.pixels
+
             im.encoding = "rgb8"
             im.is_bigendian = 0
             im.step = im.width*3 # 3 channels
@@ -80,19 +86,20 @@ class Bridge(object):
             self.camera_info_pubs[cam.name].publish(caminfo)
             self.cam_update_t[cam.name] = cam.draw_t
 
-
-
     def __init__(self, server):
         self.server = server
-        rospy.init_node('robotviewer')
-
+        rospy.init_node('robotviewer', anonymous = True)
         jointstates = rospy.get_param("~jointstates",{})
         if isinstance(jointstates, str):
             jointstates = eval(jointstates)
-        cam_map = rospy.get_param("~cam_map",{})
 
+        cam_map = rospy.get_param("~cam_map",{})
         if isinstance(cam_map, str):
             cam_map = eval(cam_map)
+
+        self.simu_cameras = rospy.get_param("~simu_cameras","")
+        self.simu_cameras = [w for w in self.simu_cameras.split(",") if w != '']
+        print self.simu_cameras
 
         for rvname, topic in jointstates.items():
             rospy.Subscriber(topic, JointState, self.state_cb(rvname))
@@ -100,15 +107,16 @@ class Bridge(object):
         for rvcam, realcam in cam_map.items():
             rospy.Subscriber(realcam+"/camera_info", CameraInfo, self.caminfo_cb(rvcam))
 
-
         self.image_pubs = {}
         self.camera_info_pubs = {}
         self.cameras = self.server.cameras
         self.camera_dict = dict((cam.name, cam) for cam in self.cameras)
-        for cam in self.cameras:
-            self.image_pubs[cam.name] = rospy.Publisher(cam.name + "/image_raw", Image)
-            self.camera_info_pubs[cam.name] = rospy.Publisher(cam.name + "/camera_info",
-                                                              CameraInfo)
-            self.cam_update_t[cam.name] = 0.
 
-        server.post_draw = self.publish
+
+        for cam_name in self.simu_cameras:
+            self.image_pubs[cam_name] = rospy.Publisher(cam_name + "/image_raw", Image)
+            self.camera_info_pubs[cam_name] = rospy.Publisher(cam_name + "/camera_info",
+                                                              CameraInfo)
+            self.cam_update_t[cam_name] = 0.
+
+        server.pre_draw = self.publish

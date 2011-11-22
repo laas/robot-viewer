@@ -126,7 +126,7 @@ class GlWindow(object):
         else:
             self.active_camera += 1
         glutReshapeWindow(self.camera.width, self.camera.height)
-        self.camera.update_perspective()
+        #self.camera.update_perspective()
         logger.debug("Change camera to %d %s.\n%s"%(self.active_camera,
                                                    self.camera.name,
                                                    self.camera))
@@ -153,6 +153,7 @@ class DisplayServer(KinematicServer):
     pending_configs = {}
     pending_configs2 = {}
     last_update = 0
+    gl_error = None
 
     def __init__(self,options = None, args = None):
         """
@@ -235,7 +236,8 @@ class DisplayServer(KinematicServer):
         for key, value in self.display_elements.items():
             if isinstance(value, DisplayObject):
                 cameras = value.get_list(Camera)
-                print key, cameras
+                for camera in cameras:
+                    camera.server = self
                 self.cameras += cameras
 
     def __del__(self):
@@ -284,7 +286,7 @@ class DisplayServer(KinematicServer):
             self.bind_events()
             glutPositionWindow(i*self.width,20);
             self.init_lights()
-            cam = Camera()
+            cam = Camera(server = self)
             cam.translation = [3.5, 0, 1]
             cam.width = self.width
             cam.height = self.height
@@ -511,6 +513,9 @@ class DisplayServer(KinematicServer):
     def post_draw(self):
         return
 
+    def pre_draw(self):
+        return
+
     def draw_cb(self, *arg):
         now = time.time()
         if now - self.last_update > 0.04:
@@ -567,45 +572,36 @@ class DisplayServer(KinematicServer):
                     shape.gl_primitive.generate_gl_list()
 
         # Clear Screen And Depth Buffer
-        glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glLoadIdentity ();
+        # glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
         # # Reset The Modelview Matrix
         # # Get FPS
         # milliseconds = win32api.GetTickCount()
-        win = glutGetWindow()
-        self.windows[win].camera.update_view()
+        self.pre_draw()
 
+        win = glutGetWindow()
+        cam = self.windows[win].camera
+
+        # glLoadIdentity ();
+        # cam.update_view()
+        # glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        # for name,ele in self.display_elements.items():
+        #     #    logger.info( item[0], item[1]._enabled)
+        #     if isinstance(ele, DisplayRobot):
+        #         ele.render(self.render_shape_flag,
+        #                    self.render_skeleton_flag,
+        #                    )
+        #     else:
+        #         ele.render()
+        cam.draw()
         self.windows[win].update_fps()
-        for name,ele in self.display_elements.items():
-            #    logger.info( item[0], item[1]._enabled)
-            try:
-                if isinstance(ele, DisplayRobot):
-                    ele.render(self.render_shape_flag,
-                               self.render_skeleton_flag,
-                               )
-                else:
-                    ele.render()
-            except:
-                if self.strict:
-                    glutLeaveMainLoop()
-                    #glutDestroyWindow(self.window)
-                else:
-                    logger.exception("Failed to render element {0}"
-                                     .format(ele))
 
         glutSwapBuffers()
-        pm = glReadPixels(0,0,self.windows[win].camera.width ,
-                                                       self.windows[win].camera.height ,
-                                                       GL_RGB, GL_UNSIGNED_BYTE)
-        #pm = YFlipPixmap(pm)
-        self.windows[win].camera.pixels = pm
-        self.windows[win].camera.draw_t = time.time()
-        self.windows[win].camera.frame_seq += 1
-
         if self.recording:
             import PIL.Image
             win = glutGetWindow()
-            pixels = self.windows[win].camera.pixels
+            pixels = glReadPixels(0,0,self.windows[win].camera.width ,
+                          self.windows[win].camera.height ,
+                                  GL_RGB, GL_UNSIGNED_BYTE)
             img = (PIL.Image.fromstring("RGB",
                                         (self.windows[win].camera.width ,
                                          self.windows[win].camera.height)
@@ -624,7 +620,9 @@ class DisplayServer(KinematicServer):
     def screen_capture(self):
         import PIL.Image
         win = glutGetWindow()
-        pixels = self.windows[win].camera.pixels
+        pixels = glReadPixels(0,0,self.windows[win].camera.width ,
+                             self.windows[win].camera.height ,
+                             GL_RGB, GL_UNSIGNED_BYTE)
         im = (PIL.Image.fromstring("RGB",
                                    (self.windows[win].camera.width,
                                     self.windows[win].camera.height),

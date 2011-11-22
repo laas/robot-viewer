@@ -20,9 +20,14 @@ import numpy, numpy.linalg
 import transformations as tf
 import copy
 import alias
-
+from ctypes import *
+from OpenGL.GL.ARB.framebuffer_object import *
+from OpenGL.GL.EXT.framebuffer_object import *
+import PIL.Image
 def norm(a):
     return sqrt(numpy.dot(a,a))
+
+from display_element import DisplayRobot
 
 import logging
 class NullHandler(logging.Handler):
@@ -108,7 +113,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         '''
         Compute gl params from opencv params
         '''
-        self.x0 = int(self.u0  - self.width/2.0)
+        self.x0= int(self.u0  - self.width/2.0)
         self.y0 = int(self.height/2.0 - self.v0)
         self.fovy = 2*atan(1.0*self.height/(2*self.fy))
         self.aspect = 1.0*self.width/self.height*self.fy/self.fx
@@ -136,11 +141,11 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         self.cy = cy
         self.compute_opengl_params()
 
-    def __init__(self):
+    def __init__(self, server = None):
         self.pixels = None
         self.draw_t = 0
         self.frame_seq = 0
-
+        self.server = server
         self.frontClipDistance = 0.01
         self.backClipDistance = 100
         self.width = 320
@@ -174,9 +179,93 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         self.R = numpy.identity(3)
         self.compute_opencv_params()
         # print self.globalTransformation
+        self.count = 0
+        self.fbo = None
+        self.texture = None
+        self.render_buffer = None
+        self.gl_error = None
+
+
+    def simulate(self):
+        if not self.texture:
+            self.texture=glGenTextures( 1 )
+
+        glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
+        glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+                         GL_REPEAT);
+        glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
+                         GL_REPEAT );
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA, self.width, self.height, 0,GL_RGBA,
+                     GL_UNSIGNED_INT, None)
+        glBindTexture( GL_TEXTURE_2D, self.texture );
+
+
+        # occupy width x height texture memory
+        # This is the interesting part: render-to-texture is initialized here
+        # generate a "Framebuffer" object and bind it
+        # render to the texture
+        # In case of errors or suspect behaviour, try this:
+        #    print "Framebuffer Status:"
+        #    print glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+        # Save Viewport configuration
+
+        if not self.render_buffer:
+            self.render_buffer = glGenRenderbuffersEXT(1)
+        glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, self.render_buffer)
+        glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT,
+                                 self.width, self.height);
+        glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, 0);
+
+
+        if not self.fbo:
+            self.fbo = c_uint(1)
+            glGenFramebuffers(1,self.fbo)
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, self.fbo);
+
+
+        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
+                                 GL_TEXTURE_2D, self.texture, 0);
+        glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,
+                             GL_RENDERBUFFER_EXT, self.render_buffer)
+
+        if self.draw():
+            self.pixels = glReadPixels(0,0, self.width, self.height, GL_RGB, GL_UNSIGNED_BYTE)
+
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+
+        return
 
     def render(self):
         pass
+
+    def draw(self):
+        if self.server == None:
+            return False
+
+        status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+        if(status != GL_FRAMEBUFFER_COMPLETE_EXT):
+            logger.warning("Framebuffer not ready.")
+            return False
+
+        #if self.server.gl_error != None:
+        #    return
+        glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glLoadIdentity ();
+        self.update_perspective()
+        self.update_view()
+
+        for name,ele in self.server.display_elements.items():
+            #    logger.info( item[0], item[1]._enabled)
+            if isinstance(ele, DisplayRobot):
+                ele.render(self.server.render_shape_flag,
+                           self.server.render_skeleton_flag,
+                           )
+            else:
+                ele.render()
+
+        return True
 
     def update(self):
         kinematics.GenericObject.update(self)
