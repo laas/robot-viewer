@@ -1,0 +1,16 @@
+<package>
+  <description brief="robotviewer">
+
+     demo0611
+
+  </description>
+  <author>Duong Dang</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <depend package="sensor_msgs"/>
+  <depend package="rospy"/>
+  <depend package="dynamic_reconfigure"/>
+  <url>http://ros.org/wiki/robot</url>
+</package>
+
+
