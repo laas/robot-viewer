@@ -80,6 +80,8 @@ class GlPrimitive(GenericObject):
         if vbos:
             self.vbos = vbos
 
+        self.scale = self.cumul_scale()
+
     def set_transparency(self, transparency):
         pass
 
@@ -122,8 +124,7 @@ class GlPrimitive(GenericObject):
         glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, app.material.specularColor + [1.] )
 
         if not USE_VBO:
-            scale = self.cumul_scale()
-            self.shape.geometry.render(scale)
+            self.shape.geometry.render(self.scale)
 
         glEndList();
         return new_list
@@ -138,7 +139,8 @@ class GlPrimitive(GenericObject):
 
         glPushMatrix()
 
-        glTranslatef(*self.globalTransformation[:3,3])
+        location = self.globalTransformation[:3,3]
+        glTranslatef(*location)
 
         # angle, direction, point = tf.rotation_from_matrix(self.globalTransformation)
         # glRotated(angle*180./math.pi, direction[0], direction[1], direction[2])
@@ -160,7 +162,7 @@ class GlPrimitive(GenericObject):
                     shaders[glutGetWindow()].uMaterialDiffuseColor = app.material.diffuseColor
                     shaders[glutGetWindow()].uMaterialShininess = app.material.shininess
 
-            glCallList(self.gl_list_ids[win])
+        glCallList(self.gl_list_ids[win])
 
 
         if (not USE_VBO) or (not self.shape) :
@@ -423,12 +425,6 @@ class Vbo(object):
 
 
 def draw_joint(joint, size = 1):
-    for (key, value) in [ (GL_SPECULAR, [1,1,1,1]),
-                          (GL_EMISSION, [0.5,0,0,1]),
-                          (GL_AMBIENT_AND_DIFFUSE, [0.5,0,0,1]),
-                          (GL_SHININESS, 5),
-                      ]:
-        glMaterialfv(GL_FRONT_AND_BACK, key, value)
     r = 0.01*size
     h = r/2
     glPushMatrix()
@@ -438,7 +434,7 @@ def draw_joint(joint, size = 1):
         glPopMatrix()
         gluDeleteQuadric(sphere)
         return
-
+    glColor3f(0,1,0)
     if joint.jointAxis in ("X","x"):
         glRotated(90,0,1,0)
     elif joint.jointAxis in ("Y","y"):
@@ -462,26 +458,14 @@ def draw_link(joint, size = 1):
         #draw_cylinder([0.,0.,0.], child_pos, size)
         #    print "{0}\t{1}{2}".format(joint.name, child.name, child_pos)
 
-        color = [0,1,0,1]
-        for (key, value) in [ (GL_SPECULAR, [1,1,1,1]),
-                          (GL_EMISSION, color),
-                          (GL_AMBIENT_AND_DIFFUSE, color),
-                          (GL_SHININESS, 5),
-                          ]:
-            glMaterialfv(GL_FRONT_AND_BACK, key, value)
+        glColor3f(1.0, 0, 0.)
         glBegin(GL_LINES)
         glVertex3f(0.,0.,0.)
         glVertex3f(child_pos[0], child_pos[1], child_pos[2])
         glEnd()
 
-def draw_cylinder(p1, p2, size=1, color = [0,1,0,1]):
-    for (key, value) in [ (GL_SPECULAR, [1,1,1,1]),
-                          (GL_EMISSION, color),
-                          (GL_AMBIENT_AND_DIFFUSE, color),
-                          (GL_SHININESS, 5),
-                          ]:
-        glMaterialfv(GL_FRONT_AND_BACK, key, value)
-
+def draw_cylinder(p1, p2, size=1, color = [0,1,0]):
+    glColor3f(color[0], color[1], color[2])
     r = 0.01*size/4
     p = p2-p1
     h = numpy.linalg.norm(p)
@@ -490,6 +474,7 @@ def draw_cylinder(p1, p2, size=1, color = [0,1,0,1]):
     axis = numpy.cross(z_axis, n_p)
     angle = acos(numpy.dot(z_axis, n_p))*180/pi
     glPushMatrix()
+
     glTranslatef(p1[0], p1[1], p1[2])
     glRotated(angle, axis[0], axis[1], axis[2])
     qua = gluNewQuadric()

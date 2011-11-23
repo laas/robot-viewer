@@ -211,7 +211,9 @@ class GenericObject(object):
         self.rpy = tf.euler_from_matrix(self.localTransformation)
 
         # last column
-        self.localTransformation[0:3,3]=numpy.array(self.translation)+\
+        scale_translation = [self.translation[i]*self.cumul_scale()[i]for i in range(3)]
+
+        self.localTransformation[0:3,3] = numpy.array(scale_translation)+\
             numpy.dot(numpy.eye(3)-self.localTransformation[:3,:3],
                       numpy.array(self.center))
 
@@ -370,8 +372,11 @@ class Joint(GenericObject):
         """
         if self.jointType in ["free", "freeflyer"]:
             self.localTransformation = tf.euler_matrix(self.rpy[0], self.rpy[1], self.rpy[2])
-            self.localTransformation[0:3,3]=numpy.array(self.translation)+\
+
+            scale_translation = [self.translation[i]*self.cumul_scale()[i]for i in range(3)]
+            self.localTransformation[0:3,3]=numpy.array(scale_translation)+\
                 numpy.dot(numpy.eye(3)-self.localTransformation[0:3,:3],numpy.array(self.center))
+
         elif ( self.type=="joint" and self.jointType in [ "rotate", "rotation", "revolute"]
                and self.jointId >= 0):
             if self.jointAxis in ["x","X"]:
@@ -396,7 +401,8 @@ class Joint(GenericObject):
         self.localR1 = tf.rotation_matrix(angle, direction)[:3,:3]
         self.localTransformation[0:3,0:3] = self.localR1
         self.update_local_transformation()
-        self.localTransformation[0:3,3]=numpy.array(self.translation)+\
+        scale_translation = [self.translation[i]*self.cumul_scale()[i]for i in range(3)]
+        self.localTransformation[0:3,3]=numpy.array(scale_translation)+\
             numpy.dot(numpy.eye(3)-self.localTransformation[:3,:3],
                       numpy.array(self.center))
         self.localTransformation[3,3]=1

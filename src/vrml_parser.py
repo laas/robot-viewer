@@ -26,6 +26,7 @@ import geometry
 import vrml.standard_nodes as nodes
 from collections import defaultdict
 import camera
+import inspect
 
 class_map ={
     "Humanoid" : kinematics.Robot,
@@ -59,20 +60,31 @@ class UnknownNode(Exception):
     pass
 
 
-def convert(obj):
-    clsname =  obj.__class__.__name__
-    # logger.debug("Converting {0} ({1})".format(clsname, repr(obj)[:100]))
+def map_class(obj):
+    ancestor_classes = inspect.getmro(obj.__class__)
+    for cls in ancestor_classes:
+        mapped_class = class_map.get(cls.__name__)
+        if mapped_class:
+            return mapped_class
+    return None
 
-    if not clsname in class_map.keys():
+def convert(obj):
+    if isinstance(obj, list):
+        return [convert(o) for o in obj]
+
+    clsname =  obj.__class__.__name__
+    mapped_class = map_class(obj)
+
+    if mapped_class == None:
         if clsname != "NoneType" and clsname[0].isupper():
             logger.exception("Ignoring node {0}".format(clsname))
             ignored_classes[clsname] += 1
             raise UnknownNode()
-        elif clsname == "list":
-            return [convert(o) for o in obj]
         else:
             return obj
-    res = class_map[clsname]()
+
+
+    res = mapped_class()
 
     keys = [ key for key in dir(obj)
              if not (key.startswith('_')

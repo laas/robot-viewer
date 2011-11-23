@@ -1,0 +1,72 @@
+#VRML V2.0 utf8
+# ----------------------------------------------------------------------------
+# axes3.wrl
+#
+# Draws the X, Y and Z coordinate axes, each 10 meters long: X red, Y green
+# and Z blue, as cylinders with radius 0.1m.
+#
+# This document illstrates using PROTO to make a new SimpleAxis node, which
+# is the combination of a cylinder and cone, parameterized by its appearance.
+# ----------------------------------------------------------------------------
+
+# Define a new node called SimpleAxis with one parameter, its appearance.
+# A SimpleAxis is basically a cylinder of base radius 0.1 and height 10
+# resting on the xz plane pointing upward.  Sitting on top of the cylinder
+# is a cone of base radius 0.25 and height 1.
+
+PROTO SimpleAxis [field SFNode axisAppearance NULL] {
+  Transform {
+    translation 0 5 0
+    children [
+      Shape {
+        appearance IS axisAppearance
+        geometry Cylinder {radius 0.2 height 10}
+      }
+      Transform {
+        translation 0 5.5 0
+        children [
+          Shape {
+            appearance IS axisAppearance
+            geometry Cone {bottomRadius 0.5 height 1}
+          }
+        ]
+      }
+    ]
+  }
+}
+
+# Red X-axis
+
+Transform {
+  rotation 0 0 1 -1.57080
+  children [
+    SimpleAxis {
+      axisAppearance Appearance {material Material {diffuseColor 1 0 0}}
+    }
+  ]
+}
+
+# Green X-axis
+
+Transform {
+  children [
+    SimpleAxis {
+      axisAppearance Appearance {material Material {diffuseColor 0 1 0}}
+    }
+  ]
+}
+
+# Blue Z-axis
+
+Transform {
+  rotation 1 0 0 1.57080
+  children [
+    SimpleAxis {
+      axisAppearance Appearance {material Material {diffuseColor 0 0 1}}
+    }
+  ]
+}
+
+# Sphere at origin
+
+Shape {geometry Sphere{}}

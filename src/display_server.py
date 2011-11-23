@@ -433,6 +433,10 @@ class DisplayServer(KinematicServer):
                                 %(epath, len(robots)))
             new_robot = robots[0]
 
+            if scale:
+                new_robot.scale = scale
+                new_robot.init()
+
             new_element = DisplayRobot(new_robot)
             self.display_elements[ename] = new_element
             self.kinematic_elements[ename] = new_robot
@@ -461,9 +465,12 @@ class DisplayServer(KinematicServer):
                     group  = kinematics.GenericObject()
                     for obj in objs:
                         group.add_child(obj)
-                        group.init()
+
                 if scale:
                     group.scale = scale
+
+                group.init()
+
                 new_object = group
                 new_element = DisplayObject(group)
             else:
