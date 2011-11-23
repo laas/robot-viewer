@@ -86,14 +86,14 @@ def validate_field(fdata, ftype):
 
 class Node(object):
     _parent = None
-    _route = []
     _aliases = []
+    _heir_pos = 0
     children = []
     _declared = []
     _ftypes = []
 
     def __getattr__(self, att):
-        for route, name, alias in self._aliases:
+        for route, name, alias, acls in self._aliases:
             if alias == att:
                 try:
                     return getattr(self.get_descendant(route), name)
@@ -104,17 +104,20 @@ class Node(object):
         raise AttributeError("Invalid Tribute {0} in {1}".format(att, self.__class__.__name__))
 
     def __setattr__(self, att, value):
-        for route, name, alias in self._aliases:
+        aliased = False
+        for route, name, alias, acls in self._aliases:
             if alias == att:
                 logger.debug("setting {0} {1} {2} {3} {4} \non {5}".
                             format(route, name, alias, att, value, self))
                 desc = self.get_descendant(route)
-                res =  setattr(desc, name, value)
+                setattr(desc, name, value)
+                aliased = True
                 if name == 'children':
                     for child in desc.children:
                         child._parent = desc
-                return res
-        return object.__setattr__(self, att, value)
+
+        if not aliased:
+            object.__setattr__(self, att, value)
 
     @classmethod
     def ftype(cls, fname):
@@ -125,18 +128,23 @@ class Node(object):
             return None
         return base.ftype(fname)
 
+    def route(self):
+        if self._parent == None:
+            return []
+        return self._parent.route() + [self._heir_pos]
+
     def depth(self):
         if self._parent == None:
             return 0
         return 1 + self._parent.depth()
 
     def get_descendant(self, route):
+        route = copy.deepcopy(route)
         result = self
-        count = 0
-        while count < len(route):
-            i = route[len(route)- 1 - count]
+        while route[:]:
+            i = route[0]
+            route = route[1:]
             result = result.children[i]
-            count += 1
         return result
 
     def __str__(self):
@@ -152,7 +160,13 @@ class Node(object):
         children = self.children
        # s += "({0})".format(len(children))
 
-        attrs = [(key, getattr(self, key)) for key in self._declared if (key != "children")]
+        attrs = [(key, getattr(self, key)) for key in dir(self)
+                 if not ( key.startswith("_") or callable(getattr(self, key))
+                          or key == "children")]
+
+        if self._aliases[:]:
+            s += "aliases: {0}".format(self._aliases)
+
         for key, value in attrs:
             s += key + ":"
             if isinstance(value, list):
@@ -197,13 +211,12 @@ class VrmlProcessor(DispatchProcessor):
         cls = self.prototypes[name]
         self.clss.append(cls)
         node = self.cls()
-        node._route = []
         attrs = [ a for a in dispatchList(self, subtags[1:], buffer)
                   if type(a) == Attribute ]
         node._declared = []
         for key, value in attrs:
             if type(value) == ISDef:
-                self.proto_aliases.append((node._route, key, value))
+                self.proto_aliases.append((node, key, value, node.__class__.__name__))
             else:
                 try:
                     getattr(node, key)
@@ -217,7 +230,7 @@ class VrmlProcessor(DispatchProcessor):
         children = node.children
         for i,child in enumerate([c for c in children if isinstance(c, Node)]):
             child._parent = node
-            child._route.append(i)
+            child._heir_pos = i
 
         # logger.debug("Created node {0}".format(node))
         self.clss.pop()
@@ -256,7 +269,7 @@ class VrmlProcessor(DispatchProcessor):
 
             def init(cls, *kargs, **kwargs):
                 for name, value in base_attrs:
-                    cls.__dict__[name] = copy.copy(value)
+                    cls.__dict__[name] = copy.deepcopy(value)
             proto_attrs['__init__'] = init
 
 
@@ -264,7 +277,6 @@ class VrmlProcessor(DispatchProcessor):
         fields = [f for f in children_tags if type(f) == tuple]
 
         self.proto_aliases = [a for a in self.proto_aliases if not (a[0] == [] and a[1] == a[2])]
-
 
         proto_ftypes = {}
         for ftype, fname, fdata in fields:
@@ -278,7 +290,12 @@ class VrmlProcessor(DispatchProcessor):
             else:
                 #print "Ignoring {0} in {1}".format(fname, proto_name)
                 pass
-        proto_attrs['_aliases'] = copy.deepcopy(self.proto_aliases)
+        proto_attrs['_aliases'] = []
+        for node, key, value, acls in self.proto_aliases:
+            if node.route() == [] and key == value:
+                continue
+            proto_attrs['_aliases'].append([node.route(), key, value, acls])
+
         proto_attrs['_ftypes'] = copy.deepcopy(proto_ftypes)
 
         class Proto(base_class):
@@ -476,12 +493,7 @@ def parse(filename):
 def main():
     import optparse
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
-    sh = logging.StreamHandler()
-    sh.setLevel(logging.INFO)
-    logger.addHandler(sh)
-    formatter = logging.Formatter("%(name)s:%(levelname)s:%(message)s")
-    sh.setFormatter(formatter)
+    logger.setLevel(logging.INFO)
 
     parser = optparse.OptionParser(
         usage='\n\t%prog [options]',
@@ -491,7 +503,8 @@ def main():
                       help="be verbose")
     (options, args) = parser.parse_args(sys.argv[1:])
     if options.verbose:
-        sh.setLevel(logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
+
     if not args[:]:
         _test()
         return
@@ -502,6 +515,7 @@ def main():
         results = [r for r in results if type(r.__class__) != type]
         for result in results:
             print result#, dir(result), result.children
+            print "---"
             if result.__class__.__name__ == "Humanoid":
                 print result.humanoidBody#, result.humanoidBody[0]._parent3
             pass
