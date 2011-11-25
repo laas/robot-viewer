@@ -176,21 +176,21 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         if int(self.cx) == self.width/2 and int(self.cy) == self.height:
             self.fovy = 2*math.atan(1.0*self.height/(2*self.fy))
             self.aspect = 1.0*self.width/self.height*self.fy/self.fx
-        else: # excentric camera, fovy and aspect has no physical sense
+        else: # excentric camera, fo                                 vy and aspect has no physical sense
             self.fovy = None
             self.aspect = None
 
-        self.right   = 0.5*self.near*(3*self.width/2 - self.cx)/self.fx
-        self.left    = 0.5*self.near*(- self.width/2 - self.cx)/self.fx
-        self.top    = 0.5*self.near*(self.cy + self.height/2)/self.fy
-        self.bottom = 0.5*self.near*(self.cy - 3*self.height/2)/self.fy
-        print self.cx, self.width, self.right, self.left
-        print("compute_opengl_params {0} GL vals: {1}\n".format(self.name,
-                                              (self.x0, self.y0,
-                                               self.fovy, self.aspect,
-                                               self.left, self.right,
-                                               self.bottom, self.top,
-                                               self.near, self.far)))
+        self.right   = self.near/self.fx*( self.width - self.cx )
+        self.left    = self.near/self.fx*( -self.cx )
+        self.top     = self.near/self.fy*( self.cy)
+        self.bottom  = self.near/self.fy*( self.cy - self.height)
+        # print self.cx, self.width, self.right, self.left
+        # print("compute_opengl_params {0} GL vals: {1}\n".format(self.name,
+        #                                       (self.x0, self.y0,
+        #                                        self.fovy, self.aspect,
+        #                                        self.left, self.right,
+        #                                        self.bottom, self.top,
+        #                                        self.near, self.far)))
 
 
     def compute_opencv_params(self):
