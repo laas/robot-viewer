@@ -40,7 +40,7 @@ class NullHandler(logging.Handler):
         pass
 
 SHOW_NORMALS = False
-logger = logging.getLogger("robotviewer.shape")
+logger = logging.getLogger("robotviewer.geometry")
 logger.addHandler(NullHandler())
 
 
@@ -201,23 +201,25 @@ class ElevationGrid(nodes.ElevationGrid, Geometry):
     def render(self, scale = 3*[1.]):
         Xs = [self.xSpacing*i*scale[0] for i in range(self.xDimension)]
         Zs = [self.zSpacing*i*scale[2] for i in range(self.zDimension)]
-        for i in range(self.xDimension - 1):
-            for j in range(self.zDimension -1):
-                A = Xs[i],   self.height[i   + (j)  *self.zDimension], Zs[j]
-                B = Xs[i],   self.height[i   + (j+1)*self.zDimension], Zs[j+1]
-                C = Xs[i+1], self.height[i+1 + (j+1)*self.zDimension], Zs[j+1]
-                D = Xs[i+1], self.height[i+1 + (j)  *self.zDimension], Zs[j]
+        for i in range(self.zDimension - 1):
+            for j in range(self.xDimension -1):
+                A = Xs[j],   self.height[j   + (i)  *self.zDimension], Zs[i]
+                B = Xs[j],   self.height[j   + (i+1)*self.zDimension], Zs[i+1]
+                C = Xs[j+1], self.height[j+1 + (i+1)*self.zDimension], Zs[i+1]
+                D = Xs[j+1], self.height[j+1 + (i)  *self.zDimension], Zs[i]
 
-                count = i + j*(self.zDimension-1)
+                count = j + i*(self.xDimension-1)
                 color =  self.color.color[3*count:3*count+3]
 
-                glColor3f(color[0], color[1], color[2])
+                glColor3fv(color)
                 glBegin(GL_QUADS)
                 glNormal3f(0,1,0)
                 glVertex3f(A[0], A[1], A[2])
                 glVertex3f(B[0], B[1], B[2])
                 glVertex3f(C[0], C[1], C[2])
                 glVertex3f(D[0], D[1], D[2])
+                # print count, color, A, B, C, D
+
                 glEnd()
 
 class Extrusion(nodes.Extrusion, Geometry):
@@ -440,7 +442,7 @@ class IndexedFaceSet(nodes.IndexedFaceSet, Geometry):
         self.compute_normals()
 
     def render(self, scale = 3*[1.]):
-        logger.debug("Generating glList for {0}".format(self))
+        #logger.debug("Generating glList for {0}".format(self))
 
         if not (self.tri_idxs[:] and self.normal
             and self.normal.vector):
@@ -461,7 +463,7 @@ class IndexedFaceSet(nodes.IndexedFaceSet, Geometry):
             v[1] *= scale[1]
             v[2] *= scale[2]
 
-            logger.debug("object  {0}: {1} {2}".format(id(self), v, n))
+            #logger.debug("object  {0}: {1} {2}".format(id(self), v, n))
             glNormal3f( n[0], n[1], n[2])
             glVertex3f( v[0], v[1], v[2])
         glEnd()
@@ -591,4 +593,10 @@ class IndexedFaceSet(nodes.IndexedFaceSet, Geometry):
 
         self.normal.vector = normals
 
+from safeeval import safe_eval
+class Script(Geometry):
+    def __init__(self, script):
+        self.script = script
 
+    def render(self, scale = 3*[1.]):
+        exec(self.script)

@@ -51,7 +51,7 @@ from kinematic_server import KinematicServer
 from shaders import *
 from shader import Shader
 import camera
-
+import kinematics, geometry
 try:
     from opencv import highgui, cv, adaptors
 except ImportError:
@@ -127,9 +127,9 @@ class GlWindow(object):
             self.active_camera += 1
         glutReshapeWindow(self.camera.width, self.camera.height)
         #self.camera.update_perspective()
-        logger.debug("Change camera to %d %s.\n%s"%(self.active_camera,
-                                                   self.camera.name,
-                                                   self.camera))
+        # logger.debug("Change camera to %d %s.\n%s"%(self.active_camera,
+        #                                            self.camera.name,
+        #                                            self.camera))
 
 class DisplayServer(KinematicServer):
     """OpenGL server
@@ -229,8 +229,8 @@ class DisplayServer(KinematicServer):
                             ("v", "start/stop video recording"),
                             ("x", "change camera"),
                             ]:
-
-            self.usage += "%.20s: %s\n"%(key, effect)
+            continue
+            self.usage += 20*""+ "{0}:{1}\n".format(key, effect)
 
     def add_cameras(self):
         for key, value in self.display_elements.items():
@@ -419,7 +419,7 @@ class DisplayServer(KinematicServer):
         """
         logger.debug("Creating {0} {1} {2} {3}".format(etype, ename, epath, scale))
         if self.display_elements.has_key(ename):
-            logger.exception("%s Element with that name exists already"%ename)
+            logger.debug("%s Element with that name exists already"%ename)
             return
 
         if etype == 'robot':
@@ -449,9 +449,14 @@ class DisplayServer(KinematicServer):
             # try to load as vrml and script
             ext = os.path.splitext(epath)[1].replace(".","")
             if ext == "py":
-                logger.debug("Creating element from python script file %s."%epath)
-                new_element = GlPrimitive(script = open(epath).read())
-                new_object = new_element
+                logger.info("Creating element from python script %s."%epath)
+                new_object = kinematics.Shape()
+                new_object.name = ename
+                new_object.geometry = geometry.Script(open(epath).read() )
+                new_object.init()
+
+                new_element = DisplayObject(new_object)
+
             elif ext in ml_parser.supported_extensions:
                 logger.debug("Creating element from supported markup language file %s."%epath)
                 objs = ml_parser.parse(epath, not self.no_cache)
@@ -463,20 +468,16 @@ class DisplayServer(KinematicServer):
                     group = objs[0]
                 else:
                     group  = kinematics.GenericObject()
+                    group.name = ename
                     for obj in objs:
                         group.add_child(obj)
-
+                        group.init()
                 if scale:
                     group.scale = scale
-
-                group.init()
-
+                    group.init()
                 new_object = group
                 new_element = DisplayObject(group)
-            else:
-                logger.debug("Creating element from raw script")
-                new_element = GlPrimitive(script = epath)
-                new_object = new_element
+
             if not new_element:
                 raise Exception("creation of element from {0} failed".format(epath))
             logger.debug("Adding %s to internal dictionay"%(new_element))
@@ -567,7 +568,7 @@ class DisplayServer(KinematicServer):
         #if glGetError() > 0:
         if len(self.pendingObjects) > 0:
             obj = self.pendingObjects.pop()
-            logger.debug( "creating %s %s %s"%( obj[0], obj[1], obj[2]))
+            #logger.debug( "creating %s %s %s"%( obj[0], obj[1], obj[2]))
             self._create_element(obj[0],obj[1],obj[2])
 
         for name, obj in self.display_elements.items():

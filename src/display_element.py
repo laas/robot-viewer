@@ -58,7 +58,7 @@ class GlPrimitive(GenericObject):
     """
     """
     def __init__(self, gl_list_ids = None, vbos = None,
-                 shape = None, script = None, parent = None):
+                 shape = None, parent = None):
         """
 
         Arguments:
@@ -69,7 +69,6 @@ class GlPrimitive(GenericObject):
         self.gl_list_ids = {}
         self.vbos = {}
         self.enabled = True
-        self.script = script
         self.shape = shape
         if parent:
             parent.add_child(self)
@@ -85,21 +84,8 @@ class GlPrimitive(GenericObject):
     def set_transparency(self, transparency):
         pass
 
+
     def generate_gl_list(self):
-        if self.shape:
-            return self.generate_gl_list_shape()
-        if self.script:
-            return self.generate_gl_list_script()
-
-    def generate_gl_list_script(self):
-        new_list = glGenLists(1)
-        logger.debug("Generated new gllist for a script {0}".format(new_list))
-        glNewList(new_list, GL_COMPILE);
-        safe_eval(self.script, globals())
-        glEndList();
-        return new_list
-
-    def generate_gl_list_shape(self):
         new_list = glGenLists(1)
         logger.debug("Generated new gllist for a shape {0}".format(new_list))
 
@@ -132,7 +118,6 @@ class GlPrimitive(GenericObject):
     @ifenabled
     def render(self):
         glColor3f(0., 0., 0.)
-
         win = glutGetWindow()
         if not self.gl_list_ids.get(win):
             self.gl_list_ids[win] = self.generate_gl_list()
