@@ -154,7 +154,7 @@ class DisplayServer(KinematicServer):
     pending_configs2 = {}
     last_update = 0
     gl_error = None
-
+    cross_hair_cursor = False
     def __init__(self,options = None, args = None):
         """
 
@@ -228,6 +228,7 @@ class DisplayServer(KinematicServer):
                             ("c", "screen capture"),
                             ("v", "start/stop video recording"),
                             ("x", "change camera"),
+                            ("/", "change cursor mode"),
                             ]:
             continue
             self.usage += 20*""+ "{0}:{1}\n".format(key, effect)
@@ -810,6 +811,13 @@ class DisplayServer(KinematicServer):
         elif args[0] == 'c':
             self.screen_capture()
 
+        elif args[0] == '/':
+            self.cross_hair_cursor = not self.cross_hair_cursor
+            if self.cross_hair_cursor:
+                glutSetCursor(GLUT_CURSOR_FULL_CROSSHAIR)
+            else:
+                glutSetCursor(GLUT_CURSOR_INHERIT)
+
         elif args[0] == 'v':
             if not self.recording:
                 self.start_record()
@@ -835,6 +843,9 @@ class DisplayServer(KinematicServer):
         glutPostRedisplay( )
 
 
+    def mouse_passive_motion_func(self, x, y):
+        if self.cross_hair_cursor:
+            print [x, y]
 
     def mouse_motion_func( self, x, y ):
         """Callback function (mouse moved while button is pressed).
@@ -862,7 +873,6 @@ class DisplayServer(KinematicServer):
         elif self._mouseButton == GLUT_RIGHT_BUTTON:
             camera.move_sideway(dx,dy)
 
-
         self._oldMousePos[0], self._oldMousePos[1] = x, y
 
         glutPostRedisplay( )
@@ -870,6 +880,7 @@ class DisplayServer(KinematicServer):
     def bind_events(self):
         glutMouseFunc( self.mouse_button_func )
         glutMotionFunc( self.mouse_motion_func )
+        glutPassiveMotionFunc(self.mouse_passive_motion_func)
         glutSpecialFunc(self.key_pressed_func)
         glutKeyboardFunc(self.key_pressed_func)
 
