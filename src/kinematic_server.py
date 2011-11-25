@@ -159,6 +159,7 @@ class KinematicServer(object):
 
                 self._create_element(otype, oname,
                                      geometry, scale)
+
                 if position:
                     self.updateElementConfig(oname, position)
                 parent = config.get(section, 'parent')
@@ -191,7 +192,9 @@ class KinematicServer(object):
                 continue
             new_el = copy.deepcopy( self.kinematic_elements[orig_name] )
             parent_obj.get_op_point(parent_joint_id).add_child(new_el)
-            parent_obj.init()
+            logger.info("Adding child object {0} to {1}".format(orig_name,
+                                                                parent_name))
+            parent_obj.origin.init()
             self.kinematic_elements[child_name] = new_el
 
         for name, obj in self.kinematic_elements.items():

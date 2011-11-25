@@ -15,7 +15,7 @@
 # along with robot-viewer.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import division
 import kinematics
-from math import sqrt,sin,cos,atan2, pi, atan, tan
+import math
 import numpy, numpy.linalg
 import transformations as tf
 import copy
@@ -50,6 +50,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
     World camera and robot cameras. Use OpenHRP convention
     http://openrtp.info/openhrp3/en/create_model.html#VISIONSENSOR
     '''
+    # http://www.felixgers.de/teaching/jogl/perspectiveProjection.html
 
     # OPENGL params
     frontClipDistance = 0.01
@@ -57,7 +58,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
     width = 320
     height = 240
     cam_type = "COLOR"
-    fieldOfView = 45*pi/180
+    fieldOfView = 45*math.pi/180
     translation = [0, 0, 0]
     focal = 3.5
     x0 = 0
@@ -65,15 +66,71 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
     aspect = 320.0/240.0
 
     # OpenCV params
-    fx = 0.
-    fy = 0.
+    fx = 1.
+    fy = 1.
     cx = 160 # (width/2)
     cy = 120 # (height/2)
 
 
+    def __init__(self, server = None):
+        self.pixels = None
+        self.draw_t = 0
+        self.frame_seq = 0
+        self.server = server
+        self.frontClipDistance = 0.01
+        self.backClipDistance = 100
+        self.width = 320
+        self.height = 240
+        self.cam_type = "COLOR"
+        self.fieldOfView = 45*math.pi/180
+        self.translation = [0, 0, 0]
+        self.focal = 3.5
+        self.x0 = 1.
+        self.y0 = 1.
+        self.aspect = 320.0/240.0
+
+        # OpenCV params
+        self.fx = 0.
+        self.fy = 0.
+        self.cx = 160 # (width/2)
+        self.cy = 120 # (height/2)
+        self.R = numpy.eye(3)
+
+        kinematics.GenericObject.__init__(self)
+        self.localTransformation[:3,:3] = numpy.array([ [ 0 , 0 , 1],
+                                                        [ 1 , 0 , 0],
+                                                        [ 0 , 1 , 0],
+                                                        ]
+                                  )
+        angle, direction, point = tf.rotation_from_matrix(self.localTransformation)
+        self.rotation = list(direction) + [angle]
+        self.moved = True
+        self.lookat = None
+        self.init()
+
+        self.top    =  math.atan(self.fovy/2)*self.near
+        self.bottom = -math.atan(self.fovy/2)*self.near
+
+        self.right  = self.aspect*self.top
+        self.left   = self.aspect*self.bottom
+
+        self.compute_opencv_params()
+        # print self.globalTransformation
+        self.count = 0
+        self.fbo = None
+        self.texture = None
+        self.render_buffer = None
+        self.gl_error = None
+        logger.info("{0} GL vals: {1}".format(self.name,
+                                              (self.x0, self.y0,
+                                               self.fovy, self.aspect,
+                                               self.left, self.right,
+                                               self.bottom, self.top,
+                                               self.near, self.far)))
+
     class Alias:
-        frontClipDistance = ('Near',)
-        backClipDistance  = ('Far',)
+        frontClipDistance = ('Near','near')
+        backClipDistance  = ('Far','far')
         fieldOfView       = ('fovy',)
         cx                = ('u0')
         cy                = ('v0')
@@ -115,8 +172,26 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         '''
         self.x0= int(self.u0  - self.width/2.0)
         self.y0 = int(self.height/2.0 - self.v0)
-        self.fovy = 2*atan(1.0*self.height/(2*self.fy))
-        self.aspect = 1.0*self.width/self.height*self.fy/self.fx
+
+        if int(self.cx) == self.width/2 and int(self.cy) == self.height:
+            self.fovy = 2*math.atan(1.0*self.height/(2*self.fy))
+            self.aspect = 1.0*self.width/self.height*self.fy/self.fx
+        else: # excentric camera, fovy and aspect has no physical sense
+            self.fovy = None
+            self.aspect = None
+
+        self.right   = 0.5*self.near*(3*self.width/2 - self.cx)/self.fx
+        self.left    = 0.5*self.near*(- self.width/2 - self.cx)/self.fx
+        self.top    = 0.5*self.near*(self.cy + self.height/2)/self.fy
+        self.bottom = 0.5*self.near*(self.cy - 3*self.height/2)/self.fy
+        print self.cx, self.width, self.right, self.left
+        print("compute_opengl_params {0} GL vals: {1}\n".format(self.name,
+                                              (self.x0, self.y0,
+                                               self.fovy, self.aspect,
+                                               self.left, self.right,
+                                               self.bottom, self.top,
+                                               self.near, self.far)))
+
 
     def compute_opencv_params(self):
         '''
@@ -127,7 +202,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         self.u0 = int(self.x0 + self.width/2.0 )
         self.v0 = int(self.y0 + self.height/2.0)
         # print 'u0=', self.u0, ', cx=', self.cx
-        self.fy = 1.0*self.height/tan(self.fovy/2.0)
+        self.fy = 1.0*self.height/math.tan(self.fovy/2.0)
         self.fx = 1.0*self.width/self.height*self.fy/self.aspect
         self.update_perspective()
 
@@ -141,49 +216,6 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         self.cy = cy
         self.compute_opengl_params()
 
-    def __init__(self, server = None):
-        self.pixels = None
-        self.draw_t = 0
-        self.frame_seq = 0
-        self.server = server
-        self.frontClipDistance = 0.01
-        self.backClipDistance = 100
-        self.width = 320
-        self.height = 240
-        self.cam_type = "COLOR"
-        self.fieldOfView = 45*pi/180
-        self.translation = [0, 0, 0]
-        self.focal = 3.5
-        self.x0 = 0
-        self.y0 = 0
-        self.aspect = 320.0/240.0
-
-        # OpenCV params
-        self.fx = 0.
-        self.fy = 0.
-        self.cx = 160 # (width/2)
-        self.cy = 120 # (height/2)
-
-
-        kinematics.GenericObject.__init__(self)
-        self.localTransformation[:3,:3] = numpy.array([ [ 0 , 0 , 1],
-                                                        [ 1 , 0 , 0],
-                                                        [ 0 , 1 , 0],
-                                                        ]
-                                  )
-        angle, direction, point = tf.rotation_from_matrix(self.localTransformation)
-        self.rotation = list(direction) + [angle]
-        self.moved = True
-        self.lookat = None
-        self.init()
-        self.R = numpy.identity(3)
-        self.compute_opencv_params()
-        # print self.globalTransformation
-        self.count = 0
-        self.fbo = None
-        self.texture = None
-        self.render_buffer = None
-        self.gl_error = None
 
 
     def simulate(self):
@@ -377,20 +409,23 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         gluLookAt(p[0],p[1],p[2],f[0],f[1],f[2],u[0],u[1],u[2])
 
     def update_perspective(self):
-        if self.height == 0:
-            # Prevent A Divide By Zero If The Window Is Too Small
-            self.height = 1
-
         glViewport(0, 0, self.width, self.height)
+        #glViewport(self.x0, self.y0, self.width, self.height)
+        #glViewport(0, 0, self.width + abs(self.x0), self.height + abs(self.y0))
 
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
+
         # # field of view, aspect ratio, near and far
         # This will squash and stretch our objects as the window is resized.
-        gluPerspective( self.fovy*180/pi,
+
+        if self.fovy:
+            gluPerspective( self.fovy*180/math.pi,
                         self.aspect,
                         self.Near,
                         self.Far)
+        else:
+            glFrustum(self.left, self.right, self.bottom, self.top, self.near, self.far)
 
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()

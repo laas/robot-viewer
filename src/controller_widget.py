@@ -28,15 +28,17 @@ class RangeWidgets(gtk.Table):
         self.adj_ids = {}
         for i,name in enumerate(names):
             if i < 3:
-                adj = gtk.Adjustment(0.0, -5, 5 , 0.01, 0.1, 0.1)
+                adj = gtk.Adjustment(0.0 , -5, 5 , 0.001, 0.01, 0.01)
             else:
-                adj = gtk.Adjustment(0.0, -180, 180 , 0.1, 1.0, 1.0)
+                adj = gtk.Adjustment(0.0 , -180, 180 , 0.1, 1.0, 1.0)
             hscale = gtk.HScale(adj)
+            hscale.set_digits(3)
             stab = gtk.Table(1,4,True)
             stab.attach(gtk.Label(name), 0,1,0,1)
             stab.attach(hscale, 1,4,0,1)
             self.hscales.append(hscale)
-            self.attach(stab, i% no_cols, i%no_cols + 1, i/no_cols, i/no_cols + 1)
+            self.attach(stab, i% no_cols, i%no_cols + 1,
+                        i/no_cols, i/no_cols + 1)
             self.adj_ids[adj] = i
             adj.connect("value-changed", self.changed_cb)
             self.adjustments.append(adj)
@@ -63,5 +65,5 @@ class ControllerWidget(RangeWidgets):
         pos = [adj.value*math.pi/180 for adj in self.adjustments]
         for i in range(3):
             pos[i] *= 180/math.pi
-        if self.objname == "hrp":
-            self.clt.updateElementConfig(self.objname, pos)
+        self.clt.updateElementConfig(self.objname, pos)
+        print self.objname, pos

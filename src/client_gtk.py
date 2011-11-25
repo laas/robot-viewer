@@ -74,6 +74,7 @@ def main():
         patt = ".*"
     import gtk
     window = gtk.Window (gtk.WINDOW_TOPLEVEL)
+    window.set_default_size(720,480)
     window.connect("destroy", lambda w: gtk.main_quit())
     window.set_title("Position Control")
     clt = client.client(options.server)

@@ -15,6 +15,9 @@ from OpenGL.GL.EXT.framebuffer_object import *
 import time
 import PIL.Image
 
+import yaml
+import cv
+from cv_bridge import CvBridge, CvBridgeError
 class Bridge(object):
     cam_update_t = {}
 
@@ -25,98 +28,104 @@ class Bridge(object):
 
         return cb
 
-    def caminfo_cb(self, name):
-        def cb(data):
-            if name not in self.simu_cameras:
-                return
-
-            if time.time() - self.cam_update_t[name] < 0.5:
-                return
-            width = data.width
-            height = data.height
-            fx = data.P[0]
-            cx = data.P[2]
-            fy = data.P[5]
-            cy = data.P[6]
-            self.camera_dict[name].set_opencv_params(width, height, fx, fy, cx, cy)
-            self.cam_update_t[name] = time.time()
-        return cb
-
 
     def flipH(self, data, height, width):
         data = [[ data[width*i+j] for j in range(width)] for i in reversed(range(height))]
         return data
 
+    def fetch_image(self, cam):
+        cam.simulate()
+
+        if not cam.pixels:
+            return None, None
+        cv_img = cv.CreateImageHeader((cam.width , cam.height), cv.IPL_DEPTH_8U, 3)
+        cv.SetData(cv_img, cam.pixels, cam.width*3)
+        cv.ConvertImage(cv_img, cv_img, cv.CV_CVTIMG_FLIP)
+        im = self.bridge.cv_to_imgmsg(cv_img, "bgr8")
+
+        caminfo = CameraInfo()
+        caminfo.header = im.header
+        caminfo.height = cam.height
+        caminfo.width = cam.width
+        caminfo.D = 5*[0.]
+        caminfo.K = sum([list(r) for r in cam.K],[])
+        caminfo.P = sum([list(r) for r in cam.P],[])
+        caminfo.R = sum([list(r) for r in cam.R],[])
+
+        return im, caminfo
+
     def publish(self):
-        for cam_name in self.simu_cameras:
-            cam = self.camera_dict[cam_name]
-
-            cam.simulate()
-
-            if not cam.pixels:
-                return
-
-            im = Image()
-            im.height = cam.height
-            im.width = cam.width
-            image = PIL.Image.fromstring(mode="RGB",
-                                         size=(cam.width, cam.height), data = cam.pixels)
-            image = image.transpose(PIL.Image.FLIP_TOP_BOTTOM)
-
-            im.data = image.tostring()
-
-            im.encoding = "rgb8"
-            im.is_bigendian = 0
-            im.step = im.width*3 # 3 channels
-            im.header.frame_id = cam.name
-            im.header.stamp = rospy.Time(cam.draw_t)
-            im.header.seq = cam.frame_seq
-            self.image_pubs[cam.name].publish(im)
+        t = time.time()
+        for cam in self.server.cameras:
+            image_pub = self.image_pubs[cam.name]
+            caminfo_pub = self.camera_info_pubs[cam.name]
 
 
-            caminfo = CameraInfo()
-            caminfo.header = im.header
-            caminfo.height = cam.height
-            caminfo.width = cam.width
-            caminfo.D = 5*[0.]
-            caminfo.K = sum([list(r) for r in cam.K],[])
-            caminfo.P = sum([list(r) for r in cam.P],[])
-            caminfo.R = sum([list(r) for r in cam.R],[])
+            if ( image_pub.get_num_connections() == 0
+                 and caminfo_pub.get_num_connections() == 0):
+                continue
 
-            self.camera_info_pubs[cam.name].publish(caminfo)
+            im, caminfo = self.fetch_image(cam)
+
+            if im == None:
+                continue
+
+            im.header.stamp = rospy.Time(t)
+            caminfo.header.stamp = rospy.Time(t)
+
+
+            image_pub.publish(im)
+            caminfo_pub.publish(caminfo)
+
             self.cam_update_t[cam.name] = cam.draw_t
+
+    def calibrate(self, cam, cf):
+        params = yaml.load(open(cf).read())
+        width = params['image_width']
+        height = params['image_height']
+        P = params['projection_matrix']['data']
+        fx = P[0]
+        cx = P[2]
+        fy = P[5]
+        cy = P[6]
+        R = params['rectification_matrix']['data']
+        cam.R[0,:] = R[:3]
+        cam.R[1,:] = R[3:6]
+        cam.R[2,:] = R[6:]
+        cam.set_opencv_params(width, height, fx, fy, cx, cy)
+        rospy.loginfo("Setting OpenCV params {0}".format((width, height, fx,
+                                                          fy, cx, cy))
+                      )
 
     def __init__(self, server):
         self.server = server
         rospy.init_node('robotviewer', anonymous = True)
-        jointstates = rospy.get_param("~jointstates",{})
-        if isinstance(jointstates, str):
-            jointstates = eval(jointstates)
-
-        cam_map = rospy.get_param("~cam_map",{})
-        if isinstance(cam_map, str):
-            cam_map = eval(cam_map)
-
-        self.simu_cameras = rospy.get_param("~simu_cameras","")
-        self.simu_cameras = [w for w in self.simu_cameras.split(",") if w != '']
-        print self.simu_cameras
-
-        for rvname, topic in jointstates.items():
-            rospy.Subscriber(topic, JointState, self.state_cb(rvname))
-
-        for rvcam, realcam in cam_map.items():
-            rospy.Subscriber(realcam+"/camera_info", CameraInfo, self.caminfo_cb(rvcam))
-
+        self.bridge = CvBridge()
         self.image_pubs = {}
         self.camera_info_pubs = {}
         self.cameras = self.server.cameras
         self.camera_dict = dict((cam.name, cam) for cam in self.cameras)
 
-
-        for cam_name in self.simu_cameras:
-            self.image_pubs[cam_name] = rospy.Publisher(cam_name + "/image_raw", Image)
-            self.camera_info_pubs[cam_name] = rospy.Publisher(cam_name + "/camera_info",
+        for cam in self.server.cameras:
+            self.image_pubs[cam.name] = rospy.Publisher(cam.name + "/image_raw", Image)
+            self.camera_info_pubs[cam.name] = rospy.Publisher(cam.name + "/camera_info",
                                                               CameraInfo)
-            self.cam_update_t[cam_name] = 0.
+            self.cam_update_t[cam.name] = 0.
+
+        jointstates = rospy.get_param("~jointstates",{})
+        if isinstance(jointstates, str):
+            jointstates = eval(jointstates)
+
+        cam_calibs = rospy.get_param("~cam_calibs",{})
+        if isinstance(cam_calibs, str):
+            cam_calibs = eval(cam_calibs)
+
+        for name, calib_file in cam_calibs.items():
+            rospy.loginfo("Calibrating {0}".format(name))
+            self.calibrate(self.camera_dict[name], calib_file)
+
+        for rvname, topic in jointstates.items():
+            rospy.Subscriber(topic, JointState, self.state_cb(rvname))
+
 
         server.pre_draw = self.publish

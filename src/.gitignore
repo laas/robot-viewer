@@ -1,3 +1,4 @@
 test.*
 hrp.*
 *.so
+migrate_bag.py

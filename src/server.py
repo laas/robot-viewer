@@ -154,7 +154,21 @@ def main():
     ch.setLevel(logging.INFO)
     # create formatter and add it to the handlers
     #formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    formatter = logging.Formatter("%(name)s:%(levelname)s:%(message)s")
+
+    class MyFormatter(logging.Formatter):
+        width = 25
+
+        def format(self, record):
+            max_filename_width = self.width - 3 - len(str(record.lineno))
+            filename = record.filename
+            if len(record.filename) > max_filename_width:
+                filename = record.filename[:max_filename_width]
+            a = "%s:%s"% (filename, record.lineno)
+            return "%s %s:%s" % (a.ljust(self.width), record.levelname, record.msg)
+
+
+    #formatter = logging.Formatter("%(name)s:%(levelname)s:%(message)s")
+    formatter = MyFormatter("%(levelname)s:%(message)s")
     ch.setFormatter(formatter)
     # add the handlers to the logger
     logger.addHandler(ch)
