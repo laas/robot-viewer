@@ -106,8 +106,8 @@ class GlWindow(object):
             # # Reset The FPS Counter
             glutReshapeWindow(self.camera.width, self.camera.height)
         szTitle = ""
-        if self.id > 1:
-            szTitle += "%d "%self.id
+        #if self.id > 1:
+        #    szTitle += "%d "%self.id
         szTitle += "%s "%self.title
         if self.camera.name:
             szTitle += "[%s] "%self.camera.name
@@ -155,6 +155,9 @@ class DisplayServer(KinematicServer):
     last_update = 0
     gl_error = None
     cross_hair_cursor = False
+    info = ""
+    cursor_x = 0
+    cursor_y = 0
     def __init__(self,options = None, args = None):
         """
 
@@ -211,6 +214,8 @@ class DisplayServer(KinematicServer):
         self.queued_keys = collections.deque()
         self.quit = False
         self.usage="Keyboard shortcuts:\n"
+        self.help = False
+
         for key, effect in [("q", "Quit the program"),
                             ("m", "Turn shapes on/off"),
                             ("s", "Turn skeletons on/off"),
@@ -229,9 +234,11 @@ class DisplayServer(KinematicServer):
                             ("v", "start/stop video recording"),
                             ("x", "change camera"),
                             ("/", "change cursor mode"),
+                            ("h", "show this message"),
                             ]:
-            continue
             self.usage += 20*""+ "{0}:{1}\n".format(key, effect)
+
+
 
     def add_cameras(self):
         for key, value in self.display_elements.items():
@@ -565,6 +572,17 @@ class DisplayServer(KinematicServer):
             glutLeaveMainLoop()
             return False
 
+    def show_info(self):
+        if self.help:
+            self.info = self.usage
+        else:
+            self.info = ""
+
+        if self.cross_hair_cursor:
+            self.info += "Cursor pos: {0}, {1}".format(self.cursor_x, self.cursor_y)
+
+        self.draw_string(self.info)
+
     def _draw_cb(self):
         #if glGetError() > 0:
         if len(self.pendingObjects) > 0:
@@ -604,6 +622,7 @@ class DisplayServer(KinematicServer):
         cam.draw()
         self.windows[win].update_fps()
 
+        self.show_info()
         glutSwapBuffers()
         if self.recording:
             import PIL.Image
@@ -618,11 +637,11 @@ class DisplayServer(KinematicServer):
                    transpose(PIL.Image.FLIP_TOP_BOTTOM))
             if self.recording:
                 self.capture_images.append((time.time(),img))
-
         self.post_draw()
 
         if self.run_once:
             self.screen_capture()
+
 
         return True
 
@@ -750,6 +769,9 @@ class DisplayServer(KinematicServer):
                 if isinstance(obj, DisplayRobot):
                     obj.set_skeleton_size(self.skeleton_size)
 
+        elif args[0] == 'h':
+            self.help = not self.help
+
         elif args[0] == '-':
             if self.skeleton_size >1:
                 self.skeleton_size -= 1
@@ -817,6 +839,7 @@ class DisplayServer(KinematicServer):
                 glutSetCursor(GLUT_CURSOR_FULL_CROSSHAIR)
             else:
                 glutSetCursor(GLUT_CURSOR_INHERIT)
+                self.info = ""
 
         elif args[0] == 'v':
             if not self.recording:
@@ -845,7 +868,52 @@ class DisplayServer(KinematicServer):
 
     def mouse_passive_motion_func(self, x, y):
         if self.cross_hair_cursor:
-            print [x, y]
+            self.cursor_x = x
+            self.cursor_y = y
+
+    def draw_string(self, s = "Hello world!", x = None , y = None,
+                    color = [1.,1.,1.,1.], font = GLUT_BITMAP_8_BY_13):
+
+        glPushMatrix();                     # save current modelview matrix
+        glLoadIdentity();                   # reset modelview matrix
+
+        glMatrixMode(GL_PROJECTION);     # switch to projection matrix
+        glPushMatrix();                  # save current projection matrix
+        glLoadIdentity();                # reset projection matrix
+
+        win = glutGetWindow()
+        cam = self.windows[win].camera
+
+        gluOrtho2D(0, cam.width, 0, cam.height);  # set to orthogonal projection
+        if not x:
+            x = 1
+        if not y:
+            y = self.height - 10
+
+
+        glPushAttrib(GL_LIGHTING_BIT | GL_CURRENT_BIT) # lighting and color mask
+        glDisable(GL_LIGHTING)     #need to disable lighting for proper text color
+
+        glColor4fv(color)          # set text color
+        glRasterPos2i(x, y)        # place text position
+
+        # loop all characters in the string
+        for i,line in enumerate(s.splitlines()):
+            glRasterPos2i(x, y - i*13)
+            while line:
+                glutBitmapCharacter(font, ord(line[0]))
+                line = line[1:]
+
+
+
+        glEnable(GL_LIGHTING)
+        glPopAttrib()
+
+        glPopMatrix()                   # restore to previous projection matrix
+
+         # restore modelview matrix
+        glMatrixMode(GL_MODELVIEW);     # switch to modelview matrix
+        glPopMatrix()
 
     def mouse_motion_func( self, x, y ):
         """Callback function (mouse moved while button is pressed).
