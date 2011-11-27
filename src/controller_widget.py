@@ -66,4 +66,3 @@ class ControllerWidget(RangeWidgets):
         for i in range(3):
             pos[i] *= 180/math.pi
         self.clt.updateElementConfig(self.objname, pos)
-        print self.objname, pos

@@ -56,6 +56,10 @@ class KinematicServer(object):
         self.pendingObjects = []
         self.kinematic_elements = {}
         self.parse_config()
+        self.robots = []
+        for name, obj in self.kinematic_elements.items():
+            if isinstance(obj, kinematics.Robot):
+                self.robots.append(obj)
 
     @property
     def shapes(self):
