@@ -158,6 +158,10 @@ class DisplayServer(KinematicServer):
     info = ""
     cursor_x = 0
     cursor_y = 0
+    ready = False
+    need_refresh = False
+    idle_cbs = []
+
     def __init__(self,options = None, args = None):
         """
 
@@ -238,7 +242,7 @@ class DisplayServer(KinematicServer):
                             ]:
             self.usage += 20*""+ "{0}:{1}\n".format(key, effect)
 
-
+        self.ready = True
 
     def add_cameras(self):
         for key, value in self.display_elements.items():
@@ -526,29 +530,8 @@ class DisplayServer(KinematicServer):
     def Ping(self):
         return "pong"
 
-    def post_draw(self):
-        return
-
-    def pre_draw(self):
-        return
 
     def draw_cb(self, *arg):
-        now = time.time()
-        if now - self.last_update > 0.04:
-            self.last_update = now
-            for key, value in self.pending_configs.items():
-                if value == None:
-                    continue
-                KinematicServer.updateElementConfig(self, key, value)
-                self.pending_configs[key] = None
-
-
-            for key, value in self.pending_configs2.items():
-                if value == None:
-                    continue
-                KinematicServer.updateElementConfig2(self, key, *value)
-                self.pending_configs2[key] = None
-
         if self.quit:
             glutLeaveMainLoop()
             #glutDestroyWindow(self.window)
@@ -603,7 +586,6 @@ class DisplayServer(KinematicServer):
         # # Reset The Modelview Matrix
         # # Get FPS
         # milliseconds = win32api.GetTickCount()
-        self.pre_draw()
 
         win = glutGetWindow()
         cam = self.windows[win].camera
@@ -637,7 +619,6 @@ class DisplayServer(KinematicServer):
                    transpose(PIL.Image.FLIP_TOP_BOTTOM))
             if self.recording:
                 self.capture_images.append((time.time(),img))
-        self.post_draw()
 
         if self.run_once:
             self.screen_capture()
@@ -888,7 +869,7 @@ class DisplayServer(KinematicServer):
         if not x:
             x = 1
         if not y:
-            y = self.height - 10
+            y = cam.height - 10
 
 
         glPushAttrib(GL_LIGHTING_BIT | GL_CURRENT_BIT) # lighting and color mask
@@ -992,6 +973,29 @@ class DisplayServer(KinematicServer):
 
 
     def refresh_cb (self):
+        now = time.time()
+        if now - self.last_update > 0.02: # max freq = 50 Hz
+            self.last_update = now
+            for key, value in self.pending_configs.items():
+                if value == None:
+                    continue
+                KinematicServer.updateElementConfig(self, key, value)
+                self.pending_configs[key] = None
+
+
+            for key, value in self.pending_configs2.items():
+                if value == None:
+                    continue
+                KinematicServer.updateElementConfig2(self, key, *value)
+                self.pending_configs2[key] = None
+
+
+        for cb in self.idle_cbs:
+            cb()
+        if not self.need_refresh:
+            return
+        else:
+            self.need_refresh = False
         for win in self.windows.keys():
             glutSetWindow(win)
             glutPostRedisplay()
@@ -1068,8 +1072,10 @@ class DisplayServer(KinematicServer):
 
     def updateElementConfig(self, name, config):
         self.pending_configs[name] = config
+        self.need_refresh = True
         return True
 
     def updateElementConfig2(self, name, T, q):
         self.pending_configs2[name] = T,q
+        self.need_refresh = True
         return True

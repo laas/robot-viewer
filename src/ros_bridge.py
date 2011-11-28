@@ -57,7 +57,7 @@ class Bridge(object):
             rospy.Subscriber(topic, JointState, self.state_cb(rvname))
 
 
-        server.pre_draw = self.spin
+        server.idle_cbs.append (self.spin)
 
 
     def state_cb(self, objname):
