@@ -83,11 +83,14 @@ Main features:
       url='https://github.com/laas/robot-viewer',
       packages=['robotviewer',\
                     'robotviewer.idl',\
+                    'robotviewer.vrml',\
                     'robotviewer.idl.robotviewer_corba',\
                     'robotviewer.idl.robotviewer_corba__POA',
                 ],
       package_dir={'robotviewer':'src'},
-      package_data={'robotviewer': ['vrml.sbnf','obj.sbnf','fragment_shader.c','vertex_shader.c'
+      package_data={'robotviewer': ['vrml/vrml.sbnf','vrml/standard_nodes.wrl',
+                                    'obj.sbnf',
+                                    'fragment_shader.c','vertex_shader.c'
                                     ]},
       requires=['sphinx (>=0.6)','pyopengl'],
       data_files=[('bin',['bin/robotviewer','bin/robotviewer-gtk']),

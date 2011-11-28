@@ -296,7 +296,6 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
                            )
             else:
                 ele.render()
-        print self.name
         return True
 
     def update(self):

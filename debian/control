@@ -1,4 +1,4 @@
-Source: robot-viewer
+Source: robot-viewer2
 Section: python
 Priority: optional
 Maintainer: Duong Dang <dang.duong@gmail.com>
@@ -10,10 +10,10 @@ Package: robot-viewer
 Architecture: all
 Homepage: https://github.com/laas/robot-viewer
 XB-Python-Version: ${python:Versions}
-Depends: ${misc:Depends}, ${python:Depends}, python-opengl (>=3.0), 
- python-simpleparse (>=2.1), python-numpy (>=1.3), 
+Depends: ${misc:Depends}, ${python:Depends}, python-opengl (>=3.0),
+ python-simpleparse (>=2.1), python-numpy (>=1.3),
  python-numeric (>=24.2), python-opencv (>=2.0),
- omniorb4 (>=4.1), python-omniorb (>=3.2), 
+ omniorb4 (>=4.1), python-omniorb (>=3.2),
  python-imaging (>=1.1), omniorb4-nameserver (>=4.1),
  python-gtk2 (>=2.17)
 Description: A vizualization tool for robotics
