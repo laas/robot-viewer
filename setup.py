@@ -5,8 +5,10 @@ import datetime
 from distutils.command.build import build
 from distutils.core import Command
 from distutils.command.install import install
+from distutils.command.install_data import install_data
 from distutils.errors import DistutilsOptionError
-from distutils import sysconfig
+import distutils.sysconfig
+import distutils.config
 import os
 import sys
 from pprint import pprint
@@ -15,26 +17,51 @@ execfile('src/build_manpage.py')
 config_dir = os.path.join("share", 'robot-viewer')
 import numpy
 
-class install_pc(install):
+class build_pc(Command):
+    description = "install .pc file"
+
+    user_options = [('install-dir=', 'd',
+                     "directory to install pc files to"),
+                    ('force', 'f',
+                     "force installation (overwrite existing files)"),
+                   ]
+
+    boolean_options = ['force']
+
+
+    def initialize_options (self):
+        self.install_dir = None
+        self.force = 0
+        self.outfiles = []
+
+    def finalize_options (self):
+        self.set_undefined_options('install',
+                                   ('install_headers', 'install_dir'),
+                                   ('force', 'force'))
+
+
+
     def run(self):
+        prefix = self.install_dir
+        for i in range(3):
+            prefix = os.path.dirname(prefix)
         s = """prefix={0}
 datarootdir={0}/share
 Name: {1}
 Description:
 Version: {2}
-""".format(self.prefix,
-           self.config_vars['dist_name'],
-           self.config_vars['dist_version'],
+""".format(prefix,
+           'robot-viewer',
+           __version__,
            )
-        pkgconfig_dir = os.path.join(self.prefix, 'lib', 'pkgconfig')
-        if not os.path.isdir(pkgconfig_dir):
-            os.makedirs(pkgconfig_dir)
-        pkgconfig_file = os.path.join(pkgconfig_dir, self.config_vars['dist_name'] + ".pc")
-        with open(pkgconfig_file, 'w') as f:
+        pkgconfig_dir = os.path.join(prefix, 'lib', 'pkgconfig')
+        pc_file = os.path.join("data", "robot-viewer.pc")
+        with open(pc_file, 'w') as f:
             f.write(s)
-        install.run(self)
+            f.close()
 
 build.sub_commands.append(('build_manpage',  lambda *a: True))
+build.sub_commands.append(('build_pc',  lambda *a: True))
 
 
 setup(name='robot-viewer',
@@ -74,9 +101,10 @@ Main features:
                   ("share/pixmaps", ['data/robot-viewer.ico','data/robot-viewer.png',
                                           'data/robot-viewer.xpm']),
                   ('share/man/man1',['data/robotviewer.1','data/robotviewer-gtk.1']),
+                  ('lib/pkgconfig',['data/robot-viewer.pc']),
                   ],
       cmdclass={'build_manpage': build_manpage,
-                'install': install_pc,
+                'build_pc': build_pc,
                 },
 
       ext_modules = [Extension(name = "robotviewer._transformations",
