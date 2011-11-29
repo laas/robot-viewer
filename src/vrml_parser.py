@@ -22,7 +22,7 @@ import vrml.parser
 import logging, sys
 logger = logging.getLogger("robotviewer.vrml_parser")
 import kinematics
-import geometry
+import vrml.geometry as geometry
 import vrml.standard_nodes as nodes
 from collections import defaultdict
 import camera
@@ -160,9 +160,11 @@ def main():
                       action="store_true", dest="verbose", default=False,
                       help="be verbose")
     (options, args) = parser.parse_args(sys.argv[1:])
+
     if options.verbose:
         sh.setLevel(logging.DEBUG)
         logger.setLevel(logging.DEBUG)
+    logger.info("Start parsing")
     res = parse(args[0])
 
     for r in res:
@@ -170,4 +172,4 @@ def main():
         continue
 
 if __name__ == '__main__':
-    main()
+     main()
