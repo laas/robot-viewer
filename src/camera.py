@@ -132,8 +132,6 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         frontClipDistance = ('Near','near')
         backClipDistance  = ('Far','far')
         fieldOfView       = ('fovy',)
-        cx                = ('u0')
-        cy                = ('v0')
 
     @property
     def K(self):
@@ -170,8 +168,8 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         '''
         Compute gl params from opencv params
         '''
-        self.x0= int(self.u0  - self.width/2.0)
-        self.y0 = int(self.height/2.0 - self.v0)
+        self.x0= self.width/2.0
+        self.y0 = self.height/2.0
 
         if int(self.cx) == self.width/2 and int(self.cy) == self.height:
             self.fovy = 2*math.atan(1.0*self.height/(2*self.fy))
@@ -301,7 +299,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
                 if ele == self:
                     continue
                 try:
-                    u,v = self.project(ele.globalTransformation)
+                    u,v = self.project(ele.T)
                 except:
                     logger.exception("Failed to project {0}".format(ele.name))
                 else:

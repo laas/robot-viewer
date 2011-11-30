@@ -74,6 +74,10 @@ class GenericObject(DisplayObject):
             return []
 
     @property
+    def T(self):
+        return self.globalTransformation
+
+    @property
     def origin(self):
         if self.parent == None:
             return self
@@ -102,7 +106,7 @@ class GenericObject(DisplayObject):
 
         if id == None:
             if type(self) == Robot:
-                return self.waist
+                return self.root_joint
             else:
                 return self
         else:
@@ -438,8 +442,13 @@ class Robot(Joint):
         self.joint_dict= {}
         self.joint_names = []
         self.segment_names = []
-        self.waist=None
+        self.root_joint=None
         self.moving_joint_list = []
+
+    @property
+    def T(self):
+        return self.root_joint.globalTransformation
+
 
     def __str__(self):
         s = Joint.__str__(self)
@@ -449,8 +458,8 @@ class Robot(Joint):
 
     def update_config(self, config):
         self.set_angles(config[6:])
-        self.waist.translation = config[0:3]
-        self.waist.rpy = config[3:6]
+        self.root_joint.translation = config[0:3]
+        self.root_joint.rpy = config[3:6]
         self.init_local_transformation()
         self.update()
 
@@ -458,7 +467,7 @@ class Robot(Joint):
         if q != []:
             self.set_angles(q)
         if T != []:
-            self.waist.update_config2(T,  [])
+            self.root_joint.update_config2(T,  [])
         self.update()
 
     def set_angles(self,angles):
@@ -482,8 +491,8 @@ class Robot(Joint):
             print "\n====\n",joint
 
     def get_config(self):
-        vec = self.waist.translation
-        vec += self.waist.rpy
+        vec = self.root_joint.translation
+        vec += self.root_joint.rpy
         for i in range(len(self.joint_list)):
             if self.joint_dict.has_key(i):
                 vec += [self.joint_dict[i].angle]
@@ -494,25 +503,25 @@ class Robot(Joint):
         for i in range(len(self.joint_list)):
             if self.joint_dict.has_key(i):
                 vec += [self.joint_dict[i].angle]
-        return listify(self.waist.globalTransformation), vec
+        return listify(self.root_joint.globalTransformation), vec
 
-    def waist_pos(self,p):
+    def root_joint_pos(self,p):
         """
-        Set waist position
+        Set root_joint position
 
         :param p: input position
         :type p: 3-double turple
         """
-        self.waist.translation=p
+        self.root_joint.translation=p
 
-    def waist_rpy(self,ori):
+    def root_joint_rpy(self,ori):
         """
-        Set waist orientation
+        Set root_joint orientation
 
         :param ori: input raw, pitch, yaw angles
         :type ori: 3-double turple
         """
-        self.waist.rpy=ori
+        self.root_joint.rpy=ori
 
     def update_joint_dict(self):
         self.joint_dict = dict()
@@ -540,16 +549,16 @@ class Robot(Joint):
 
         for joint in self.joint_list:
             if joint.jointType in ["free","freeflyer"]:
-                self.waist=joint
+                self.root_joint=joint
                 break
 
-        if not self.waist:
+        if not self.root_joint:
             for joint in self.joint_list:
                 if joint.get_parent_joint() == None:
-                    self.waist = joint
+                    self.root_joint = joint
                     break
-        if not self.waist:
-            raise Exception("Couldn't find the waist joint (freeflyer)")
+        if not self.root_joint:
+            raise Exception("Couldn't find the root_joint joint (freeflyer)")
 
         self.update_joint_dict()
 
