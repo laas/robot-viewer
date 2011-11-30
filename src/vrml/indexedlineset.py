@@ -39,10 +39,14 @@ class IndexedLineSet(nodes.IndexedLineSet, Geometry):
                      self.coord.point[1::3],
                      self.coord.point[2::3],
                      )
-        colors = zip(self.color.color[::3],
-                     self.color.color[1::3],
-                     self.color.color[2::3],
-                     )
+        if self.color:
+            colors = zip(self.color.color[::3],
+                         self.color.color[1::3],
+                         self.color.color[2::3],
+                         )
+        else:
+            colors = []
+
         lines = []
         line = []
         for idx in self.coordIndex:
@@ -51,7 +55,8 @@ class IndexedLineSet(nodes.IndexedLineSet, Geometry):
                 line = []
             line.append(idx)
         for i, line in enumerate(lines):
-            glColor(colors[self.colorIndex[i]])
+            if colors[:]:
+                glColor(colors[self.colorIndex[i]])
             glBegin(GL_LINE_STRIP)
             for j in line:
                 glVertex3fv( points[j] )

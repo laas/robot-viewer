@@ -203,12 +203,17 @@ class VrmlProcessor(DispatchProcessor):
             logger.exception(buffer[start:stop][:500])
             raise
         self.def_dict[key] = n
-        n.name = key
+        if not n == None:
+            n.name = key
         return n
 
     def NodewoDef(self,(tag,start,stop,subtags), buffer ):
         name = dispatch(self, subtags[0], buffer)
-        cls = self.prototypes[name]
+        cls = self.prototypes.get(name)
+        if not cls:
+            logger.exception("Unknown class {0}".format(name))
+            return None
+
         self.clss.append(cls)
         node = self.cls()
         attrs = [ a for a in dispatchList(self, subtags[1:], buffer)
@@ -222,7 +227,7 @@ class VrmlProcessor(DispatchProcessor):
                     getattr(node, key)
 
                 except AttributeError:
-                    raise RuntimeError("Invalide declaration of {0}, {1} in {2}"
+                    raise RuntimeError("Invalid declaration of {0}, {1} in {2}"
                                        .format(key, value, node))
                 setattr(node, key, value)
                 node._declared.append(key)

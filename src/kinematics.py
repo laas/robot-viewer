@@ -541,7 +541,13 @@ class Robot(Joint):
         for joint in self.joint_list:
             if joint.jointType in ["free","freeflyer"]:
                 self.waist=joint
+                break
 
+        if not self.waist:
+            for joint in self.joint_list:
+                if joint.get_parent_joint() == None:
+                    self.waist = joint
+                    break
         if not self.waist:
             raise Exception("Couldn't find the waist joint (freeflyer)")
 
@@ -575,7 +581,8 @@ class Shape(GenericObject, nodes.Shape):
     def init(self):
         GenericObject.init(self)
         logger.debug("Computing normal for Shape {0}".format(id(self)))
-        self.geometry.init()
+        if self.geometry:
+            self.geometry.init()
 
 
     # def scale(self, scale_vec):

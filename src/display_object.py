@@ -121,7 +121,9 @@ class DisplayObject(object):
             shaders[glutGetWindow()].uMaterialShininess = self.appearance.material.shininess
 
         if not USE_VBO:
-            glCallList(self.geo_gl_list[win])
+            geo_list = self.geo_gl_list.get(win)
+            if geo_list:
+                glCallList(geo_list)
             glPopMatrix()
             return
 
@@ -195,6 +197,8 @@ class DisplayObject(object):
         return new_list
 
     def generate_geo_gl_list(self):
+        if not self.geometry:
+            return
         new_list = glGenLists(1)
         glNewList(new_list, GL_COMPILE)
         self.geometry.render(self.cumul_scale())
