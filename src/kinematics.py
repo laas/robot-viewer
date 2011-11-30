@@ -36,15 +36,6 @@ logger.addHandler(NullHandler())
 
 BASE_NODE_ID = -1
 
-def find_relative_transformation( obj1, obj2 ):
-    """
-    Find transformation matrix of obj2 in reference frame of obj1
-    """
-    res = numpy.dot( numpy.linalg.inv(obj1.globalTransformation),
-                      obj2.globalTransformation
-                     )
-    return res
-
 def listify(a):
     return [list(r) for r in a]
 
@@ -69,12 +60,6 @@ class GenericObject(DisplayObject):
         self.uuid = str(uuid.uuid1())
         self.scale = [1., 1., 1.]
         self._R_axis_angle = [1., 0., 0., 0.]
-
-    def __del__(self):
-        for child in self.children:
-            del child
-        object.__del__(self)
-
 
     def cumul_scale(self):
         if not self.parent:
@@ -102,7 +87,6 @@ class GenericObject(DisplayObject):
     def cam_list(self):
         return self.get_list(camera.Camera)
 
-
     @property
     def joint_list(self):
         return self.get_list(Joint) + self.get_list(Robot)
@@ -125,7 +109,6 @@ class GenericObject(DisplayObject):
         angle, direction, point = tf.rotation_from_matrix(rot_mat)
         self.rotation = [ direction[0],direction[1],direction[2], angle ]
         self.init_local_transformation()
-        print self.name, config, self.localTransformation
         self.origin.update()
 
     def update_config2(self, T, q):
@@ -277,8 +260,9 @@ class GenericObject(DisplayObject):
                     else:
                         self.list_by_type[key] = _union(child.list_by_type[key],
                                                         self.list_by_type[key],)
-            except Exception, error:
-                print error, "on object %s"%child.name
+            except:
+                logger.exception("on object %s"%child.name)
+                raise
         self.remove_generic_objects()
         self.update()
 
@@ -372,7 +356,7 @@ class Joint(GenericObject):
         self.add_child(self.op_point)
         self.jointId = None
         self.jointAxis = ""
-
+        self.bone_added = False
 
     def __str__(self):
         s = GenericObject.__str__(self)
@@ -429,6 +413,12 @@ class Joint(GenericObject):
                       numpy.array(self.center))
         self.localTransformation[3,3]=1
 
+    def init(self):
+        if not self.bone_added:
+            if self.jointAxis in ["X","x","Y","y","z","Z"]:
+                self.add_child(Bone(self))
+        self.bone_added = True
+        GenericObject.init(self)
 
 class Robot(Joint):
     """
@@ -538,7 +528,7 @@ class Robot(Joint):
          * call :func:`kinematics.Joint.init_local_transformation` on itself
          * call init() on all children
         """
-        GenericObject.init(self)
+        Joint.init(self)
         self.update()
 
         for joint in self.joint_list:
@@ -559,9 +549,7 @@ class Robot(Joint):
                 shape.appearance = nodes.Appearance()
             if not shape.appearance.material:
                 shape.appearance.material = nodes.Material()
-
             shape.appearance.material.transparency = 0
-
 
         if not self.shape_list[:]:
             logger.warning("Robot contains 0 shape.")
@@ -573,7 +561,7 @@ class Shape(GenericObject, nodes.Shape):
         GenericObject.__init__(self)
         nodes.Shape.__init__(self)
         self.appearance = nodes.Appearance()
-        self.appearance.mateiral = nodes.Material()
+        self.appearance.material = nodes.Material()
         self.name=None
         self.localR1=numpy.eye(3)  # due to offset of coordonee
 
@@ -616,5 +604,68 @@ class Shape(GenericObject, nodes.Shape):
 
     bounding_box = bounding_box_local
 
+def find_relative_transformation( obj1, obj2 ):
+    """
+    Find transformation matrix of obj2 in reference frame of obj1
+    """
+    res = numpy.dot( numpy.linalg.inv(obj1.globalTransformation),
+                      obj2.globalTransformation
+                     )
+    return res
+
+from vrml.geometry import Cylinder, Sphere
+count = 0
+class Bone(GenericObject):
+    def __init__(self, joint):
+        GenericObject.__init__(self)
+        children_joints = joint.get_children_joints()
+        for child in children_joints:
+            child.init_local_transformation()
+            p = child.localTransformation[:3,3]
+            translation = p*0.5
+            height = numpy.linalg.norm(p)
+            if height < 1e-6:
+                continue
+            radius = 0.005
+            new_y = p/numpy.linalg.norm(p)
+            new_x = numpy.cross(new_y, numpy.array([1,0,0]))
+            new_x /= numpy.linalg.norm(new_x)
+            new_z = numpy.cross(new_x, new_y)
+            trans_T = numpy.eye(4)
+            trans_T[:3,0] = new_x
+            trans_T[:3,1] = new_y
+            trans_T[:3,2] = new_z
+
+            try:
+                angle, direc, point = tf.rotation_from_matrix(trans_T)
+            except:
+                logger.exception("Error in creating link {0}-{1}".format(joint.name,
+                                                                         child.name))
+            else:
+                rotation = [direc[0], direc[1], direc[2], angle]
+                link = Shape()
+                link.appearance.material.diffuseColor = [0,0.5,1]
+                link.geometry = Cylinder()
+                link.geometry.height = height
+                link.geometry.radius = radius
+                link.rotation = rotation
+                link.translation = translation
+                link.init()
+                self.add_child(link)
+
+        motor = Shape()
+        self.add_child(motor)
+        motor.appearance.material.diffuseColor = [1,0,0]
+        if joint.jointAxis in ["X","x","Y","y","z","Z"]:
+            motor.geometry = Cylinder()
+            motor.geometry.height = 0.005
+            motor.geometry.radius = 0.02
+            if joint.jointAxis in ["X","x"]:
+                motor.rotation = [0, 0, 1, 1.5708]
+            elif joint.jointAxis in ["Z","z"]:
+                motor.rotation = [0, 1, 0, 1.5708]
+        else:
+            motor.geometry = Sphere()
+            motor.geometry.radius = 0.02
 
 import camera

@@ -133,6 +133,8 @@ class KinematicServer(object):
         sections = config.sections()
         join_pairs = []
 
+        obj_tree = []
+
         for section in sections:
             words = section.split()
             otype = words[0]
@@ -161,15 +163,14 @@ class KinematicServer(object):
                 else:
                     position = [float(e) for e in position.split()]
 
-                self._create_element(otype, oname,
+                parent = config.get(section, 'parent')
+                if not parent:
+                    self._create_element(otype, oname,
                                      geometry, scale)
 
-                if position:
-                    self.updateElementConfig(oname, position)
-                parent = config.get(section, 'parent')
-
-                if parent:
-                    self.disableElement(oname)
+                    if position:
+                        self.updateElementConfig(oname, position)
+                else:
                     parent_name = parent.split(",")[0]
                     parent_joint_ids = parent.split(",")[1:]
 
@@ -178,28 +179,16 @@ class KinematicServer(object):
                             parent_joint_id = int(parent_joint_id)
                         else:
                             parent_joint_id = None
-                        name = "{1}:{2}/{0}".format(oname,parent_name,
+                        child_name = "{1}:{2}/{0}".format(oname, parent_name,
                                                     parent_joint_id)
-                        join_pairs.append((oname, name, parent_name,
-                                           parent_joint_id))
+                        self._create_element( otype, child_name,
+                                              geometry, scale)
+                        obj_tree.append((child_name, parent_name, parent_joint_id))
+                        self.updateElementConfig(child_name, position)
 
-        for pair in join_pairs:
-            orig_name = pair[0]
-            child_name = pair[1]
-            parent_name = pair[2]
-            parent_joint_id = pair[3]
-            try:
-                parent_obj = self.elements[parent_name]
-            except KeyError:
-                logger.warning("Parent {0} does not exist. Skipping".
-                               format(parent_name))
-                continue
-            new_el = copy.deepcopy( self.elements[orig_name] )
-            parent_obj.get_op_point(parent_joint_id).add_child(new_el)
-            logger.info("Adding child object {0} to {1}".format(orig_name,
-                                                                parent_name))
-            parent_obj.origin.init()
-            self.elements[child_name] = new_el
+        for child_name, parent_name, parent_joint_id in obj_tree:
+            self.elements[parent_name].get_op_point(parent_joint_id).add_child(self.elements[child_name])
+
 
         for name, obj in self.elements.items():
             obj.update()
@@ -488,6 +477,7 @@ class KinematicServer(object):
                                'vertexNormals' : shape.geo.norm,
                               })
         except KeyError:
+            logger.exception("printShape failed")
             return json.dumps({})
 
     def getGlConfig(self, uuid):

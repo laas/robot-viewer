@@ -104,7 +104,7 @@ def convert(obj):
         try:
             res.__dict__[key] = value
         except AttributeError:
-            logger.debug("Ignoring key {0} while converting {1}".format(key, repr(obj)[:100]))
+            logger.exception("Ignoring key {0} while converting {1}".format(key, repr(obj)[:100]))
 
     for child in obj.children:
         try:

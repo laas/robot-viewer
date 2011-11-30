@@ -63,21 +63,33 @@ class DisplayObject(object):
         self.geometry   = None
         self.globalTransformation = numpy.eye(4)
 
+    # def __del__(self):
+    #     for child in self.children:
+    #         del child
+    #     object.__del__(self)
+
+    @property
     def shape_list(self):
         pass
 
+    @property
     def joint_list(self):
         pass
 
+    @property
     def shape_list(self):
         pass
 
-    @ifenabled
+    @property
+    def bone_list(self):
+        pass
+
     def render(self):
         self.non_recursive_render()
         for child in self.children:
             child.render()
 
+    @ifenabled
     def non_recursive_render(self):
         if not (self.appearance or self.geometry):
             return

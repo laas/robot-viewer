@@ -51,9 +51,11 @@ from shader import Shader
 import camera
 import kinematics, geometry
 import display_object
+from vrml.geometry import IndexedFaceSet
 try:
     from opencv import highgui, cv, adaptors
 except ImportError:
+    logger.exception("Couldn't find opencv")
     highgui = None
     adaptors = None
     cv = None
@@ -223,8 +225,8 @@ class DisplayServer(KinematicServer):
                             ("w", "Turn wireframe on/off"),
                             ("p", "Turn specular highlights on/off"),
                             ("[", "Toggle legacy shader on/off"),
-                            ("+", "Skeleton size up"),
-                            ("-", "Skeleton size down"),
+                            # ("+", "Skeleton size up"),
+                            # ("-", "Skeleton size down"),
                             # ("l", "lighter scene"),
                             # ("d", "dimmer scene"),
                             # ("o", "light ATTENUATION down"),
@@ -633,10 +635,13 @@ class DisplayServer(KinematicServer):
 
         elif args[0] == 'm':
             self.render_shape_flag = not self.render_shape_flag
-            print "render shape:", self.render_shape_flag
+            for name, obj in self.elements.items():
+                for shape in obj.shape_list:
+                    if isinstance(shape.geometry, IndexedFaceSet):
+                        shape.enabled = self.render_shape_flag
+
         elif args[0] == 's':
             self.render_skeleton_flag = not self.render_skeleton_flag
-            print "render skeleton:", self.render_skeleton_flag
 
         elif args[0] == 'p' and self.use_shader:
             self.specular_highlights = not self.specular_highlights
