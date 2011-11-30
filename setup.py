@@ -90,7 +90,7 @@ Main features:
       package_dir={'robotviewer':'src'},
       package_data={'robotviewer': ['vrml/vrml.sbnf','vrml/standard_nodes.wrl',
                                     'obj.sbnf',
-                                    'fragment_shader.c','vertex_shader.c'
+                                    'fragment_shader.c','vertex_shader.c', 'models/*'
                                     ]},
       requires=['sphinx (>=0.6)','pyopengl'],
       data_files=[('bin',['bin/robotviewer','bin/robotviewer-gtk']),

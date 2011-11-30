@@ -3,3 +3,4 @@ include data/bunny.obj data/camera.py data/config.example data/config.nao data/c
 include bin/*
 include *.sbnf
 include *.wrl
+include src/models
