@@ -161,6 +161,7 @@ class DisplayServer(KinematicServer):
     cursor_y = 0
     ready = False
     need_refresh = False
+    show_names = False
     idle_cbs = []
 
     def __init__(self,options = None, args = None):
@@ -233,6 +234,7 @@ class DisplayServer(KinematicServer):
                             # ("e", "light ATTENUATION up"),
                             # ("t", "transparency up"),
                             # ("r", "transparency down"),
+                            ("n", "show names"),
                             ("c", "screen capture"),
                             ("v", "start/stop video recording"),
                             ("x", "change camera"),
@@ -249,7 +251,8 @@ class DisplayServer(KinematicServer):
             cameras = value.get_list(Camera)
             for camera in cameras:
                 camera.server = self
-                self.cameras += cameras
+                if camera not in self.cameras:
+                    self.cameras.append(camera)
 
     def __del__(self):
         if self.recording:
@@ -354,10 +357,11 @@ class DisplayServer(KinematicServer):
         if not camera in self.world_cameras:
             glutReshapeWindow(camera.width, camera.height)
             return
+
         camera.width = width
         camera.height = height
-        #camera.compute_opencv_params()
-        camera.aspect = 1.0*camera.width/camera.height
+        camera.compute_opencv_params()
+        #camera.aspect = 1.0*camera.width/camera.height
         camera.update_perspective()
 
     def create_render_buffer(self):
@@ -642,6 +646,10 @@ class DisplayServer(KinematicServer):
 
         elif args[0] == 's':
             self.render_skeleton_flag = not self.render_skeleton_flag
+            for name, obj in self.elements.items():
+                for bone in obj.bone_list:
+                    for shape in bone.shape_list:
+                        shape.enabled = self.render_skeleton_flag
 
         elif args[0] == 'p' and self.use_shader:
             self.specular_highlights = not self.specular_highlights
@@ -747,6 +755,9 @@ class DisplayServer(KinematicServer):
             else:
                 glutSetCursor(GLUT_CURSOR_INHERIT)
                 self.info = ""
+
+        elif args[0] == 'n':
+            self.show_names = not self.show_names
 
         elif args[0] == 'v':
             if not self.recording:

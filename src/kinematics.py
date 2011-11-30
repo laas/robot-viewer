@@ -84,6 +84,10 @@ class GenericObject(DisplayObject):
         return self.get_list(Shape)
 
     @property
+    def bone_list(self):
+        return self.get_list(Bone)
+
+    @property
     def cam_list(self):
         return self.get_list(camera.Camera)
 
@@ -97,7 +101,10 @@ class GenericObject(DisplayObject):
             return self
 
         if id == None:
-            return self.waist
+            if type(self) == Robot:
+                return self.waist
+            else:
+                return self
         else:
             return self.moving_joint_list[id]
 
@@ -644,6 +651,8 @@ class Bone(GenericObject):
             else:
                 rotation = [direc[0], direc[1], direc[2], angle]
                 link = Shape()
+                link.enabled = False
+
                 link.appearance.material.diffuseColor = [0,0.5,1]
                 link.geometry = Cylinder()
                 link.geometry.height = height
@@ -654,6 +663,7 @@ class Bone(GenericObject):
                 self.add_child(link)
 
         motor = Shape()
+        motor.enabled = False
         self.add_child(motor)
         motor.appearance.material.diffuseColor = [1,0,0]
         if joint.jointAxis in ["X","x","Y","y","z","Z"]:

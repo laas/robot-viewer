@@ -291,6 +291,9 @@ class KinematicServer(object):
                                 %(epath, len(robots)))
             new_robot = robots[0]
             self.elements[ename] = new_robot
+            cameras = new_robot.get_list(camera.Camera)
+            for cam in cameras:
+                self.elements[cam.name] = cam
 
 
         elif etype == 'object':
@@ -313,7 +316,7 @@ class KinematicServer(object):
                 from vrml.script import Script
                 new_object = kinematics.Shape()
                 new_object.geometry = Script(open(epath).read())
-
+                new_object.init()
             else:
                 new_object = kinematics.GenericObject()
 

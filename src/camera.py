@@ -85,8 +85,8 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         self.fieldOfView = 45*math.pi/180
         self.translation = [0, 0, 0]
         self.focal = 3.5
-        self.x0 = 1.
-        self.y0 = 1.
+        self.x0 = 0.
+        self.y0 = 0.
         self.aspect = 320.0/240.0
 
         # OpenCV params
@@ -199,11 +199,16 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         '''
         self.cx = self.width/2.0
         self.cy = self.height/2.0
-        self.u0 = int(self.x0 + self.width/2.0 )
-        self.v0 = int(self.y0 + self.height/2.0)
-        # print 'u0=', self.u0, ', cx=', self.cx
-        self.fy = 1.0*self.height/math.tan(self.fovy/2.0)
-        self.fx = 1.0*self.width/self.height*self.fy/self.aspect
+        self.aspect = 1.0*self.width/self.height
+
+        self.top    =  math.atan(self.fovy/2)*self.near
+        self.bottom = -math.atan(self.fovy/2)*self.near
+        self.right  = self.aspect*self.top
+        self.left   = self.aspect*self.bottom
+
+        self.fx = 0.5*self.width*self.near/self.right
+        self.fy = 0.5*self.height*self.near/self.top
+
         self.update_perspective()
 
 
@@ -291,7 +296,36 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         for name,ele in self.server.elements.items():
             ele.render()
 
+        if self.server.show_names:
+            for name,ele in self.server.elements.items():
+                if ele == self:
+                    continue
+                try:
+                    u,v = self.project(ele.globalTransformation)
+                except:
+                    logger.exception("Failed to project {0}".format(ele.name))
+                else:
+                    u = int(u)
+                    v = int(v)
+
+                    self.server.draw_string("{0}".format(name, u, v), u, v)
+
         return True
+
+    def project(self, T):
+        cam_T = self.globalTransformation
+        rel_T = numpy.dot(numpy.linalg.inv(cam_T), T)
+        x,y,z = rel_T[:3,3]
+        u = -self.fx*x/z + self.cx
+        v = -self.fy*y/z + self.cy
+
+        # print "cam_T", cam_T
+        # print "T", T
+        # print "rel_T", rel_T
+        # print u, v
+        # print "---"
+        return u, v
+
 
     def update(self):
         kinematics.GenericObject.update(self)
@@ -413,13 +447,13 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         # # field of view, aspect ratio, near and far
         # This will squash and stretch our objects as the window is resized.
 
-        if self.fovy:
-            gluPerspective( self.fovy*180/math.pi,
-                        self.aspect,
-                        self.Near,
-                        self.Far)
-        else:
-            glFrustum(self.left, self.right, self.bottom, self.top, self.near, self.far)
+        # if self.fovy:
+        #     gluPerspective( self.fovy*180/math.pi,
+        #                 self.aspect,
+        #                 self.Near,
+        #                 self.Far)
+        # else:
+        glFrustum(self.left, self.right, self.bottom, self.top, self.near, self.far)
 
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
