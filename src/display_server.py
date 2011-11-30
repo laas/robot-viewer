@@ -25,8 +25,6 @@ from OpenGL.GL.EXT.framebuffer_object import *
 import kinematics
 import ml_parser
 import pickle
-from display_element import DisplayObject, DisplayRobot, GlPrimitive
-import display_element
 import re,imp
 from camera import Camera
 import pickle
@@ -52,6 +50,7 @@ from shaders import *
 from shader import Shader
 import camera
 import kinematics, geometry
+import display_object
 try:
     from opencv import highgui, cv, adaptors
 except ImportError:
@@ -148,7 +147,7 @@ class DisplayServer(KinematicServer):
     refresh_rate = None
     num_windows = 1
     run_once = False
-    modern_shader = display_element.MODERN_SHADER
+    modern_shader = display_object.MODERN_SHADER
     use_shader = True
     pending_configs = {}
     pending_configs2 = {}
@@ -164,7 +163,6 @@ class DisplayServer(KinematicServer):
 
     def __init__(self,options = None, args = None):
         """
-
         Arguments:
         """
         if options:
@@ -174,9 +172,8 @@ class DisplayServer(KinematicServer):
             self.config_file = os.path.join(config_dir,"config")
 
         if self.use_vbo:
-            display_element.USE_VBO = True
+            display_object.USE_VBO = True
 
-        self.display_elements = dict()
         self.windows = {}
 
         self.fbo_id = -1
@@ -239,17 +236,17 @@ class DisplayServer(KinematicServer):
                             ("x", "change camera"),
                             ("/", "change cursor mode"),
                             ("h", "show this message"),
+                            ("@", "reload config"),
                             ]:
             self.usage += 20*""+ "{0}:{1}\n".format(key, effect)
 
         self.ready = True
 
     def add_cameras(self):
-        for key, value in self.display_elements.items():
-            if isinstance(value, DisplayObject):
-                cameras = value.get_list(Camera)
-                for camera in cameras:
-                    camera.server = self
+        for key, value in self.elements.items():
+            cameras = value.get_list(Camera)
+            for camera in cameras:
+                camera.server = self
                 self.cameras += cameras
 
     def __del__(self):
@@ -287,7 +284,7 @@ class DisplayServer(KinematicServer):
         logger.debug("Creating glutWindow")
         self.windows = {}
         # self.windows.append(glutCreateWindow("Robotviewer Server"))
-        self.shaders = display_element.shaders
+        self.shaders = display_object.shaders
         for i in range(self.num_windows):
             window = GlWindow()
             glutDisplayFunc(self.draw_cb)
@@ -305,7 +302,7 @@ class DisplayServer(KinematicServer):
             cam_name = "world_camera%d"%window.id
             cam.name = cam_name
             cam.init()
-            self.display_elements[cam_name] = cam
+            self.elements[cam_name] = cam
             self.world_cameras.append(cam)
             self.cameras.append(cam)
             window.active_camera = len(self.world_cameras) -1
@@ -376,7 +373,7 @@ class DisplayServer(KinematicServer):
     def set_robot_joint_rank(self,robot_name, joint_rank_xml):
         """
         """
-        if robot_name not in self.display_elements.keys():
+        if robot_name not in self.elements.keys():
             return False
 
 
@@ -393,11 +390,11 @@ class DisplayServer(KinematicServer):
                 correct_joint_dict[m.group(1)] = int(m.group(2)) -6
                 logger.debug( m.group(1)+ "\t" + m.group(2))
 
-        for joint in self.display_elements[robot_name].obj.joint_list:
+        for joint in self.elements[robot_name].joint_list:
             if correct_joint_dict.has_key(joint.name):
                 joint.id = correct_joint_dict[joint.name]
 
-        self.display_elements[robot_name].obj.update_joint_dict()
+        self.elements[robot_name].update_joint_dict()
         return True
 
 
@@ -410,6 +407,12 @@ class DisplayServer(KinematicServer):
         s = s.replace('$','')
         return s
 
+    def clean_scene(self):
+        for name, obj in self.elements.items():
+            del obj
+        self.elements = {}
+        self.need_refresh = True
+
     def parse_config(self):
         KinematicServer.parse_config(self)
         bg = self.global_configs.get('background')
@@ -417,89 +420,7 @@ class DisplayServer(KinematicServer):
             for win in self.windows:
                 glutSetWindow(win)
                 glClearColor (bg[0], bg[1], bg[2], 0.5);
-
-
-    def _create_element(self, etype, ename, epath, scale = None):
-        """
-        Same as createElement but will not be called by outside world
-        (CORBA) show will always be in the GL thread
-        Arguments:
-        - `self`:
-        - `etype`:        string, element type (e.g. robot, object)
-        - `name`:         string, element name
-        - `path`:  string, description  (e.g. wrl path)
-        """
-        logger.debug("Creating {0} {1} {2} {3}".format(etype, ename, epath, scale))
-        if self.display_elements.has_key(ename):
-            logger.debug("%s Element with that name exists already"%ename)
-            return
-
-        if etype == 'robot':
-            objs = ml_parser.parse(epath, not self.no_cache)
-            robots = []
-            for obj in objs:
-                if isinstance(obj, kinematics.Robot):
-                    robots.append(obj)
-            if len(robots) != 1:
-                raise Exception("file %s contains %d robots, expected 1."
-                                %(epath, len(robots)))
-            new_robot = robots[0]
-
-            if scale:
-                new_robot.scale = scale
-                new_robot.init()
-
-            new_element = DisplayRobot(new_robot)
-            self.display_elements[ename] = new_element
-            self.kinematic_elements[ename] = new_robot
-            for cam in new_robot.get_list(camera.Camera):
-                self.kinematic_elements[cam.name] = cam
-
-
-        elif etype == 'object':
-            new_element = None
-            # try to load as vrml and script
-            ext = os.path.splitext(epath)[1].replace(".","")
-            if ext == "py":
-                logger.info("Creating element from python script %s."%epath)
-                new_object = kinematics.Shape()
-                new_object.name = ename
-                new_object.geometry = geometry.Script(open(epath).read() )
-                new_object.init()
-
-                new_element = DisplayObject(new_object)
-
-            elif ext in ml_parser.supported_extensions:
-                logger.debug("Creating element from supported markup language file %s."%epath)
-                objs = ml_parser.parse(epath, not self.no_cache)
-                objs = [ o for o in objs
-                         if isinstance(o, kinematics.GenericObject)]
-                if len(objs) == 0:
-                    raise Exception('Found no object in file %s'%epath)
-                elif len(objs) == 1:
-                    group = objs[0]
-                else:
-                    group  = kinematics.GenericObject()
-                    group.name = ename
-                    for obj in objs:
-                        group.add_child(obj)
-                        group.init()
-                if scale:
-                    group.scale = scale
-                    group.init()
-                new_object = group
-                new_element = DisplayObject(group)
-
-            if not new_element:
-                raise Exception("creation of element from {0} failed".format(epath))
-            logger.debug("Adding %s to internal dictionay"%(new_element))
-            self.display_elements[ename] = new_element
-            self.kinematic_elements[ename] = new_object
-
-
-        else:
-            raise TypeError,"Unknown element type %s"%etype
-
+        self.need_refresh = True
 
 
     def run(self):
@@ -573,7 +494,8 @@ class DisplayServer(KinematicServer):
             #logger.debug( "creating %s %s %s"%( obj[0], obj[1], obj[2]))
             self._create_element(obj[0],obj[1],obj[2])
 
-        for name, obj in self.display_elements.items():
+        #print len(self.elements.items())
+        for name, obj in self.elements.items():
             if "pending_display_change" not in obj.__dict__.keys():
                 continue
             if obj.pending_display_change:
@@ -593,16 +515,15 @@ class DisplayServer(KinematicServer):
         # glLoadIdentity ();
         # cam.update_view()
         # glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        # for name,ele in self.display_elements.items():
+        # for name,ele in self.elements.items():
         #     #    logger.info( item[0], item[1]._enabled)
-        #     if isinstance(ele, DisplayRobot):
+        #     if isinstance(ele, kinematics.Robot):
         #         ele.render(self.render_shape_flag,
         #                    self.render_skeleton_flag,
         #                    )
         #     else:
         #         ele.render()
         cam.draw()
-        self.windows[win].update_fps()
 
         self.show_info()
         glutSwapBuffers()
@@ -725,7 +646,7 @@ class DisplayServer(KinematicServer):
 
         elif args[0] == '[' and self.use_shader:
             self.modern_shader = not self.modern_shader
-            display_element.MODERN_SHADER = self.modern_shader
+            display_object.MODERN_SHADER = self.modern_shader
             if self.modern_shader:
                 legacy = "OFF"
             else:
@@ -746,8 +667,8 @@ class DisplayServer(KinematicServer):
 
         elif args[0] == '+':
             self.skeleton_size += 1
-            for name, obj in self.display_elements.items():
-                if isinstance(obj, DisplayRobot):
+            for name, obj in self.elements.items():
+                if isinstance(obj, kinematics.Robot):
                     obj.set_skeleton_size(self.skeleton_size)
 
         elif args[0] == 'h':
@@ -756,22 +677,22 @@ class DisplayServer(KinematicServer):
         elif args[0] == '-':
             if self.skeleton_size >1:
                 self.skeleton_size -= 1
-            for name, obj in self.display_elements.items():
-                if isinstance(obj, DisplayRobot):
+            for name, obj in self.elements.items():
+                if isinstance(obj, kinematics.Robot):
                     obj.set_skeleton_size(self.skeleton_size)
 
         elif args[0] == 't':
             if self.transparency < 1:
                 self.transparency += 0.05
-                for name, e in self.display_elements.items():
-                    if isinstance(e, DisplayRobot):
+                for name, e in self.elements.items():
+                    if isinstance(e, kinematics.Robot):
                         e.set_transparency(self.transparency)
 
         elif args[0] == 'r':
             if self.transparency > 0:
                 self.transparency -= .05
-                for name, e in self.display_elements.items():
-                    if isinstance(e, DisplayRobot):
+                for name, e in self.elements.items():
+                    if isinstance(e, kinematics.Robot):
                         e.set_transparency(self.transparency)
         elif args[0] == 'l':
             if self.lightAmbient < 1.0:
@@ -833,6 +754,9 @@ class DisplayServer(KinematicServer):
             self.windows[win].change_camera()
             glutPostRedisplay( )
 
+        elif args[0] == '@':
+            self.clean_scene()
+            self.parse_config()
     def mouse_button_func( self, button, mode, x, y ):
         """Callback function (mouse button pressed or released).
 
@@ -973,6 +897,11 @@ class DisplayServer(KinematicServer):
 
 
     def refresh_cb (self):
+        for win in self.windows.keys():
+            glutSetWindow(win)
+            glutPostRedisplay()
+            self.windows[win].update_fps()
+
         now = time.time()
         if now - self.last_update > 0.02: # max freq = 50 Hz
             self.last_update = now
@@ -996,9 +925,7 @@ class DisplayServer(KinematicServer):
             return
         else:
             self.need_refresh = False
-        for win in self.windows.keys():
-            glutSetWindow(win)
-            glutPostRedisplay()
+
 
 
 
@@ -1009,10 +936,9 @@ class DisplayServer(KinematicServer):
         - `self`:
         - `name`:
         """
-        if not self.display_elements.has_key(name):
+        if not self.elements.has_key(name):
             return False
 
-        self.kinematic_elements[name].enabled = True
         return True
 
     def disableElement(self,name):
@@ -1022,10 +948,10 @@ class DisplayServer(KinematicServer):
         - `name`:
         """
 
-        if not self.display_elements.has_key(name):
+        if not self.elements.has_key(name):
             return False
 
-        self.display_elements[name].enabled = False
+        self.elements[name].enabled = False
         return True
 
 
@@ -1035,13 +961,13 @@ class DisplayServer(KinematicServer):
         - `self`:
         - `name`:
         """
-        if name not in self.display_elements.keys():
+        if name not in self.elements.keys():
             return False
 
         if t < 0 or t > 1:
             return False
 
-        self.display_elements[name].set_transparency(t)
+        self.elements[name].set_transparency(t)
         return True
 
 

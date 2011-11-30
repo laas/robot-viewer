@@ -25,11 +25,11 @@ import logging, uuid
 import __builtin__
 import traceback
 import vrml.standard_nodes as nodes
-
 import mathaux
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass
+from display_object import DisplayObject
 
 logger = logging.getLogger("robotviewer.kinematics")
 logger.addHandler(NullHandler())
@@ -48,14 +48,13 @@ def find_relative_transformation( obj1, obj2 ):
 def listify(a):
     return [list(r) for r in a]
 
-
-class GenericObject(object):
+class GenericObject(DisplayObject):
     """
     Base element in the kinematic tree
     """
     count = 0
     def __init__(self):
-        self.type="GenericObject"
+        DisplayObject.__init__(self)
         self.name=None
         self.jointType=""
         self.translation = [0,0,0]
@@ -70,6 +69,12 @@ class GenericObject(object):
         self.uuid = str(uuid.uuid1())
         self.scale = [1., 1., 1.]
         self._R_axis_angle = [1., 0., 0., 0.]
+
+    def __del__(self):
+        for child in self.children:
+            del child
+        object.__del__(self)
+
 
     def cumul_scale(self):
         if not self.parent:
@@ -94,12 +99,14 @@ class GenericObject(object):
         return self.get_list(Shape)
 
     @property
+    def cam_list(self):
+        return self.get_list(camera.Camera)
+
+
+    @property
     def joint_list(self):
         return self.get_list(Joint) + self.get_list(Robot)
 
-    @property
-    def robot_list(self):
-        return self.get_list(Robot)
 
     def get_op_point(self, id):
         if not isinstance(self, Robot):
@@ -118,7 +125,8 @@ class GenericObject(object):
         angle, direction, point = tf.rotation_from_matrix(rot_mat)
         self.rotation = [ direction[0],direction[1],direction[2], angle ]
         self.init_local_transformation()
-        self.update()
+        print self.name, config, self.localTransformation
+        self.origin.update()
 
     def update_config2(self, T, q):
         self.count += 1
@@ -128,7 +136,7 @@ class GenericObject(object):
         angle, direction, point = tf.rotation_from_matrix(T)
         self.rpy = tf.euler_from_matrix(T)
         self.rotation = [ direction[0],direction[1],direction[2], angle ]
-        self.update()
+        self.origin.update()
 
 
     def get_config(self):
@@ -147,7 +155,7 @@ class GenericObject(object):
         return res
 
     def __str__(self):
-        s= "%s \t= %s\n"%(self.type,self.name)
+        s= "%s \t= %s\n"%(self.__class__.__name__,self.name)
         s+="jointType\t= %s\n"%self.jointType
         s+= "id\t\t= "+str(id(self))
         s+= "\ntranslation\t= "+str(self.translation)
@@ -355,7 +363,6 @@ class Joint(GenericObject):
     """
     def __init__(self):
         GenericObject.__init__(self)
-        self.type= "joint"
         self.jointType=None
         self.isRobot=False
         self.angle=0
@@ -389,7 +396,7 @@ class Joint(GenericObject):
             self.localTransformation[0:3,3]=numpy.array(scale_translation)+\
                 numpy.dot(numpy.eye(3)-self.localTransformation[0:3,:3],numpy.array(self.center))
 
-        elif ( self.type=="joint" and self.jointType in [ "rotate", "rotation", "revolute"]
+        elif ( type(self) == Joint and self.jointType in [ "rotate", "rotation", "revolute"]
                and self.jointId >= 0):
             if self.jointAxis in ["x","X"]:
                 axis = [1, 0, 0]
@@ -430,7 +437,6 @@ class Robot(Joint):
     def __init__(self):
         Joint.__init__(self)
         self.ndof = 0
-        self.type= "Robot"
         self.jointId= BASE_NODE_ID
         self.joint_dict= {}
         self.joint_names = []
@@ -560,15 +566,16 @@ class Robot(Joint):
         if not self.shape_list[:]:
             logger.warning("Robot contains 0 shape.")
 
+
+
 class Shape(GenericObject, nodes.Shape):
     def __init__(self):
-        nodes.Shape.__init__(self)
         GenericObject.__init__(self)
+        nodes.Shape.__init__(self)
         self.appearance = nodes.Appearance()
         self.appearance.mateiral = nodes.Material()
         self.name=None
         self.localR1=numpy.eye(3)  # due to offset of coordonee
-
 
     def init(self):
         GenericObject.init(self)
@@ -608,3 +615,6 @@ class Shape(GenericObject, nodes.Shape):
         return bbox
 
     bounding_box = bounding_box_local
+
+
+import camera

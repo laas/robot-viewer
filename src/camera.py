@@ -27,7 +27,6 @@ import PIL.Image
 def norm(a):
     return sqrt(numpy.dot(a,a))
 
-from display_element import DisplayRobot
 
 import logging
 class NullHandler(logging.Handler):
@@ -73,6 +72,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
 
 
     def __init__(self, server = None):
+        kinematics.GenericObject.__init__(self)
         self.pixels = None
         self.draw_t = 0
         self.frame_seq = 0
@@ -121,7 +121,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         self.texture = None
         self.render_buffer = None
         self.gl_error = None
-        logger.info("{0} GL vals: {1}".format(self.name,
+        logger.debug("{0} GL vals: {1}".format(self.name,
                                               (self.x0, self.y0,
                                                self.fovy, self.aspect,
                                                self.left, self.right,
@@ -288,14 +288,9 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         self.update_perspective()
         self.update_view()
 
-        for name,ele in self.server.display_elements.items():
-            #    logger.info( item[0], item[1]._enabled)
-            if isinstance(ele, DisplayRobot):
-                ele.render(self.server.render_shape_flag,
-                           self.server.render_skeleton_flag,
-                           )
-            else:
-                ele.render()
+        for name,ele in self.server.elements.items():
+            ele.render()
+
         return True
 
     def update(self):

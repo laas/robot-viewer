@@ -18,6 +18,7 @@ import PIL.Image
 import yaml
 import cv
 from cv_bridge import CvBridge, CvBridgeError
+from camera import Camera
 
 class Bridge(object):
     cam_update_t = {}
@@ -97,9 +98,9 @@ class Bridge(object):
     def tf_broadcast(self):
         for robot in self.server.robots:
             rname = robot.name
-            for j in robot.joint_list:
-                name = j.name
-                T = j.globalTransformation
+            for obj in robot.joint_list + robot.cam_list:
+                name = obj.name
+                T = obj.globalTransformation
                 self.tf_br.sendTransform(T[:3,3],
                                          tf.transformations.quaternion_from_matrix(T),
                                          self.stamp,

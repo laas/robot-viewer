@@ -54,24 +54,24 @@ class KinematicServer(object):
 
     def __init__(self, options = {}, args = []):
         self.pendingObjects = []
-        self.kinematic_elements = {}
+        self.elements = {}
         self.parse_config()
         self.robots = []
-        for name, obj in self.kinematic_elements.items():
+        for name, obj in self.elements.items():
             if isinstance(obj, kinematics.Robot):
                 self.robots.append(obj)
 
     @property
     def shapes(self):
         res = []
-        for name, obj in self.kinematic_elements.items():
+        for name, obj in self.elements.items():
             res += obj.shape_list
         return res
 
     def set_robot_joint_rank(self,robot_name, joint_rank_xml):
         """
         """
-        if robot_name not in self.kinematic_elements.keys():
+        if robot_name not in self.elements.keys():
             return False
 
 
@@ -88,11 +88,11 @@ class KinematicServer(object):
                 correct_joint_dict[m.group(1)] = int(m.group(2)) -6
                 logger.info( m.group(1)+ "\t" + m.group(2))
 
-        for joint in self.kinematic_elements[robot_name].joint_list:
+        for joint in self.elements[robot_name].joint_list:
             if correct_joint_dict.has_key(joint.name):
                 joint.id = correct_joint_dict[joint.name]
 
-        self.kinematic_elements[robot_name].update_joint_dict()
+        self.elements[robot_name].update_joint_dict()
         return True
 
 
@@ -178,7 +178,7 @@ class KinematicServer(object):
                             parent_joint_id = int(parent_joint_id)
                         else:
                             parent_joint_id = None
-                        name = "{0}_{1}_{2}".format(oname,parent_name,
+                        name = "{1}:{2}/{0}".format(oname,parent_name,
                                                     parent_joint_id)
                         join_pairs.append((oname, name, parent_name,
                                            parent_joint_id))
@@ -189,19 +189,19 @@ class KinematicServer(object):
             parent_name = pair[2]
             parent_joint_id = pair[3]
             try:
-                parent_obj = self.kinematic_elements[parent_name]
+                parent_obj = self.elements[parent_name]
             except KeyError:
                 logger.warning("Parent {0} does not exist. Skipping".
                                format(parent_name))
                 continue
-            new_el = copy.deepcopy( self.kinematic_elements[orig_name] )
+            new_el = copy.deepcopy( self.elements[orig_name] )
             parent_obj.get_op_point(parent_joint_id).add_child(new_el)
             logger.info("Adding child object {0} to {1}".format(orig_name,
                                                                 parent_name))
             parent_obj.origin.init()
-            self.kinematic_elements[child_name] = new_el
+            self.elements[child_name] = new_el
 
-        for name, obj in self.kinematic_elements.items():
+        for name, obj in self.elements.items():
             obj.update()
 
     def parse_configLegacy(self, config):
@@ -248,7 +248,7 @@ class KinematicServer(object):
             for robot_name in robot_names:
                 joint_rank_config = config.get('joint_ranks',robot_name)
                 joint_rank_config = self._replace_env_var(joint_rank_config)
-                if not self.kinematic_elements.has_key(robot_name):
+                if not self.elements.has_key(robot_name):
                     continue
                 if not os.path.isfile(joint_rank_config):
                     continue
@@ -287,7 +287,7 @@ class KinematicServer(object):
         - `path`:  string, description  (e.g. wrl path)
         """
         logger.debug("Creating {0} {1} {2} {3}".format(etype, ename, epath, scale))
-        if self.kinematic_elements.has_key(ename):
+        if self.elements.has_key(ename):
             logger.exception("Element with that name exists already")
             return
 
@@ -301,7 +301,7 @@ class KinematicServer(object):
                 raise Exception("file %s contains %d robots, expected 1."
                                 %(epath, len(robots)))
             new_robot = robots[0]
-            self.kinematic_elements[ename] = new_robot
+            self.elements[ename] = new_robot
 
 
         elif etype == 'object':
@@ -314,18 +314,25 @@ class KinematicServer(object):
                 if len(objs) == 0:
                     raise Exception('Found no object in file %s'%epath)
                 elif len(objs) == 1:
-                    group = objs[0]
+                    new_object = objs[0]
                 else:
-                    group  = kinematics.GenericObject()
+                    new_object  = kinematics.GenericObject()
                     for obj in objs:
-                        group.add_child(obj)
-                        group.init()
-                self.kinematic_elements[ename] = group
+                        new_object.add_child(obj)
+
+            elif ext == "py":
+                from vrml.script import Script
+                new_object = kinematics.Shape()
+                new_object.geometry = Script(open(epath).read())
 
             else:
                 new_object = kinematics.GenericObject()
-                self.kinematic_elements[ename] = new_object
-                new_object.init()
+
+            self.elements[ename] = new_object
+            new_object.name = ename
+            if scale:
+                new_object.scale = scale
+            new_object.init()
 
 
     def createElement(self, etype, ename, epath):
@@ -341,7 +348,7 @@ class KinematicServer(object):
         TIMEOUT = 600
         self.pendingObjects.append((etype, ename, epath))
         wait = 0
-        while ename not in self.kinematic_elements.keys() and wait < TIMEOUT:
+        while ename not in self.elements.keys() and wait < TIMEOUT:
             time.sleep(0.1)
             wait += 0.1
         if wait >= TIMEOUT:
@@ -355,11 +362,11 @@ class KinematicServer(object):
         - `self`:
         - `name`:         string, element name
         """
-        if not self.kinematic_elements.has_key(name):
+        if not self.elements.has_key(name):
             logger.exception("Element with that name does not exist")
             return False
 
-        del self.kinematic_elements[name]
+        del self.elements[name]
         return True
 
     def enableElement(self,name):
@@ -395,11 +402,11 @@ class KinematicServer(object):
         - `self`:
         - `name`:         string, element name
         """
-        if not self.kinematic_elements.has_key(name):
+        if not self.elements.has_key(name):
             logger.exception("Element with that name does not exist")
             return False
 
-        self.kinematic_elements[name].update_config(config)
+        self.elements[name].update_config(config)
         return True
 
     def getElementConfig(self,name):
@@ -408,11 +415,11 @@ class KinematicServer(object):
         - `self`:
         - `name`:         string, element name
         """
-        if not self.kinematic_elements.has_key(name):
+        if not self.elements.has_key(name):
             logger.exception(KeyError,
                              "Element with that name does not exist")
             return []
-        cfg = self.kinematic_elements[name].get_config()
+        cfg = self.elements[name].get_config()
         if not isinstance(cfg, list):
             return []
         else:
@@ -424,11 +431,11 @@ class KinematicServer(object):
         - `self`:
         - `name`:         string, element name
         """
-        if not self.kinematic_elements.has_key(name):
+        if not self.elements.has_key(name):
             logger.exception("Element with that name does not exist")
             return False
 
-        self.kinematic_elements[name].update_config2(T, q)
+        self.elements[name].update_config2(T, q)
         return True
 
     def test(self):
@@ -440,22 +447,22 @@ class KinematicServer(object):
         - `self`:
         - `name`:         string, element name
         """
-        if not self.kinematic_elements.has_key(name):
+        if not self.elements.has_key(name):
             logger.exception(KeyError,
                              "Element with that name does not exist")
             return [],[]
-        return self.kinematic_elements[name].get_config2()
+        return self.elements[name].get_config2()
 
 
     def listElements(self):
-        return [name for name in self.kinematic_elements.keys() ]
+        return [name for name in self.elements.keys() ]
 
     def listElementDofs(self, ename):
         l = ["X", "Y", "Z", "roll", "pitch", "yaw"]
-        if not isinstance( self.kinematic_elements[ename], kinematics.GenericObject):
+        if not isinstance( self.elements[ename], kinematics.GenericObject):
             return l
 
-        obj = self.kinematic_elements[ename]
+        obj = self.elements[ename]
         if not isinstance(obj, kinematics.Robot):
             return l
         for j in obj.moving_joint_list:
@@ -464,7 +471,7 @@ class KinematicServer(object):
 
     def listShapees(self):
         results = []
-        for name, element in self.kinematic_elements.items():
+        for name, element in self.elements.items():
             for shape in element.shape_list:
                 results.append(shape.uuid)
         return results
