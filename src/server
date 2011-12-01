@@ -1,3 +1,0 @@
-#! /bin/sh
-path=$(dirname $0)
-python $path/server.py --ros $@
