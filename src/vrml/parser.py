@@ -449,6 +449,8 @@ class VrmlParser(Parser):
         for e in l:
             if e.__class__.__name__ == "Inline":
                 url = os.path.join(self.root_path, e.url)
+                if e.children[:]:
+                    continue
                 logger.info("Parse inlined vrml {0}".format(url))
                 e.children = Parser.parse(self, open(url).read())[1]
                 for child in e.children:

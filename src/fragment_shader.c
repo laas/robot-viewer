@@ -64,7 +64,7 @@ vec4 compute_color(vec3 materialAmbientColor,
   vec4 Idiff, Ispec, Iamb, Iemis, res;
   Idiff =  vec4(materialDiffuseColor * diffuseLightWeighting, alpha) ;
   Ispec = vec4(materialSpecularColor * specularLightWeighting, alpha);
-  Ispec = clamp(Ispec, 0.0, 0.1);
+  Ispec = clamp(Ispec, 0.0, 0.05);
   Iamb = vec4(materialAmbientColor * ambientLightWeighting, 0.);
   Iemis = vec4(materialEmissiveColor, alpha);
   res = ( Iamb + Idiff + Iemis + Ispec);

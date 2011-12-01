@@ -19,6 +19,7 @@ import yaml
 import cv
 from cv_bridge import CvBridge, CvBridgeError
 from camera import Camera
+import threading
 
 class Bridge(object):
     cam_update_t = {}
@@ -26,14 +27,15 @@ class Bridge(object):
     def __init__(self, server):
         self.server = server
         rospy.init_node('robotviewer', anonymous = True)
+        self.stamp = rospy.Time.now()
+        self.tf_br = tf.TransformBroadcaster()
+        self.transformer = tf.TransformListener()
         self.bridge = CvBridge()
         self.image_pubs = {}
         self.camera_info_pubs = {}
         self.cameras = self.server.cameras
         self.camera_dict = dict((cam.name, cam) for cam in self.cameras)
-        self.stamp = rospy.Time.now()
-        self.tf_br = tf.TransformBroadcaster()
-
+        self.count = 0
         for cam in self.server.cameras:
             self.image_pubs[cam.name] = rospy.Publisher(cam.name +
                                                         "/image_raw", Image)
@@ -50,6 +52,18 @@ class Bridge(object):
         if isinstance(cam_calibs, str):
             cam_calibs = eval(cam_calibs)
 
+        self.tf_map = rospy.get_param("~tf_map",{})
+        if isinstance(self.tf_map, str):
+            self.tf_map = eval(self.tf_map)
+
+        for rv_name, ros_name in self.tf_map.items():
+            if rv_name not in self.server.elements:
+                path = os.path.abspath(os.path.dirname(__file__))
+                axes_fn = os.path.join(path, "models", "axes3.wrl")
+                self.server._create_element('object', rv_name, axes_fn)
+                self.server.elements[rv_name].scale = [.1, .1, .1]
+                self.server.elements[rv_name].init()
+
         for name, calib_file in cam_calibs.items():
             rospy.loginfo("Calibrating {0}".format(name))
             self.calibrate(self.camera_dict[name], calib_file)
@@ -57,9 +71,21 @@ class Bridge(object):
         for rvname, topic in jointstates.items():
             rospy.Subscriber(topic, JointState, self.state_cb(rvname))
 
-
         server.idle_cbs.append (self.spin)
 
+        # class TfThread(threading.Thread):
+        #     def __init__(self, bridge):
+        #         threading.Thread.__init__(self)
+        #         self.b = bridge
+
+        #     def run(self):
+        #         while not rospy.is_shutdown():
+        #             rospy.sleep(0.05)
+        #             self.b.tf_listen()
+
+
+        # t = TfThread(self)
+        # t.start()
 
     def state_cb(self, objname):
         def cb(data):
@@ -133,10 +159,32 @@ class Bridge(object):
 
             self.cam_update_t[cam.name] = cam.draw_t
 
+
+    def tf_listen(self):
+        for rv_name, ros_name in self.tf_map.items():
+            rospy.loginfo("Listening to {0}".format(ros_name))
+
+            try:
+                now = rospy.Time.now()
+                trans, rot = self.transformer.lookupTransform(ros_name,'world',
+                                                              rospy.Time())
+            except tf.LookupException:
+                rospy.logfatal("Lookup fail, transform {0}-{1}".format('/world', ros_name))
+                continue
+            except tf.ConnectivityException:
+                rospy.logfatal("Not connect, transform {0}-{1}".format('/world', ros_name))
+                continue
+
+            T = tf.transformations.quaternion_matrix(rot)
+            T[:3,3] = trans
+            self.server.updateElementConfig2(rv_name, T, [])
+            rospy.loginfo("Sending {0} to {1}".format(T, rv_name))
+
     def spin(self):
         self.stamp = rospy.Time.now()
         self.cam_publish()
         self.tf_broadcast()
+        self.tf_listen()
 
     def calibrate(self, cam, cf):
         params = yaml.load(open(cf).read())

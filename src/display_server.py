@@ -891,13 +891,28 @@ class DisplayServer(KinematicServer):
         glColor4f (1.0, 6.0, 6.0, 1.0)
 
         glClearColor(0.,0.,0.,1.)
-        glShadeModel(GL_SMOOTH)
         glEnable(GL_CULL_FACE)
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_LIGHTING)
-
+        glEnable(GL_POINT_SMOOTH )
+        glEnable(GL_LINE_SMOOTH )
+        glEnable (GL_POLYGON_SMOOTH)
         glEnable (GL_BLEND)
         glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+
+        glEnable(GL_FOG)
+        fogColor = [0.5, 0.5, 0.5, 1.0]
+
+        fogMode = GL_EXP;
+        glFogi (GL_FOG_MODE, fogMode);
+        glFogfv (GL_FOG_COLOR, fogColor);
+        glFogf (GL_FOG_DENSITY, 0.35);
+        glHint (GL_FOG_HINT, GL_DONT_CARE);
+        glFogf (GL_FOG_START, 1.0);
+        glFogf (GL_FOG_END, 5.0);
+
+
 
         glLightfv(GL_LIGHT0, GL_POSITION, self.lightZeroPosition)
         glLightfv(GL_LIGHT0, GL_DIFFUSE, self.lightZeroDiffuseColor + [1.])

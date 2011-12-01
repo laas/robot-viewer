@@ -16,7 +16,7 @@
 #! /usr/bin/env python
 
 KINEMATIC, DISPLAY = 0,1
-CORBA, XML_RPC = 0,1
+CORBA, XML_RPC, NONE = 0,1,2
 import os, sys
 import logging
 logger = logging.getLogger("robotviewer.server_factory")
@@ -75,5 +75,8 @@ def create_server( type, com_type, options, args):
 
                 t = threading.Thread(target = self.server.serve_forever)
                 t.start()
+    elif com_type == NONE:
+        import display_server
+        Server = display_server.DisplayServer
 
     return Server(options, args)

@@ -18,7 +18,7 @@
 import sys,imp, os, stat, glob
 from optparse import OptionParser
 import logging
-from server_factory import create_server, CORBA, XML_RPC, KINEMATIC, DISPLAY
+from server_factory import create_server, CORBA, XML_RPC, KINEMATIC, DISPLAY, NONE
 
 
 def get_parser():
@@ -40,6 +40,7 @@ def get_parser():
                       help="be verbose")
 
     parser.add_option("-s","--server", dest="server", default = "CORBA",
+                      choices = ["CORBA","XML-RPC","NONE"],
                       help="set server type to be used (default: CORBA)")
 
     parser.add_option("-c","--config-file", dest="config_file",
@@ -139,6 +140,8 @@ def main():
         com_type = CORBA
     elif options.server == "XML-RPC":
         com_type = XML_RPC
+    elif options.server == "NONE":
+        com_type = NONE
     else:
         raise Exception ("Not supported server type %s"%options.server)
 

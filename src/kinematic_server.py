@@ -51,7 +51,7 @@ class KinematicServer(object):
     config_dir = os.environ['HOME']+'/.robotviewer/'
     config_file = os.path.join(config_dir,"config")
     global_configs = {}
-
+    idle_cbs = []
     def __init__(self, options = {}, args = []):
         self.pendingObjects = []
         self.elements = {}
@@ -60,6 +60,8 @@ class KinematicServer(object):
         for name, obj in self.elements.items():
             if isinstance(obj, kinematics.Robot):
                 self.robots.append(obj)
+
+        self.cameras = []
 
     @property
     def shapes(self):
@@ -499,7 +501,8 @@ class KinematicServer(object):
                 logger.debug( "creating %s %s %s"%( obj[0], obj[1], obj[2]))
                 self._create_element(obj[0],obj[1],obj[2])
             time.sleep(1e-3)
-
+            for cb in self.idle_cbs:
+                cb()
 if __name__ == '__main__':
     import optparse, sys
     logger = logging.getLogger()
