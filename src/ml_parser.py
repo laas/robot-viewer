@@ -79,13 +79,15 @@ def parse(filename, use_cache = True):
                                    '.robotviewer',"%s.cache"%alpha_name )
 
     if not use_cache and os.path.isfile(cached_file):
+        logger.info("Removing cached file {0}".format(cached_file))
         os.remove(cached_file)
 
     if os.path.isfile(cached_file):
+        logger.info("Loading from cached file {0}.".format(cached_file))
         objs = load_cache(cached_file)
         if objs:
             return objs
-
+    logger.info("Cached file {0} not found.".format(cached_file))
     objs =  parse_nocache(filename)
     logger.warning("Saving new cache to %s"%cached_file)
     f = open(cached_file,'w')

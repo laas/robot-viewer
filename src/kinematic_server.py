@@ -281,7 +281,7 @@ class KinematicServer(object):
             return
 
         if etype == 'robot':
-            objs = ml_parser.parse(epath, False)
+            objs = ml_parser.parse(epath)
             robots = []
             for obj in objs:
                 if isinstance(obj, kinematics.Robot):
