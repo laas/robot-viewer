@@ -53,6 +53,12 @@ class ElevationGrid(nodes.ElevationGrid, Geometry):
                 glVertex3f(B[0], B[1], B[2])
                 glVertex3f(C[0], C[1], C[2])
                 glVertex3f(D[0], D[1], D[2])
+                glNormal3f(0,-1,0)
+                glVertex3f(A[0], A[1], A[2])
+                glVertex3f(D[0], D[1], D[2])
+                glVertex3f(C[0], C[1], C[2])
+                glVertex3f(B[0], B[1], B[2])
+
                 # print count, color, A, B, C, D
 
                 glEnd()
