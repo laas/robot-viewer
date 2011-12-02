@@ -39,6 +39,7 @@ module robotviewer_corba {
     boolean updateElementConfig2(in string name, in HomogeneousMatrix T,
                                  in DoubleSeq q) raises(InvalidKey);
 
+    boolean setScale(in string name, in DoubleSeq scale) raises(InvalidKey);
     void getElementConfig(in string name, out DoubleSeq config) raises(InvalidKey);
     void getElementConfig2(in string name, out  HomogeneousMatrix T,
                            out DoubleSeq q) raises(InvalidKey);
@@ -53,6 +54,8 @@ module robotviewer_corba {
     void setCameraOpenCVParams(in string name, in short width, in short height,
                            in double fx, in double  fy,
                            in double cx, in double cy) raises (InvalidKey );
+
+
 
     void listMeshes(out ShortSeq list);
     void getGlConfig(in short uuid , out DoubleSeq config) raises(InvalidKey);

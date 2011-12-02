@@ -24,10 +24,10 @@ from ctypes import *
 from OpenGL.GL.ARB.framebuffer_object import *
 from OpenGL.GL.EXT.framebuffer_object import *
 import PIL.Image
+from kinematics import Shape
 def norm(a):
     return sqrt(numpy.dot(a,a))
-
-
+from vrml.geometry import Sphere
 import logging
 class NullHandler(logging.Handler):
     def emit(self, record):
@@ -126,6 +126,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
                                                self.left, self.right,
                                                self.bottom, self.top,
                                                self.near, self.far)))
+
 
     class Alias:
         frontClipDistance = ('Near','near')
@@ -288,12 +289,13 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         self.update_view()
 
         for name,ele in self.server.elements.items():
+            if ele.exclude_cameras:
+                if self.name in ele.exclude_cameras.split():
+                    continue
             ele.render()
 
         if self.server.show_names:
             for name,ele in self.server.elements.items():
-                if ele == self:
-                    continue
                 try:
                     u,v = self.project(ele.T)
                 except:
@@ -417,9 +419,9 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
 
     def __str__(self):
         subs = copy.copy(self.__dict__)
-        subs['cam_position'] = self.cam_position
+        subs['cam_position'] = self.T[:3,3]
         subs['lookat'] = self.lookat
-        subs['cam_up'] = self.cam_up
+        subs['cam_up'] = self.T[:3,2]
         subs['parent'] = None
         subs['T_local']= self.localTransformation
         subs['T_world']= self.globalTransformation

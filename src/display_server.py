@@ -163,6 +163,7 @@ class DisplayServer(KinematicServer):
     need_refresh = False
     show_names = False
     idle_cbs = []
+    frames = {}
 
     def __init__(self,options = None, args = None):
         """
@@ -485,13 +486,14 @@ class DisplayServer(KinematicServer):
     def show_info(self):
         if self.help:
             self.info = self.usage
+            self.draw_string("Axes color (X,Y,Z): red, green, blue", 1, 8)
         else:
             self.info = ""
 
         if self.cross_hair_cursor:
             self.info += "Cursor pos: {0}, {1}".format(self.cursor_x, self.cursor_y)
-
-        self.draw_string(self.info)
+        if self.info:
+            self.draw_string(self.info)
 
     def _draw_cb(self):
         #if glGetError() > 0:
@@ -811,7 +813,9 @@ class DisplayServer(KinematicServer):
         if not y:
             y = cam.height - 10
 
-
+        bg_color = glGetDoublev(GL_COLOR_CLEAR_VALUE)
+        if color == [1., 1., 1., 1.] and sum(bg_color[:3])/3 > 0.5 :
+            color = [0., 0., 0., 0.]
         glPushAttrib(GL_LIGHTING_BIT | GL_CURRENT_BIT) # lighting and color mask
         glDisable(GL_LIGHTING)     #need to disable lighting for proper text color
 
@@ -909,8 +913,8 @@ class DisplayServer(KinematicServer):
         glFogfv (GL_FOG_COLOR, fogColor);
         glFogf (GL_FOG_DENSITY, 0.35);
         glHint (GL_FOG_HINT, GL_DONT_CARE);
-        glFogf (GL_FOG_START, 1.0);
-        glFogf (GL_FOG_END, 5.0);
+        glFogf (GL_FOG_START, 0.0);
+        glFogf (GL_FOG_END, 50.0);
 
 
 
@@ -1036,3 +1040,4 @@ class DisplayServer(KinematicServer):
         self.pending_configs2[name] = T,q
         self.need_refresh = True
         return True
+

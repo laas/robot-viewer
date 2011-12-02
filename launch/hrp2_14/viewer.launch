@@ -9,7 +9,7 @@
 'CAMERA_RL':'$(find robotviewer)/launch/hrp2_14/calibration/narrow_right.yaml',
 }"
   />
-  <param name="~tf_map" value="{'chessboard':'cheesboard'}"/>
+  <!-- <param name="~tf_map" value="{'chessboard':'cheesboard'}"/> -->
 </node>
 </group>
 

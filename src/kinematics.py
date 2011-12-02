@@ -54,8 +54,8 @@ class GenericObject(DisplayObject):
         self.center=[0,0,0]
         self.parent=None
         self.children=[]
-        self.localTransformation = numpy.identity(4)
-        self.globalTransformation = numpy.identity(4)
+        self.localTransformation = numpy.eye(4)
+        self.globalTransformation = numpy.eye(4)
         self.list_by_type = {}
         self.uuid = str(uuid.uuid1())
         self.scale = [1., 1., 1.]
@@ -162,7 +162,7 @@ class GenericObject(DisplayObject):
 
         s+= "\nCHILDREN (%d)\t= "%len(self.children)
         for child in self.children:
-            s+= "%s "%(child.type) + str(child.name) +" id="+str(id(child))+";  "
+            s+= "%s "%(child.__class__.__name__) + str(child.name) +" id="+str(id(child))+";  "
 
         s+= "\nT=\n"+str(self.globalTransformation)
         s+= "\nlocalT=\n"+str(self.localTransformation)
@@ -408,8 +408,6 @@ class Joint(GenericObject):
         """
         compute local transformation w.r.t for the first time (compute everything)
         """
-        self.localTransformation = numpy.eye(4)
-        self.globalTransformation = numpy.eye(4)
         angle = self.rotation[3]
         direction = self.rotation[:3]
         self.localR1 = tf.rotation_matrix(angle, direction)[:3,:3]

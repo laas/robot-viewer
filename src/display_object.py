@@ -62,7 +62,7 @@ class DisplayObject(object):
         self.appearance = None
         self.geometry   = None
         self.globalTransformation = numpy.eye(4)
-
+        self.exclude_cameras = None
     # def __del__(self):
     #     for child in self.children:
     #         del child

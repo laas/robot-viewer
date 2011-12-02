@@ -21,6 +21,13 @@ from cv_bridge import CvBridge, CvBridgeError
 from camera import Camera
 import threading
 
+GL_TO_CV = numpy.array([
+        [1, 0, 0, 0],
+        [0, -1, 0, 0],
+        [0, 0, -1, 0],
+        [0, 0, 0, 1],
+        ])
+
 class Bridge(object):
     cam_update_t = {}
 
@@ -51,18 +58,6 @@ class Bridge(object):
         cam_calibs = rospy.get_param("~cam_calibs",{})
         if isinstance(cam_calibs, str):
             cam_calibs = eval(cam_calibs)
-
-        self.tf_map = rospy.get_param("~tf_map",{})
-        if isinstance(self.tf_map, str):
-            self.tf_map = eval(self.tf_map)
-
-        for rv_name, ros_name in self.tf_map.items():
-            if rv_name not in self.server.elements:
-                path = os.path.abspath(os.path.dirname(__file__))
-                axes_fn = os.path.join(path, "models", "axes3.wrl")
-                self.server._create_element('object', rv_name, axes_fn)
-                self.server.elements[rv_name].scale = [.1, .1, .1]
-                self.server.elements[rv_name].init()
 
         for name, calib_file in cam_calibs.items():
             rospy.loginfo("Calibrating {0}".format(name))
@@ -126,7 +121,9 @@ class Bridge(object):
             rname = robot.name
             for obj in robot.joint_list + robot.cam_list:
                 name = obj.name
-                T = obj.globalTransformation
+                T = numpy.dot(obj.T, GL_TO_CV)
+
+
                 self.tf_br.sendTransform(T[:3,3],
                                          tf.transformations.quaternion_from_matrix(T),
                                          self.stamp,
@@ -160,31 +157,10 @@ class Bridge(object):
             self.cam_update_t[cam.name] = cam.draw_t
 
 
-    def tf_listen(self):
-        for rv_name, ros_name in self.tf_map.items():
-            rospy.loginfo("Listening to {0}".format(ros_name))
-
-            try:
-                now = rospy.Time.now()
-                trans, rot = self.transformer.lookupTransform(ros_name,'world',
-                                                              rospy.Time())
-            except tf.LookupException:
-                rospy.logfatal("Lookup fail, transform {0}-{1}".format('/world', ros_name))
-                continue
-            except tf.ConnectivityException:
-                rospy.logfatal("Not connect, transform {0}-{1}".format('/world', ros_name))
-                continue
-
-            T = tf.transformations.quaternion_matrix(rot)
-            T[:3,3] = trans
-            self.server.updateElementConfig2(rv_name, T, [])
-            rospy.loginfo("Sending {0} to {1}".format(T, rv_name))
-
     def spin(self):
         self.stamp = rospy.Time.now()
         self.cam_publish()
         self.tf_broadcast()
-        self.tf_listen()
 
     def calibrate(self, cam, cf):
         params = yaml.load(open(cf).read())

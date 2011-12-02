@@ -129,7 +129,8 @@ class KinematicServer(object):
 
         value =  config.get('global','background')
         if value:
-            value = [float(e) for e in value.split(",")]
+            value = value.replace(","," ")
+            value = [float(e) for e in value.split() if e != ""]
             self.global_configs['background'] = value
 
         sections = config.sections()
@@ -142,9 +143,11 @@ class KinematicServer(object):
             otype = words[0]
 
             if otype in ["robot", "object"]:
-                oname = words[1]
+                exclude_cameras = config.get(section, 'excl_cams')
                 if not words[1:]:
                     raise Exception("All robots must have a name.")
+                oname = words[1]
+                print oname, exclude_cameras
 
                 geometry = config.get(section, 'geometry')
                 if not geometry:
@@ -169,7 +172,7 @@ class KinematicServer(object):
                 if not parent:
                     self._create_element(otype, oname,
                                      geometry, scale)
-
+                    self.elements[oname].exclude_cameras = exclude_cameras
                     if position:
                         self.updateElementConfig(oname, position)
                 else:
@@ -187,6 +190,9 @@ class KinematicServer(object):
                                               geometry, scale)
                         obj_tree.append((child_name, parent_name, parent_joint_id))
                         self.updateElementConfig(child_name, position)
+                        self.elements[child_name].exclude_cameras = exclude_cameras
+
+
 
         for child_name, parent_name, parent_joint_id in obj_tree:
             self.elements[parent_name].get_op_point(parent_joint_id).add_child(self.elements[child_name])
@@ -462,6 +468,12 @@ class KinematicServer(object):
         for j in obj.moving_joint_list:
             l += [j.name]
         return l
+
+
+    def setScale(self, name, scale):
+        self.elements[name].scale = scale
+        self.elements[name].init()
+        return True
 
     def listShapees(self):
         results = []
