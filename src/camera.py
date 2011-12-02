@@ -59,7 +59,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
     cam_type = "COLOR"
     fieldOfView = 45*math.pi/180
     translation = [0, 0, 0]
-    focal = 3.5
+    r = 3.5
     x0 = 0
     y0 = 0
     aspect = 320.0/240.0
@@ -84,7 +84,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         self.cam_type = "COLOR"
         self.fieldOfView = 45*math.pi/180
         self.translation = [0, 0, 0]
-        self.focal = 3.5
+        self.r = 3.5
         self.x0 = 0.
         self.y0 = 0.
         self.aspect = 320.0/240.0
@@ -101,11 +101,10 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
                                                         [ 1 , 0 , 0],
                                                         [ 0 , 1 , 0],
                                                         ]
-                                  )
+                                                      )
         angle, direction, point = tf.rotation_from_matrix(self.localTransformation)
         self.rotation = list(direction) + [angle]
         self.moved = True
-        self.lookat = None
         self.init()
 
         self.top    =  math.atan(self.fovy/2)*self.near
@@ -150,19 +149,16 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
                            )
 
     @property
-    def cam_up(self):
-        return self.globalTransformation[:3,1]
+    def lookat(self):
+        z = self.T[:3,2]
+        return self.T[:3,3] - z*self.r
 
-    @property
-    def cam_position(self):
-        return self.globalTransformation[:3,3]
-    @property
-    def cam_ray(self):
-        return self.globalTransformation[:3,2]
-    @property
-    def cam_right(self):
-        return - self.globalTransformation[:3,0]
-
+    # def init_local_transformation(self):
+    #     kinematics.GenericObject.init_local_transformation(self)
+    #     T = numpy.eye(4)
+    #     T[:3,0] = [-1, 0, 0]
+    #     T[:3,2] = [0 , 0,-1]
+    #     self.localTranformation = numpy.dot(self.localTransformation, T)
 
     def compute_opengl_params(self):
         '''
@@ -325,14 +321,6 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         return u, v
 
 
-    def update(self):
-        kinematics.GenericObject.update(self)
-        lookatRel = numpy.eye(4)
-        lookatRel[2,3] = - self.focal
-        lookatT = numpy.dot(self.globalTransformation,
-                            lookatRel)
-        self.lookat = lookatT[:3,3]
-
     def rotate(self,dx,dy):
         """Move camera but keep orientation
 
@@ -341,50 +329,31 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         - `dx`:
         - `dy`:
         """
-        factor = 0.002
-        dup    = dy*factor
-        dright = dx*factor*abs(self.cam_up[2])
+        x = self.localTransformation[:3,0]
+        y = self.localTransformation[:3,1]
+        z = self.localTransformation[:3,2]
+        p = self.localTransformation[:3,3]
+        f = p - z*self.r
 
-        if ((abs(self.cam_ray/numpy.linalg.norm(self.cam_ray))[2] ) > OVERHEAD_THRESHOLD
-            and dup*self.cam_ray[2] > 0 ):
-            dup = 0
-
-        new_z = self.cam_ray + dup*self.cam_up + dright*self.cam_right
-        new_pos = self.lookat + new_z*self.focal
-
-        # trans = new_pos - self.cam_position
-        v = (numpy.cross(new_z, numpy.array([0,0,1])))
-        v = v/numpy.linalg.norm(v)
-        new_x = - v
+        new_z = z  - dx*x*0.005 + dy*y*0.005
+        new_z /= numpy.linalg.norm(new_z)
+        new_x = numpy.cross(y, new_z)
+        new_x[2] = 0
+        new_x /= numpy.linalg.norm(new_x)
         new_y = numpy.cross(new_z, new_x)
-        new_R = numpy.eye(4)
+        #print z, new_z, f, p
+        new_p = f + new_z*self.r
 
-        new_R[:3,0] =  new_x
-        new_R[:3,1] =  new_y
-        new_R[:3,2] =  new_z
+        self.localTransformation[:3,0] = new_x
+        self.localTransformation[:3,1] = new_y
+        self.localTransformation[:3,2] = new_z
+        self.localTransformation[:3,3] = new_p
 
-        rpy = tf.euler_from_matrix(new_R)
-        config = self.get_config()
-        config[0] = new_pos[0]
-        config[1] = new_pos[1]
-        config[2] = new_pos[2]
-        #config[3] = rpy[0]
-        #config[4] = rpy[1]
-        #config[5] = rpy[2]
-
-        self.translation  = new_pos
-        self.localTransformation = new_R
-        self.localTransformation[:3,3] = new_pos
-
-        #self.update()
-        #print self.globalTransformation
-        #print self.cam_position
-        #print self.lookat
         self.update()
         return
 
 
-    def move_sideway(self,dx,dy):
+    def move_sideway(self,du,dv):
         """Move camera but keep orientation
 
         Arguments:
@@ -392,14 +361,12 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         - `dx`:
         - `dy`:
         """
-        factor = 0.01
-        dup    = dy*factor
-        dright = dx*factor
-
-        d = self.cam_right*dright + self.cam_up*dup
-        for i in range(3):
-            self.translation[i] += d[i]
-        self.globalTransformation[:3,3] =  self.translation
+        x = self.localTransformation[:3,0]
+        y = self.localTransformation[:3,1]
+        z = self.localTransformation[:3,2]
+        p = self.localTransformation[:3,3]
+        d = du*0.01*(-x) +  dv*y*0.01
+        self.localTransformation[:3,3] += d
         self.update()
 
 
@@ -411,14 +378,20 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         - `dx`:
         - `dy`:
         """
-        if self.focal < 0.01 and dy <=0:
+        if self.r < 0.01 and dy <=0:
             return
-        factor = 0.02*0.1
-        d = self.cam_ray*dy*factor
-        self.focal += dy*factor
-        for i in range(3):
-            self.translation[i] += d[i]
-        self.globalTransformation[:3,3] =  self.translation
+        factor = 0.005
+
+        x = self.localTransformation[:3,0]
+        y = self.localTransformation[:3,1]
+        z = self.localTransformation[:3,2]
+        p = self.localTransformation[:3,3]
+
+        d = z*dy*factor
+
+        self.localTransformation[:3,3] += d
+        self.r += dy*factor
+
         self.update()
 
 
@@ -428,34 +401,19 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         Arguments:
         - `camera`:
         """
-        p = self.cam_position
-        f = self.lookat
-        u = self.cam_up
+        glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
-        gluLookAt(p[0],p[1],p[2],f[0],f[1],f[2],u[0],u[1],u[2])
+        Tinv = numpy.linalg.inv(self.T)
+        glMultMatrixd(numpy.transpose(Tinv))
+
+
 
     def update_perspective(self):
         glViewport(0, 0, self.width, self.height)
-        #glViewport(self.x0, self.y0, self.width, self.height)
-        #glViewport(0, 0, self.width + abs(self.x0), self.height + abs(self.y0))
-
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
 
-        # # field of view, aspect ratio, near and far
-        # This will squash and stretch our objects as the window is resized.
-
-        # if self.fovy:
-        #     gluPerspective( self.fovy*180/math.pi,
-        #                 self.aspect,
-        #                 self.Near,
-        #                 self.Far)
-        # else:
         glFrustum(self.left, self.right, self.bottom, self.top, self.near, self.far)
-
-        glMatrixMode(GL_MODELVIEW)
-        glLoadIdentity()
-
 
     def __str__(self):
         subs = copy.copy(self.__dict__)
