@@ -75,7 +75,7 @@ class CustomConfigParser(ConfigParser.ConfigParser):
             return None
 
 class GlWindow(object):
-    def __init__(self, title = "Robotviewer Server"):
+    def __init__(self, title = "Robotviewer Server", server  = None):
         self.id = glutCreateWindow(title)
         self._g_dwLastFPS = 0
         self._fps = 0
@@ -85,7 +85,7 @@ class GlWindow(object):
         self.cameras = []
         self.active_camera = 0
         self.extra_info = ""
-
+        self.server = server
     @property
     def camera(self):
         return self.cameras[self.active_camera]
@@ -114,6 +114,8 @@ class GlWindow(object):
             szTitle += "[%s] "%self.camera.name
 
         szTitle += "%sfps"%(self._fps)
+        if self.server.paused:
+            szTitle += " [PAUSED]"
 
         if self.extra_info:
             szTitle += self.extra_info
@@ -164,6 +166,7 @@ class DisplayServer(KinematicServer):
     show_names = False
     idle_cbs = []
     frames = {}
+    paused = False
 
     def __init__(self,options = None, args = None):
         """
@@ -292,7 +295,7 @@ class DisplayServer(KinematicServer):
         # self.windows.append(glutCreateWindow("Robotviewer Server"))
         self.shaders = display_object.shaders
         for i in range(self.num_windows):
-            window = GlWindow()
+            window = GlWindow(server = self)
             glutDisplayFunc(self.draw_cb)
             glutReshapeFunc(self.resize_cb)
             self.windows[window.id] = window
@@ -659,6 +662,10 @@ class DisplayServer(KinematicServer):
                 glutSetWindow(id)
                 self.shaders[id].uShowSpecularHighlights = self.specular_highlights
 
+        elif args[0] == 'P':
+            self.paused = not self.paused
+
+
         elif args[0] == '[' and self.use_shader:
             self.modern_shader = not self.modern_shader
             display_object.MODERN_SHADER = self.modern_shader
@@ -932,10 +939,22 @@ class DisplayServer(KinematicServer):
 
 
     def refresh_cb (self):
+        win = glutGetWindow()
+        self.windows[win].update_fps()
+
+        if self.paused:
+            return
+
+        for cb in self.idle_cbs:
+            cb()
+        if not self.need_refresh:
+            return
+        else:
+            self.need_refresh = False
+
         for win in self.windows.keys():
             glutSetWindow(win)
             glutPostRedisplay()
-            self.windows[win].update_fps()
 
         now = time.time()
         if now - self.last_update > 0.02: # max freq = 50 Hz
@@ -952,14 +971,6 @@ class DisplayServer(KinematicServer):
                     continue
                 KinematicServer.updateElementConfig2(self, key, *value)
                 self.pending_configs2[key] = None
-
-
-        for cb in self.idle_cbs:
-            cb()
-        if not self.need_refresh:
-            return
-        else:
-            self.need_refresh = False
 
 
 

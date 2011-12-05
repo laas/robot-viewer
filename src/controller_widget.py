@@ -44,21 +44,22 @@ class RangeWidgets(gtk.Table):
             self.adjustments.append(adj)
 
     def changed_cb(self, adj, data = None):
-        print self.adj_ids[adj]
-        print adj.value
+        pass
 
 class ControllerWidget(RangeWidgets):
     def __init__(self, objname, clt):
         self.objname = objname
         self.clt = clt
         start_pos = self.clt.getElementConfig(self.objname)
-        print objname, " initial config:", start_pos
+        #print objname, " initial config:", start_pos
         names = self.clt.listElementDofs(self.objname)
 
         RangeWidgets.__init__(self, names)
+        print objname,  len(self.adjustments)
         for i, val in enumerate(start_pos):
             if i > 2:
                 val *= 180/math.pi
+            print i, len(start_pos)
             self.adjustments[i].set_value(val)
 
     def changed_cb(self, adj, data = None):

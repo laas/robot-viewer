@@ -80,13 +80,14 @@ def main():
     clt = client.client(options.server)
     notebook = gtk.Notebook()
     window.add(notebook)
-    print notebook
     for obj in clt.listElements():
+        if ":" in obj:
+            continue
+        if "_" in obj:
+            continue
         sw = gtk.ScrolledWindow()
         tab = ControllerWidget(obj, clt)
         sw.add_with_viewport(tab)
-        if not re.match(r"%s"%patt, obj):
-            continue
         notebook.append_page(sw, gtk.Label(obj))
 
     window.show_all()

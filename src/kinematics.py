@@ -489,11 +489,13 @@ class Robot(Joint):
             print "\n====\n",joint
 
     def get_config(self):
-        vec = self.root_joint.translation
-        vec += self.root_joint.rpy
-        for i in range(len(self.joint_list)):
-            if self.joint_dict.has_key(i):
-                vec += [self.joint_dict[i].angle]
+        vec = list(self.root_joint.translation)
+        vec += list(self.root_joint.rpy)
+        for i, j in self.joint_dict.items():
+            if i < 0:
+                continue
+            vec.append(j.angle)
+
         return vec
 
     def get_config2(self):
