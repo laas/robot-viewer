@@ -53,7 +53,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
 
     # OPENGL params
     frontClipDistance = 0.01
-    backClipDistance = 100
+    backClipDistance = 1000
     width = 320
     height = 240
     cam_type = "COLOR"
@@ -78,7 +78,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         self.frame_seq = 0
         self.server = server
         self.frontClipDistance = 0.01
-        self.backClipDistance = 100
+        self.backClipDistance = 1000
         self.width = 320
         self.height = 240
         self.cam_type = "COLOR"
@@ -367,7 +367,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         y = self.localTransformation[:3,1]
         z = self.localTransformation[:3,2]
         p = self.localTransformation[:3,3]
-        d = du*0.01*(-x) +  dv*y*0.01
+        d = du*0.001*(-x)*self.r +  dv*y*0.001*self.r
         self.localTransformation[:3,3] += d
         self.update()
 
@@ -382,17 +382,18 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         """
         if self.r < 0.01 and dy <=0:
             return
-        factor = 0.005
+        factor = 0.001
 
         x = self.localTransformation[:3,0]
         y = self.localTransformation[:3,1]
         z = self.localTransformation[:3,2]
         p = self.localTransformation[:3,3]
 
-        d = z*dy*factor
 
-        self.localTransformation[:3,3] += d
-        self.r += dy*factor
+        d = dy*factor*self.r
+
+        self.localTransformation[:3,3] += d*z
+        self.r += d
 
         self.update()
 

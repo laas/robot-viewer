@@ -100,7 +100,9 @@ class Bridge(object):
         def cb(data):
             state = data.position
             self.server.updateElementConfig2(objname, [], state)
+            self.server.elements[objname].stamp = data.header.stamp
             self.tf_br.sendTransform
+
         return cb
 
 
@@ -134,7 +136,11 @@ class Bridge(object):
         for robot in self.server.robots:
             rname = robot.name
             state = JointState()
-            state.header.stamp = self.stamp
+            if robot.stamp:
+                state.header.stamp = robot.stamp
+            else:
+                state.header.stamp = self.stamp
+
             state.position = robot.get_config()[6:]
             self.state_pubs[robot].publish(state)
             for obj in robot.moving_joint_list + robot.cam_list:
@@ -152,12 +158,12 @@ class Bridge(object):
                     parent_name = "{0}/{1}".format(rname, obj.parent.name)
                 self.tf_br.sendTransform(localT[:3,3],
                                          local_quat,
-                                         self.stamp,
+                                         state.header.stamp,
                                          "{0}/{1}".format(rname, name),
                                          parent_name,
                                          )
                 pose_msg = PoseStamped()
-                pose_msg.header.stamp = self.stamp
+                pose_msg.header.stamp = state.header.stamp
                 pose_msg.pose.position.x = T[0][3]
                 pose_msg.pose.position.y = T[1][3]
                 pose_msg.pose.position.z = T[2][3]

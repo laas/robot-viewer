@@ -69,9 +69,6 @@ def main():
     parser = get_parser()
     (options, args) = parser.parse_args(sys.argv[1:])
 
-    patt = options.pattern
-    if not patt:
-        patt = ".*"
     import gtk
     window = gtk.Window (gtk.WINDOW_TOPLEVEL)
     window.set_default_size(720,480)
