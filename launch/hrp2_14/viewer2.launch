@@ -12,6 +12,8 @@
   <!-- <param name="~tf_map" value="{'chessboard':'cheesboard'}"/> -->
 <remap from="CAMERA_LU/image_raw" to="/wide/left/image_raw"/>
 <remap from="CAMERA_LU/camera_info" to="/wide/left/camera_info"/>
+<remap from="CAMERA_RU/image_raw" to="/wide/right/image_raw"/>
+<remap from="CAMERA_RU/camera_info" to="/wide/right/camera_info"/>
 
 </node>
 </group>
