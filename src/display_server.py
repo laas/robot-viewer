@@ -167,7 +167,7 @@ class DisplayServer(KinematicServer):
     idle_cbs = []
     frames = {}
     paused = False
-
+    last_refresh = time.time()
     def __init__(self,options = None, args = None):
         """
         Arguments:
@@ -478,6 +478,7 @@ class DisplayServer(KinematicServer):
                     >= 1000/self.refresh_rate)):
                 res = self._draw_cb()
                 self.last_refreshed[win] = current_t
+                self.windows[win].update_fps()
                 return res
             else:
                 return True
@@ -662,8 +663,8 @@ class DisplayServer(KinematicServer):
                 glutSetWindow(id)
                 self.shaders[id].uShowSpecularHighlights = self.specular_highlights
 
-        elif args[0] == 'P':
-            self.paused = not self.paused
+        # elif args[0] == 'P':
+        #     self.paused = not self.paused
 
 
         elif args[0] == '[' and self.use_shader:
@@ -939,24 +940,20 @@ class DisplayServer(KinematicServer):
 
 
     def refresh_cb (self):
-        win = glutGetWindow()
-        self.windows[win].update_fps()
-
-        if self.paused:
-            return
+        #if self.paused:
+        #    return
 
         for cb in self.idle_cbs:
             cb()
-        if not self.need_refresh:
+
+        now = time.time()
+
+        if not self.need_refresh and now - self.last_refresh < 0.5:
             return
         else:
             self.need_refresh = False
+        self.last_refresh = now
 
-        for win in self.windows.keys():
-            glutSetWindow(win)
-            glutPostRedisplay()
-
-        now = time.time()
         if now - self.last_update > 0.02: # max freq = 50 Hz
             self.last_update = now
             for key, value in self.pending_configs.items():
@@ -972,7 +969,9 @@ class DisplayServer(KinematicServer):
                 KinematicServer.updateElementConfig2(self, key, *value)
                 self.pending_configs2[key] = None
 
-
+        for win in self.windows.keys():
+            glutSetWindow(win)
+            glutPostRedisplay()
 
 
     def enableElement(self,name):
