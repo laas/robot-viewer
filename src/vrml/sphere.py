@@ -33,6 +33,7 @@ logger.addHandler(NullHandler())
 
 
 class Sphere(nodes.Sphere, Geometry):
-    quad = gluNewQuadric()
     def render(self, scale = 3*[1.]):
-        gluSphere(self.quad, self.radius*scale[0], 20, 20)
+        quad = gluNewQuadric()
+        gluSphere(quad, self.radius*scale[0], 20, 20)
+        gluDeleteQuadric(quad)

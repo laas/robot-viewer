@@ -34,8 +34,8 @@ logger.addHandler(NullHandler())
 
 
 class PointSet(nodes.PointSet, Geometry):
-    quad = gluNewQuadric()
     def render(self, scale = 3*[1.]):
+        quad = gluNewQuadric()
         points = zip(self.coord.point[::3],
                      self.coord.point[1::3],
                      self.coord.point[2::3],
@@ -49,5 +49,7 @@ class PointSet(nodes.PointSet, Geometry):
             glColor3fv(c)
             glPushMatrix()
             glTranslatef(*p)
-            gluSphere(self.quad, 0.01, 10, 10)
+            gluSphere(quad, 0.01, 10, 10)
             glPopMatrix()
+        gluDeleteQuadric(quad)
+

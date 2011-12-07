@@ -49,7 +49,8 @@ from kinematic_server import KinematicServer
 from shaders import *
 from shader import Shader
 import camera
-import kinematics, geometry
+import kinematics
+
 import display_object
 from vrml.geometry import IndexedFaceSet
 try:
