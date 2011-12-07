@@ -72,6 +72,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
 
 
     def __init__(self, server = None):
+        logger.debug("Creating camera")
         kinematics.GenericObject.__init__(self)
         self.pixels = None
         self.draw_t = 0
@@ -96,7 +97,6 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         self.cy = 120 # (height/2)
         self.R = numpy.eye(3)
 
-        kinematics.GenericObject.__init__(self)
         self.localTransformation[:3,:3] = numpy.array([ [ 0 , 0 , 1],
                                                         [ 1 , 0 , 0],
                                                         [ 0 , 1 , 0],
@@ -192,6 +192,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         '''
         Compute gl params from opencv params
         '''
+        logger.debug("computing opencv params")
         self.cx = self.width/2.0
         self.cy = self.height/2.0
         self.aspect = 1.0*self.width/self.height
@@ -204,7 +205,6 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         self.fx = 0.5*self.width*self.near/self.right
         self.fy = 0.5*self.height*self.near/self.top
 
-        self.update_perspective()
 
 
     def set_opencv_params(self, width, height, fx, fy, cx, cy):
