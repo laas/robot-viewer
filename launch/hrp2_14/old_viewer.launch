@@ -3,18 +3,13 @@
 <node name="server" pkg="robotviewer" type="server" clear_params="true" respawn="false">
   <param name="~jointstates" value="{'hrp':'/joint_states'}"/>
   <param name="~cam_calibs"  value="{
-'CAMERA_LU':'$(find robotviewer)/launch/hrp2_14/calibration/wide_left.yaml',
-'CAMERA_RU':'$(find robotviewer)/launch/hrp2_14/calibration/wide_right.yaml',
-'CAMERA_LL':'$(find robotviewer)/launch/hrp2_14/calibration/narrow_left.yaml',
-'CAMERA_RL':'$(find robotviewer)/launch/hrp2_14/calibration/narrow_right.yaml',
+'CAMERA_LU':'$(find robotviewer)/launch/hrp2_14/old_calibration/wide_left.yaml',
+'CAMERA_RU':'$(find robotviewer)/launch/hrp2_14/old_calibration/wide_right.yaml',
+'CAMERA_LL':'$(find robotviewer)/launch/hrp2_14/old_calibration/narrow_left.yaml',
+'CAMERA_RL':'$(find robotviewer)/launch/hrp2_14/old_calibration/narrow_right.yaml',
 }"
   />
   <!-- <param name="~tf_map" value="{'chessboard':'cheesboard'}"/> -->
-<remap from="CAMERA_LU/image_raw" to="/wide/left/image_raw"/>
-<remap from="CAMERA_LU/camera_info" to="/wide/left/camera_info"/>
-<remap from="CAMERA_RU/image_raw" to="/wide/right/image_raw"/>
-<remap from="CAMERA_RU/camera_info" to="/wide/right/camera_info"/>
-
 </node>
 </group>
 
