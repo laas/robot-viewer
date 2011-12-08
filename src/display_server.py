@@ -50,6 +50,11 @@ from shaders import *
 from shader import Shader
 import camera
 import kinematics
+logger = logging.getLogger("robotviewer.display_server")
+class NullHandler(logging.Handler):
+    def emit(self, record):
+        pass
+logger.addHandler(NullHandler())
 
 import display_object
 from vrml.geometry import IndexedFaceSet
@@ -61,11 +66,6 @@ except ImportError:
     adaptors = None
     cv = None
 
-logger = logging.getLogger("robotviewer.display_server")
-class NullHandler(logging.Handler):
-    def emit(self, record):
-        pass
-logger.addHandler(NullHandler())
 
 
 class CustomConfigParser(ConfigParser.ConfigParser):
