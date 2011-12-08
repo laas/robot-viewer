@@ -81,7 +81,7 @@ class Shader(object):
             elif n == 3:
                 glUniform3f(location, value[0], value[1], value[2])
             elif n == 4:
-                glUniform4f(location, value[0], value[1], value[3], value[4])
+                glUniform4f(location, value[0], value[1], value[2], value[3])
 
 
 def main():
