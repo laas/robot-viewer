@@ -197,7 +197,7 @@ class DisplayServer(KinematicServer):
         self.capture_images = []
         self.last_refreshed = {}
 
-        self.lightAttenuation = 0.01
+        self.lightAttenuation = 0.5
         self.active_cameras = {}
         self.world_cameras = []
         KinematicServer.__init__(self, options, args)
@@ -333,10 +333,10 @@ class DisplayServer(KinematicServer):
             self.specular_highlights = True
             shader.uShowSpecularHighlights = self.specular_highlights
 
-            shader.uAmbientLightingColor        = self.lightAmbient
+            shader.uAmbientLightingColor        = self.lightAmbient + [1.]
             shader.uPointLightingLocation       = self.lightZeroPosition
-            shader.uPointLightingDiffuseColor   = self.lightZeroDiffuseColor
-            shader.uPointLightingSpecularColor  = self.lightZeroSpecularColor
+            shader.uPointLightingDiffuseColor   = self.lightZeroDiffuseColor + [1.]
+            shader.uPointLightingSpecularColor  = self.lightZeroSpecularColor + [1.]
             shader.uMaterialShininess = 1.0
             shader.uModernShader = self.modern_shader
             self.shaders[glutGetWindow()] = shader
@@ -914,16 +914,16 @@ class DisplayServer(KinematicServer):
         glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 
-        glEnable(GL_FOG)
-        fogColor = [0.5, 0.5, 0.5, 1.0]
+        # glEnable(GL_FOG)
+        # fogColor = [0.5, 0.5, 0.5, 1.0]
 
-        fogMode = GL_EXP;
-        glFogi (GL_FOG_MODE, fogMode);
-        glFogfv (GL_FOG_COLOR, fogColor);
-        glFogf (GL_FOG_DENSITY, 0.35);
-        glHint (GL_FOG_HINT, GL_DONT_CARE);
-        glFogf (GL_FOG_START, 0.0);
-        glFogf (GL_FOG_END, 50.0);
+        # fogMode = GL_EXP;
+        # glFogi (GL_FOG_MODE, fogMode);
+        # glFogfv (GL_FOG_COLOR, fogColor);
+        # glFogf (GL_FOG_DENSITY, 0.35);
+        # glHint (GL_FOG_HINT, GL_DONT_CARE);
+        # glFogf (GL_FOG_START, 0.0);
+        # glFogf (GL_FOG_END, 50.0);
 
 
 
@@ -933,9 +933,9 @@ class DisplayServer(KinematicServer):
         glLightfv(GL_LIGHT0, GL_AMBIENT, [0,0,0,1])
         glLightModelfv(GL_LIGHT_MODEL_AMBIENT, self.lightAmbient + [1.])
 
-        #glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, self.)
+        glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.5)
         glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self.lightAttenuation)
-        #glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.03)
+        glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.03)
 
         glEnable(GL_LIGHT0)
 

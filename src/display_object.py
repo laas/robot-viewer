@@ -116,9 +116,9 @@ class DisplayObject(object):
 
 
         elif self.appearance and self.appearance.material:
-            shaders[glutGetWindow()].uMaterialSpecularColor = self.appearance.material.specularColor
-            shaders[glutGetWindow()].uMaterialEmissiveColor = self.appearance.material.emissiveColor
-            shaders[glutGetWindow()].uMaterialDiffuseColor = self.appearance.material.diffuseColor
+            shaders[glutGetWindow()].uMaterialSpecularColor = self.appearance.material.specularColor + [1.]
+            shaders[glutGetWindow()].uMaterialEmissiveColor = self.appearance.material.emissiveColor + [1.]
+            shaders[glutGetWindow()].uMaterialDiffuseColor = self.appearance.material.diffuseColor + [1.]
             shaders[glutGetWindow()].uMaterialShininess = self.appearance.material.shininess
 
         if not USE_VBO:

@@ -6,41 +6,41 @@ varying vec2 vTextureCoord;
 varying vec3 vTransformedNormal;
 varying vec4 vPosition;
 
-uniform vec3 uMaterialAmbientColor;
-uniform vec3 uMaterialDiffuseColor;
-uniform vec3 uMaterialSpecularColor;
-uniform vec3 uMaterialEmissiveColor;
+uniform vec4 uMaterialAmbientColor;
+uniform vec4 uMaterialDiffuseColor;
+uniform vec4 uMaterialSpecularColor;
+uniform vec4 uMaterialEmissiveColor;
 uniform float uMaterialShininess;
 
 uniform bool uShowSpecularHighlights;
 uniform bool uUseTextures;
 
-uniform vec3 uAmbientLightingColor;
+uniform vec4 uAmbientLightingColor;
 
 uniform vec3 uPointLightingLocation;
-uniform vec3 uPointLightingDiffuseColor;
-uniform vec3 uPointLightingSpecularColor;
+uniform vec4 uPointLightingDiffuseColor;
+uniform vec4 uPointLightingSpecularColor;
 
 uniform sampler2D uSampler;
 
 uniform bool uModernShader;
 
-vec4 compute_color(vec3 materialAmbientColor,
-                   vec3 materialDiffuseColor,
-                   vec3 materialSpecularColor,
-                   vec3 materialEmissiveColor,
+vec4 compute_color(vec4 materialAmbientColor,
+                   vec4 materialDiffuseColor,
+                   vec4 materialSpecularColor,
+                   vec4 materialEmissiveColor,
                    float shininess,
-                   vec3 ambientLightWeighting,
+                   vec4 ambientLightWeighting,
                    vec3 pointLightLocation,
-                   vec3 pointLightDiffuseColor,
-                   vec3 pointLightSpecularColor
+                   vec4 pointLightDiffuseColor,
+                   vec4 pointLightSpecularColor
                    )
 {
 
   vec3 lightDirection = normalize(pointLightLocation - vPosition.xyz);
   vec3 normal = normalize(vTransformedNormal);
 
-  vec3 specularLightWeighting = vec3(0.0, 0.0, 0.0);
+  vec4 specularLightWeighting = vec4(0.0, 0.0, 0.0, 0.0);
   if (uShowSpecularHighlights) {
     vec3 eyeDirection = normalize(-vPosition.xyz);
     vec3 reflectionDirection = reflect(-lightDirection, normal);
@@ -51,22 +51,22 @@ vec4 compute_color(vec3 materialAmbientColor,
   }
 
   float diffuseLightBrightness = max(dot(normal, lightDirection), 0.0);
-  vec3 diffuseLightWeighting = pointLightDiffuseColor * diffuseLightBrightness;
+  vec4 diffuseLightWeighting = pointLightDiffuseColor * diffuseLightBrightness;
 
   float alpha = 1.0;
   if (uUseTextures) {
     vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
-    materialAmbientColor = materialAmbientColor * textureColor.rgb;
-    materialDiffuseColor = materialDiffuseColor * textureColor.rgb;
-    materialEmissiveColor = materialEmissiveColor * textureColor.rgb;
+    materialAmbientColor = materialAmbientColor * vec4(textureColor.rgb , 1.);
+    materialDiffuseColor = materialDiffuseColor * vec4(textureColor.rgb, 1.);
+    materialEmissiveColor = materialEmissiveColor * vec4(textureColor.rgb, 1.);
     alpha = textureColor.a;
   }
   vec4 Idiff, Ispec, Iamb, Iemis, res;
-  Idiff =  vec4(materialDiffuseColor * diffuseLightWeighting, alpha) ;
-  Ispec = vec4(materialSpecularColor * specularLightWeighting, alpha);
+  Idiff =  materialDiffuseColor * diffuseLightWeighting ;
+  Ispec = materialSpecularColor * specularLightWeighting;
   Ispec = clamp(Ispec, 0.0, 0.05);
-  Iamb = vec4(materialAmbientColor * ambientLightWeighting, 0.);
-  Iemis = vec4(materialEmissiveColor, alpha);
+  Iamb = materialAmbientColor * ambientLightWeighting;
+  Iemis = materialEmissiveColor;
   res = ( Iamb + Idiff + Iemis + Ispec);
   res = res + gl_Color;
   res = clamp(res, 0.0, 1.);
