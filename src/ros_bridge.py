@@ -15,7 +15,7 @@ from OpenGL.GL.EXT.framebuffer_object import *
 import tf
 import time
 import PIL.Image
-
+import kinematics
 import yaml
 import cv
 from cv_bridge import CvBridge, CvBridgeError
@@ -52,9 +52,9 @@ class Bridge(object):
                                                               CameraInfo)
             self.cam_update_t[cam.name] = 0.
 
-        jointstates = rospy.get_param("~jointstates",{})
-        if isinstance(jointstates, str):
-            jointstates = eval(jointstates)
+        # jointstates = rospy.get_param("~jointstates",{})
+        # if isinstance(jointstates, str):
+        #     jointstates = eval(jointstates)
 
         cam_calibs = rospy.get_param("~cam_calibs",{})
         if isinstance(cam_calibs, str):
@@ -64,45 +64,53 @@ class Bridge(object):
             rospy.loginfo("Calibrating {0}".format(name))
             self.calibrate(self.camera_dict[name], calib_file)
 
-        for rvname, topic in jointstates.items():
-            rospy.Subscriber(topic, JointState, self.state_cb(rvname))
+        for name, ele in self.server.elements.items():
+            topic_name ="pose/in/"+ name
+            rospy.Subscriber(topic_name, PoseStamped, self.pose_cb(name))
+
+
+            if not isinstance(ele, kinematics.Robot):
+                print ele
+                continue
+            topic_name ="joint_states/in/"+ name
+            rospy.Subscriber(topic_name, JointState, self.state_cb(name))
 
         self.pose_pubs = {}
         self.state_pubs = {}
+
         for robot in self.server.robots:
             rname = robot.name
             topic_name = "state/" + rname
             self.state_pubs[robot] = rospy.Publisher(topic_name, JointState)
             for obj in robot.joint_list + robot.cam_list:
-                topic_name = "pose/" + rname + "/" + obj.name
+                topic_name = "pose/out/" + rname + "/" + obj.name
                 self.pose_pubs[obj] = rospy.Publisher(topic_name,
                                                       PoseStamped)
 
 
-
         server.idle_cbs.append (self.spin)
-
-        # class TfThread(threading.Thread):
-        #     def __init__(self, bridge):
-        #         threading.Thread.__init__(self)
-        #         self.b = bridge
-
-        #     def run(self):
-        #         while not rospy.is_shutdown():
-        #             rospy.sleep(0.05)
-        #             self.b.tf_listen()
-
-
-        # t = TfThread(self)
-        # t.start()
 
     def state_cb(self, objname):
         def cb(data):
             state = data.position
             self.server.updateElementConfig2(objname, [], state)
             self.server.elements[objname].stamp = data.header.stamp
-            self.tf_br.sendTransform
+        return cb
 
+    def pose_cb(self, objname):
+        def cb(data):
+            T = tf.transformations.quaternion_matrix(
+                [data.pose.orientation.x,
+                data.pose.orientation.y,
+                data.pose.orientation.z,
+                data.pose.orientation.w,]
+                )
+            T[:3,3]  = [ data.pose.position.x,
+                         data.pose.position.y,
+                         data.pose.position.z,
+                         ]
+            self.server.updateElementConfig2(objname, T, [])
+            self.server.elements[objname].stamp = data.header.stamp
         return cb
 
 
