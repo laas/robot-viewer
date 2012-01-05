@@ -1,7 +1,8 @@
 <launch>
 <group ns="robotviewer">
-<node name="server" pkg="robotviewer" type="server" clear_params="true" respawn="false">
-  <param name="~jointstates" value="{'hrp':'/joint_states'}"/>
+<node name="server" pkg="robotviewer" type="server" clear_params="true" respawn="true">
+  <!-- <param name="~jointstates" value="{'hrp':'/joint_states'}"/> -->
+  <remap from="joint_states/in/hrp" to="/joint_states"/>
   <param name="~cam_calibs"  value="{
 'CAMERA_LU':'$(find robotviewer)/launch/hrp2_14/calibration/wide_left.yaml',
 'CAMERA_RU':'$(find robotviewer)/launch/hrp2_14/calibration/wide_right.yaml',
@@ -9,7 +10,6 @@
 'CAMERA_RL':'$(find robotviewer)/launch/hrp2_14/calibration/narrow_right.yaml',
 }"
   />
-  <!-- <param name="~tf_map" value="{'chessboard':'cheesboard'}"/> -->
 </node>
 </group>
 
