@@ -85,6 +85,10 @@ class DisplayObject(object):
     def bone_list(self):
         pass
 
+    @property
+    def type(self):
+        return self.__class__.__name__
+
     def render(self):
         self.non_recursive_render()
         for child in self.children:
