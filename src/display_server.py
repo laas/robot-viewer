@@ -435,6 +435,8 @@ class DisplayServer(KinematicServer):
 
 
     def run(self):
+        glutMainLoop()
+        return
         logger.info(self.usage)
         class InteractThread(threading.Thread):
             def __init__(self, app, *args, **kwargs):
@@ -1052,3 +1054,23 @@ class DisplayServer(KinematicServer):
         self.need_refresh = True
         return True
 
+    def createElement(self, etype, ename, epath):
+        """
+        Same as _create_element but could be called by outside world
+        (CORBA) show will always be in the GL thread
+        Arguments:
+        - `self`:
+        - `etype`:        string, element type (e.g. robot, GLscript)
+        - `name`:         string, element name
+        - `path`:  string, path  (e.g. wrl path)
+        """
+        TIMEOUT = 600
+        self.pendingObjects.append((etype, ename, epath))
+        wait = 0
+        while ename not in self.elements.keys() and wait < TIMEOUT:
+            time.sleep(0.1)
+            wait += 0.1
+        if wait >= TIMEOUT:
+            logger.exception("Object took too long to create")
+            return False
+        return True

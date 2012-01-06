@@ -15,8 +15,10 @@
 # along with robot-viewer.  If not, see <http://www.gnu.org/licenses/>.
 #! /usr/bin/env python
 
-KINEMATIC, DISPLAY = 0,1
+
+KINEMATIC, OPENGL, LIBCACA = 0,1,2
 CORBA, XML_RPC, NONE = 0,1,2
+
 import os, sys
 import logging
 logger = logging.getLogger("robotviewer.server_factory")
@@ -24,13 +26,16 @@ class NullHandler(logging.Handler):
     def emit(self, record):
         pass
 logger.addHandler(NullHandler())
-def create_server( type, com_type, options, args):
-    if type == KINEMATIC:
+def create_server( stype, com_type, options, args):
+    if stype == KINEMATIC:
         import kinematic_server
         ServerClass = kinematic_server.KinematicServer
-    elif type == DISPLAY:
+    elif stype == OPENGL:
         import display_server
         ServerClass = display_server.DisplayServer
+    elif stype == LIBCACA:
+        import libcaca_server
+        ServerClass = libcaca_server.LibcacaServer
 
     if com_type == CORBA:
         sys.path = [os.path.dirname(os.path.abspath(__file__))+"/idl"] + sys.path
@@ -44,6 +49,7 @@ def create_server( type, com_type, options, args):
         from SimpleXMLRPCServer import SimpleXMLRPCServer
         from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler
         import threading
+
         class Server(ServerClass):
             """
             """

@@ -18,7 +18,8 @@
 import sys,imp, os, stat, glob
 from optparse import OptionParser
 import logging
-from server_factory import create_server, CORBA, XML_RPC, KINEMATIC, DISPLAY, NONE
+
+from server_factory import create_server, CORBA, XML_RPC, LIBCACA, KINEMATIC, OPENGL, NONE
 
 
 def get_parser():
@@ -86,9 +87,9 @@ def get_parser():
                       action="store", dest="height", type = "int", default = 480,
                       help="set window(s) height")
 
-    parser.add_option("--no-gl",
-                      action="store_true", dest="no_gl",
-                      help="start kinematic server only, no GL")
+    parser.add_option("--display",
+                      action="store", dest="display_type", choices = ["NONE", "OPENGL", "LIBCACA"],
+                      default="OPENGL", help="display type")
 
     parser.add_option("--no-shader",
                       action="store_false", dest="use_shader", default = True,
@@ -133,9 +134,13 @@ def main():
         print __version__
         sys.exit(0)
 
-    type = DISPLAY
-    if options.no_gl:
-        type = KINEMATIC
+    if options.display_type == "NONE":
+        dtype = KINEMATIC
+    if options.display_type == "OPENGL":
+        dtype = OPENGL
+    if options.display_type == "LIBCACA":
+        dtype = LIBCACA
+
     if options.server == "CORBA":
         com_type = CORBA
     elif options.server == "XML-RPC":
@@ -199,7 +204,7 @@ def main():
 
 
 
-    server = create_server(type, com_type, options, args)
+    server = create_server(dtype, com_type, options, args)
     logger.debug("created server")
 
     if options.ros:

@@ -114,6 +114,9 @@ class GenericObject(DisplayObject):
 
     def update_config(self,config):
         self.count += 1
+        if not config:
+            raise Exception("Failed to update_config for {0} with {1}".format(self.name, config))
+
         self.translation = config[:3]
         self.rpy = config[3:6]
         rot_mat = tf.euler_matrix(self.rpy[0], self.rpy[1], self.rpy[2])

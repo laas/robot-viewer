@@ -71,7 +71,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
     cy = 120 # (height/2)
 
 
-    def __init__(self, server = None, width = 480, height = 640):
+    def __init__(self, server = None, width = 640, height = 480):
         logger.debug("Creating camera")
         kinematics.GenericObject.__init__(self)
         self.pixels = None
@@ -315,8 +315,9 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         rel_T = numpy.dot(numpy.linalg.inv(cam_T), T)
         x,y,z = rel_T[:3,3]
 
-        u = -self.fx*x/z + self.cx
-        v = -self.fy*y/z + self.cy
+        u = self.fx*x/abs(z) + self.cx
+        v = self.fy*y/abs(z) + self.cy
+        #print p, u, v, "\n", cam_T, "\n", rel_T
 
         return u, v
 

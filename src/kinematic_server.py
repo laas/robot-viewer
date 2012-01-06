@@ -189,6 +189,8 @@ class KinematicServer(object):
                         self._create_element( otype, child_name,
                                               geometry, scale)
                         obj_tree.append((child_name, parent_name, parent_joint_id))
+                        if not position:
+                            position = 6*[0.]
                         self.updateElementConfig(child_name, position)
                         self.elements[child_name].exclude_cameras = exclude_cameras
 
@@ -335,25 +337,8 @@ class KinematicServer(object):
             new_object.init()
 
 
-    def createElement(self, etype, ename, epath):
-        """
-        Same as _create_element but could be called by outside world
-        (CORBA) show will always be in the GL thread
-        Arguments:
-        - `self`:
-        - `etype`:        string, element type (e.g. robot, GLscript)
-        - `name`:         string, element name
-        - `path`:  string, path  (e.g. wrl path)
-        """
-        TIMEOUT = 600
-        self.pendingObjects.append((etype, ename, epath))
-        wait = 0
-        while ename not in self.elements.keys() and wait < TIMEOUT:
-            time.sleep(0.1)
-            wait += 0.1
-        if wait >= TIMEOUT:
-            logger.exception("Object took too long to create")
-            return False
+    def createElement(self, *args, **kwargs):
+        self._create_element(*args, **kwargs)
         return True
 
     def destroyElement(self,name):
@@ -507,14 +492,9 @@ class KinematicServer(object):
         return [float(e) for e in res]
 
     def run(self):
-        while True:
-            if len(self.pendingObjects) > 0:
-                obj = self.pendingObjects.pop()
-                logger.debug( "creating %s %s %s"%( obj[0], obj[1], obj[2]))
-                self._create_element(obj[0],obj[1],obj[2])
-            time.sleep(1e-3)
-            for cb in self.idle_cbs:
-                cb()
+        return
+
+
 if __name__ == '__main__':
     import optparse, sys
     logger = logging.getLogger()
