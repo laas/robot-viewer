@@ -54,15 +54,15 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
     # OPENGL params
     frontClipDistance = 0.01
     backClipDistance = 1000
-    width = 320
-    height = 240
+    width = 640
+    height = 480
     cam_type = "COLOR"
     fieldOfView = 45*math.pi/180
     translation = [0, 0, 0]
     r = 3.5
     x0 = 0
     y0 = 0
-    aspect = 320.0/240.0
+    aspect = 640.0/480.0
 
     # OpenCV params
     fx = 1.
@@ -71,7 +71,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
     cy = 120 # (height/2)
 
 
-    def __init__(self, server = None):
+    def __init__(self, server = None, width = 480, height = 640):
         logger.debug("Creating camera")
         kinematics.GenericObject.__init__(self)
         self.pixels = None
@@ -80,21 +80,21 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         self.server = server
         self.frontClipDistance = 0.01
         self.backClipDistance = 1000
-        self.width = 320
-        self.height = 240
+        self.width = width
+        self.height = height
         self.cam_type = "COLOR"
         self.fieldOfView = 45*math.pi/180
         self.translation = [0, 0, 0]
         self.r = 3.5
         self.x0 = 0.
         self.y0 = 0.
-        self.aspect = 320.0/240.0
+        self.aspect = float(width)/float(height)
 
         # OpenCV params
         self.fx = 0.
         self.fy = 0.
-        self.cx = 160 # (width/2)
-        self.cy = 120 # (height/2)
+        self.cx = float(width)/2
+        self.cy = float(height)/2
         self.R = numpy.eye(3)
 
         self.localTransformation[:3,:3] = numpy.array([ [ 0 , 0 , 1],
@@ -297,7 +297,7 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
         if self.server.show_names:
             for name,ele in self.server.elements.items():
                 try:
-                    u,v = self.project(ele.T)
+                    u,v = self.project(ele.T[:3,3])
                 except:
                     logger.exception("Failed to project {0}".format(ele.name))
                 else:
@@ -308,18 +308,16 @@ class Camera(kinematics.GenericObject, alias.Aliaser):
 
         return True
 
-    def project(self, T):
+    def project(self, p):
+        T = numpy.eye(4)
+        T[:3,3] = p
         cam_T = self.globalTransformation
         rel_T = numpy.dot(numpy.linalg.inv(cam_T), T)
         x,y,z = rel_T[:3,3]
+
         u = -self.fx*x/z + self.cx
         v = -self.fy*y/z + self.cy
 
-        # print "cam_T", cam_T
-        # print "T", T
-        # print "rel_T", rel_T
-        # print u, v
-        # print "---"
         return u, v
 
 
