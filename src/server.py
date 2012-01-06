@@ -141,6 +141,9 @@ def main():
     if options.display_type == "LIBCACA":
         dtype = LIBCACA
 
+    if dtype == OPENGL and not os.environ.get('DISPLAY'):
+        dtype = LIBCACA
+
     if options.server == "CORBA":
         com_type = CORBA
     elif options.server == "XML-RPC":
