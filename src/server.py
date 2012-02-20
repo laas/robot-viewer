@@ -191,7 +191,10 @@ def main():
             os.symlink(os.path.join(dirname, name),
                        os.path.join(config_dir,name)
                        )
-    os.path.walk(default_config_dir, visit_cb, None)
+    try:
+        os.path.walk(default_config_dir, visit_cb, None)
+    except:
+        logger.exception("Error while setting up configs")
     config_file = os.path.join(config_dir, 'config')
 
 
