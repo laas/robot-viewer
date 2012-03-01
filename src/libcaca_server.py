@@ -30,6 +30,7 @@ from kinematics import Robot
 import caca
 from caca.canvas import Canvas
 from caca.display import Display, Event
+import time
 
 class LibcacaServer(KinematicServer):
     def __init__(self, *args, **kwargs):
@@ -48,6 +49,24 @@ class LibcacaServer(KinematicServer):
         self.camera = Camera(self, 640 , 480)
         self.camera.translation = [3.5, 0, 1]
         self.camera.init()
+        self.fps = -1.0
+        self.frames = 0
+        self.last_t = 0
+
+    def compute_fps(self):
+        now = time.time()
+        if self.last_t == 0:
+            self.last_t = now
+            return
+        PER = 2.0
+        if now - self.last_t >= PER:
+            self.fps = self.frames / PER
+            self.frames = 0
+            self.last_t = now
+            return
+        else:
+            self.frames += 1
+
 
     def key_cb(self):
         UP, DOWN, LEFT, RIGHT = 273,274,275,276
@@ -111,11 +130,13 @@ class LibcacaServer(KinematicServer):
         try:
             while not self.quit:
                 self.key_cb()
+                self.compute_fps()
                 self.cv.clear()
                 self.draw_floor()
                 for r in self.robots:
                     self.draw_robot(r)
-            #draw.do_menu()
+
+                self.cv.put_str(0,0,"%3.1f FPS"%self.fps)
                 self.dp.refresh()
             del self.cv, self.dp, self.ev
         except:
