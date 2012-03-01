@@ -77,6 +77,7 @@ def main():
     clt = client.client(options.server)
     notebook = gtk.Notebook()
     window.add(notebook)
+
     for obj in clt.listElements():
         if ":" in obj:
             continue
@@ -84,7 +85,15 @@ def main():
             continue
         sw = gtk.ScrolledWindow()
         tab = ControllerWidget(obj, clt)
-        sw.add_with_viewport(tab)
+        vbox = gtk.VBox()
+        button = gtk.Button(obj)
+        def cb(button, data = None):
+            print clt.getElementConfig(button.get_label())
+        button.connect("clicked", cb)
+        vbox.pack_start(button, expand=False, fill=False)
+        vbox.pack_end(tab)
+
+        sw.add_with_viewport(vbox)
         notebook.append_page(sw, gtk.Label(obj))
 
     window.show_all()

@@ -189,11 +189,13 @@ class KinematicServer(object):
                         self._create_element( otype, child_name,
                                               geometry, scale)
                         obj_tree.append((child_name, parent_name, parent_joint_id))
+
                         if not position:
                             position = 6*[0.]
+
                         self.updateElementConfig(child_name, position)
                         self.elements[child_name].exclude_cameras = exclude_cameras
-
+                        #self.elements[child_name].origin.init()
 
 
         for child_name, parent_name, parent_joint_id in obj_tree:
