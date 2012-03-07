@@ -31,6 +31,7 @@ import version
 import copy
 import camera
 import re
+import inspect, sys
 logger = logging.getLogger("robotviewer.kinematic_server")
 class NullHandler(logging.Handler):
     def emit(self, record):
@@ -108,7 +109,8 @@ class KinematicServer(object):
         return s
 
     def parse_config(self):
-        prog_version = distutils.version.StrictVersion(version.__version__)
+        prog_version = distutils.version.StrictVersion(
+            version.__version__)
         config = CustomConfigParser()
         config.read(self.config_file)
         logger.info( 'parsed_config %s'%config)
@@ -122,9 +124,11 @@ class KinematicServer(object):
                 value = self._replace_env_var(config.get(section,options))
                 config.set(section, options, value)
 
-        conf_version = distutils.version.StrictVersion(config.get('global','version'))
+        conf_version = (distutils.version.StrictVersion
+                        (config.get('global','version')))
         if prog_version < conf_version:
-            raise Exception("Your config version ({0}) is newer than program version ({1})".
+            raise Exception(("Your config version ({0}) "+
+                             "is newer than program version ({1})").
                             format(conf_version, prog_version))
 
         value =  config.get('global','background')
@@ -143,6 +147,14 @@ class KinematicServer(object):
             otype = words[0]
 
             if otype in ["robot", "object"]:
+                parser_file = config.get(section, "parser")
+                if not parser_file:
+                    parser = None
+                else:
+                    path , module = os.path.split(parser_file)
+                    sys.path.append(path)
+                    module = module.replace(".py","")
+                    parser = __import__(module)
                 exclude_cameras = config.get(section, 'excl_cams')
                 if not words[1:]:
                     raise Exception("All robots must have a name.")
@@ -171,7 +183,7 @@ class KinematicServer(object):
                 parent = config.get(section, 'parent')
                 if not parent:
                     self._create_element(otype, oname,
-                                     geometry, scale)
+                                     geometry, scale, parser)
                     self.elements[oname].exclude_cameras = exclude_cameras
                     if position:
                         self.updateElementConfig(oname, position)
@@ -184,100 +196,37 @@ class KinematicServer(object):
                             parent_joint_id = int(parent_joint_id)
                         else:
                             parent_joint_id = None
-                        child_name = "{1}:{2}/{0}".format(oname, parent_name,
+                        child_name = "{1}:{2}/{0}".format(oname,
+                                                          parent_name,
                                                     parent_joint_id)
                         self._create_element( otype, child_name,
-                                              geometry, scale)
-                        obj_tree.append((child_name, parent_name, parent_joint_id))
+                                              geometry, scale, parser)
+                        obj_tree.append((child_name,
+                                         parent_name, parent_joint_id))
 
                         if not position:
                             position = 6*[0.]
 
                         self.updateElementConfig(child_name, position)
-                        self.elements[child_name].exclude_cameras = exclude_cameras
+                        self.elements[child_name].exclude_cameras \
+                            = exclude_cameras
                         #self.elements[child_name].origin.init()
 
 
         for child_name, parent_name, parent_joint_id in obj_tree:
-            self.elements[parent_name].get_op_point(parent_joint_id).add_child(self.elements[child_name])
+            (self.elements[parent_name].get_op_point(parent_joint_id)
+             .add_child(self.elements[child_name]))
 
 
         for name, obj in self.elements.items():
             obj.update()
 
     def parse_configLegacy(self, config):
-        logger.exception("""
-        =========================================
-        You have an older version of config file. This parser is not maintained.
-        Please adapt to new schema following config.example.
-        =========================================""")
-        for section in config.sections():
-            if section not in ['robots','default_configs',
-                               'objects','joint_rank',
-                               'preferences','scales']:
-                raise Exception("Invalid section {0} in {1}".
-                                format(section,self.config_file))
-
-        scales = {}
-        if config.has_section('scales'):
-            for key, value in config.items('scales'):
-                value = [float(e) for e in value.split(",")]
-                scales[key] = value
+        legacy.parse_config(self, config)
 
 
-        if config.has_section('robots'):
-            robot_names = config.options('robots')
-            for robot_name in robot_names:
-                robot_config = config.get('robots',robot_name)
-                robot_config = self._replace_env_var(robot_config)
-                logger.info( 'robot_config=%s'%robot_config)
-                if not os.path.isfile(robot_config):
-                    logger.info( "WARNING: Couldn't load %s. Are you sure %s exists?"\
-                        %(robot_name,robot_config))
-                    continue
-                self._create_element('robot',robot_name,robot_config,
-                                     scales.get(robot_name))
-                self.enableElement(robot_name)
-        else:
-            logger.info( """Couldn't any default robots.
-            Loading an empty scene
-            You might need to load some robots yourself.
-            See documentation""")
-
-        if config.has_section('joint_ranks'):
-            robot_names = config.options('joint_ranks')
-            for robot_name in robot_names:
-                joint_rank_config = config.get('joint_ranks',robot_name)
-                joint_rank_config = self._replace_env_var(joint_rank_config)
-                if not self.elements.has_key(robot_name):
-                    continue
-                if not os.path.isfile(joint_rank_config):
-                    continue
-                self.set_robot_joint_rank(self, robot_name,joint_rank_config)
-
-        if config.has_section('objects'):
-            object_names = config.options('objects')
-            for object_name in object_names:
-                object_file = config.get('objects',object_name)
-                object_file = self._replace_env_var(object_file)
-                if not os.path.isfile(object_file):
-                    logger.warning('Could not find %s'%object_file)
-                    continue
-                self._create_element('object', object_name,
-                                     object_file, scales.get(object_name))
-                self.enableElement(object_name)
-
-        if config.has_section('default_configs'):
-            object_names = config.options('default_configs')
-            for object_name in object_names:
-                pos = config.get('default_configs',object_name)
-                pos = [float(e) for e in pos.split()]
-                self.updateElementConfig(object_name,pos)
-
-        return
-
-
-    def _create_element(self, etype, ename, epath, scale = None):
+    def _create_element(self, etype, ename, epath,
+                        scale = None, parser = None):
         """
         Same as createElement but will not be called by outside world
         (CORBA) show will always be in the GL thread
@@ -287,13 +236,18 @@ class KinematicServer(object):
         - `name`:         string, element name
         - `path`:  string, description  (e.g. wrl path)
         """
-        logger.debug("Creating {0} {1} {2} {3}".format(etype, ename, epath, scale))
+
+        if not parser:
+            parser = ml_parser
+
+        logger.debug("Creating {0} {1} {2} {3}".format(etype, ename,
+                                                       epath, scale))
         if self.elements.has_key(ename):
             logger.exception("Element with that name exists already")
             return
 
         if etype == 'robot':
-            objs = ml_parser.parse(epath)
+            objs = parser.parse(epath)
             robots = []
             for obj in objs:
                 if isinstance(obj, kinematics.Robot):
@@ -310,13 +264,15 @@ class KinematicServer(object):
 
         elif etype == 'object':
             ext = os.path.splitext(epath)[1].replace(".","")
-            if ext in ml_parser.supported_extensions:
-                logger.debug("Creating element from supported markup language file %s."%epath)
-                objs = ml_parser.parse(epath)
-                objs = [ o for o in objs
+            if ext in parser.supported_extensions:
+                logger.debug(("Creating element from supported "+
+                              "markup language file %s.")%epath)
+                all_objs = parser.parse(epath)
+                objs = [ o for o in all_objs
                          if isinstance(o, kinematics.GenericObject)]
                 if len(objs) == 0:
-                    raise Exception('Found no object in file %s'%epath)
+                    raise Exception('Found no object in file {0}. \1{1}'
+                                    .format(epath, all_objs))
                 elif len(objs) == 1:
                     new_object = objs[0]
                 else:
@@ -446,7 +402,8 @@ class KinematicServer(object):
 
     def listElementDofs(self, ename):
         l = ["X", "Y", "Z", "roll", "pitch", "yaw"]
-        if not isinstance( self.elements[ename], kinematics.GenericObject):
+        if not isinstance( self.elements[ename],
+                           kinematics.GenericObject):
             return l
 
         obj = self.elements[ename]

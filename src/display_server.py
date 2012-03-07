@@ -435,25 +435,23 @@ class DisplayServer(KinematicServer):
 
 
     def run(self):
-        glutMainLoop()
-        return
-        logger.info(self.usage)
-        class InteractThread(threading.Thread):
-            def __init__(self, app, *args, **kwargs):
-                self.app = app
-                threading.Thread.__init__(self, *args, **kwargs )
+        # logger.info(self.usage)
+        # class InteractThread(threading.Thread):
+        #     def __init__(self, app, *args, **kwargs):
+        #         self.app = app
+        #         threading.Thread.__init__(self, *args, **kwargs )
 
-            def run(self):
-                while not self.app.quit:
-                    try:
-                        self.interact()
-                    except KeyboardInterrupt:
-                        self.app.quit = True
-            def interact(self):
-                from getch import getch
-                key = getch()
-                print("\r")
-                self.app.queued_keys.append(key)
+        #     def run(self):
+        #         while not self.app.quit:
+        #             try:
+        #                 self.interact()
+        #             except KeyboardInterrupt:
+        #                 self.app.quit = True
+        #     def interact(self):
+        #         from getch import getch
+        #         key = getch()
+        #         print("\r")
+        #         self.app.queued_keys.append(key)
 
         if not (self.run_once):
             glutMainLoop()
