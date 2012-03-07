@@ -99,6 +99,13 @@ class GenericObject(DisplayObject):
     def joint_list(self):
         return self.get_list(Joint) + self.get_list(Robot)
 
+    @property
+    def descendants(self):
+        if not self.children[:]:
+            return [self]
+        else:
+            return [self] + sum([child.descendants
+                                 for child in self.children],[])
 
     def get_op_point(self, id):
         if not isinstance(self, Robot):

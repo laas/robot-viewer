@@ -273,6 +273,7 @@ class KinematicServer(object):
                 if len(objs) == 0:
                     raise Exception('Found no object in file {0}. \1{1}'
                                     .format(epath, all_objs))
+
                 elif len(objs) == 1:
                     new_object = objs[0]
                 else:
@@ -450,6 +451,20 @@ class KinematicServer(object):
         res = list(p) + list(agax)
         return [float(e) for e in res]
 
+    def getDofNames(self):
+        return "FIXME"
+
+    def getTransformations(self):
+        import yaml
+        d = {}
+        for name, obj in self.elements.items():
+            do = {}
+            d[str(name)] = do
+            for desc in obj.descendants:
+                if not desc.name:
+                    continue
+                do[str(desc.name)] = desc.T.tolist()
+        return yaml.dump(d)
     def run(self):
         return
 
@@ -475,6 +490,7 @@ if __name__ == '__main__':
         sh.setLevel(logging.DEBUG)
 
     server = KinematicServer()
-    print server.listShapees()
-    print server.getGlConfig(server.listShapees()[0])
+    #print server.listShapees()
+    #print server.getGlConfig(server.listShapees()[0])
+    print server.getTransformations()
     server.run()

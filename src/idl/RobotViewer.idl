@@ -64,6 +64,8 @@ module robotviewer_corba {
     void start_record();
     void stop_record();
 
+    void getDofNames(out string res);
+    void getTransformations(out string res);
 
   };
 };
