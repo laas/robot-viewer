@@ -11,3 +11,4 @@ robot_viewer.egg-info
 */?core.*
 *.pye
 src/*cc
+debian
