@@ -16,7 +16,7 @@
 #! /usr/bin/env python
 
 
-def parse_config(self, config)
+def parse_config(self, config):
         logger.exception("""
         =========================================
         You have an older version of config file. This parser is not maintained.
