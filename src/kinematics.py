@@ -662,7 +662,13 @@ class Bone(GenericObject):
             radius = 0.005
             new_y = p/numpy.linalg.norm(p)
             new_x = numpy.cross(new_y, numpy.array([1,0,0]))
-            new_x /= numpy.linalg.norm(new_x)
+            new_x_norm = numpy.linalg.norm(new_x)
+            # if new_y is colinear to numpy.array([1,0,0])
+            # recompute new_x
+            if new_x_norm < 1e-6:
+               new_x = numpy.cross(new_y, numpy.array([0,1,0]))
+               new_x_norm = numpy.linalg.norm(new_x)
+            new_x /= new_x_norm
             new_z = numpy.cross(new_x, new_y)
             trans_T = numpy.eye(4)
             trans_T[:3,0] = new_x
