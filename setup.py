@@ -93,7 +93,7 @@ Main features:
                                     'fragment_shader.c','vertex_shader.c', 'models/*'
                                     ]},
       requires=['sphinx (>=0.6)','pyopengl'],
-      data_files=[('bin',['bin/robotviewer','bin/robotviewer-gtk']),
+      data_files=[('bin',['bin/robotviewer','bin/robotviewer-client-gtk']),
                   (config_dir,['src/models/floor.py',
                                'data/config.example','src/models/sample.wrl',
                                'data/bunny.obj',
@@ -103,7 +103,7 @@ Main features:
                   ("share/applications",["data/robotviewer.desktop"]),
                   ("share/pixmaps", ['data/robot-viewer.ico','data/robot-viewer.png',
                                           'data/robot-viewer.xpm']),
-                  ('share/man/man1',['data/robotviewer.1','data/robotviewer-gtk.1']),
+                  ('share/man/man1',['data/robotviewer.1','data/robotviewer-client-gtk.1']),
                   ('lib/pkgconfig',['data/robot-viewer.pc']),
                   ],
       cmdclass={'build_manpage': build_manpage,
