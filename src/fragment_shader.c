@@ -88,7 +88,7 @@ void main(void) {
   if (uModernShader)
     {
       //vec4 ambientColor = uMaterialDiffuseColor*uMaterialAmbientIntensity;
-      vec4 ambientColor = uAmbientLightingColor*0.1;
+      vec4 ambientColor = uMaterialDiffuseColor*0.2;
 
       gl_FragColor = compute_color( ambientColor,
                                     uMaterialDiffuseColor,
