@@ -2,6 +2,11 @@
 precision highp float;
 #endif
 
+// global params
+uniform float uLightSpecularBrightness;
+uniform float uLightDiffuseBrightness;
+uniform float uMaxSpecular;
+
 varying vec2 vTextureCoord;
 varying vec3 vTransformedNormal;
 varying vec4 vPosition;
@@ -25,6 +30,8 @@ uniform sampler2D uSampler;
 
 uniform bool uModernShader;
 
+
+
 vec4 compute_color(vec4 materialAmbientColor,
                    vec4 materialDiffuseColor,
                    vec4 materialSpecularColor,
@@ -44,13 +51,14 @@ vec4 compute_color(vec4 materialAmbientColor,
   if (uShowSpecularHighlights) {
     vec3 eyeDirection = normalize(-vPosition.xyz);
     vec3 reflectionDirection = reflect(-lightDirection, normal);
-
-    float specularLightBrightness = pow(max(dot(reflectionDirection, eyeDirection), 0.0),
+    float specularLightBrightness = pow(max(uLightSpecularBrightness*
+                                            dot(reflectionDirection, eyeDirection), 0.0),
                                         shininess);
     specularLightWeighting = pointLightSpecularColor * specularLightBrightness;
   }
 
-  float diffuseLightBrightness = max(dot(normal, lightDirection), 0.0);
+  float diffuseLightBrightness = max(uLightDiffuseBrightness*
+                                     dot(normal, lightDirection), 0.0);
   vec4 diffuseLightWeighting = pointLightDiffuseColor * diffuseLightBrightness;
 
   float alpha = 1.0;
@@ -64,7 +72,7 @@ vec4 compute_color(vec4 materialAmbientColor,
   vec4 Idiff, Ispec, Iamb, Iemis, res;
   Idiff =  materialDiffuseColor * diffuseLightWeighting ;
   Ispec = materialSpecularColor * specularLightWeighting;
-  Ispec = clamp(Ispec, 0.0, 0.05);
+  Ispec = clamp(Ispec, 0.0, uMaxSpecular);
   Iamb = materialAmbientColor * ambientLightWeighting;
   Iemis = materialEmissiveColor;
   res = ( Iamb + Idiff + Iemis + Ispec);

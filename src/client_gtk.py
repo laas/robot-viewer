@@ -22,6 +22,7 @@ import ConfigParser
 from xml.dom.minidom import parse, parseString
 import math
 import client
+import yaml
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass
@@ -75,8 +76,46 @@ def main():
     window.connect("destroy", lambda w: gtk.main_quit())
     window.set_title("Position Control")
     clt = client.client(options.server)
+
     notebook = gtk.Notebook()
     window.add(notebook)
+
+    cfg_notebook = gtk.Notebook()
+    notebook.append_page(cfg_notebook, gtk.Label("Configs"))
+
+
+    import display_server
+    keys = display_server.DisplayServer.param_keys
+    N = len (keys)
+    param_tab = gtk.Table(N, 2, True)
+
+    param_labels = {}
+    param_entries = {}
+
+
+    for i, key in enumerate(keys):
+        label = gtk.Label(key)
+        label.set_justify(gtk.JUSTIFY_LEFT)
+        param_tab.attach(label, 0, 1, i, i+1)#,gtk.EXPAND)
+        entry = gtk.Entry()
+        param_tab.attach(entry, 1, 2, i, i+1)#,gtk.EXPAND)
+
+        def callback(entry, key):
+            val = entry.get_text()
+            val = display_server.DisplayServer.parse_number(val)
+            d = { key: val}
+            clt.setParams(yaml.dump(d))
+
+        entry.connect("activate", callback, key)
+
+
+        param_labels[key] = label
+        param_entries[key] = entry
+
+
+    #param_notebook = gtk.Notebook()
+    notebook.append_page(param_tab, gtk.Label("Params"))
+
 
     for obj in clt.listElements():
         if ":" in obj:
@@ -94,7 +133,20 @@ def main():
         vbox.pack_end(tab)
 
         sw.add_with_viewport(vbox)
-        notebook.append_page(sw, gtk.Label(obj))
+        cfg_notebook.append_page(sw, gtk.Label(obj))
+
+
+    s = clt.getParams()
+    params = yaml.load(s)
+
+    def to_text(l):
+        if type(l) == list:
+            return ", ".join(["{0:0.02f}".format(w) for w in l])
+        return "{0:0.02f}".format(l)
+
+    for key in params:
+        param_entries[key].set_text(to_text(params[key]))
+
 
     window.show_all()
     gtk.main()

@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with robot-viewer.  If not, see <http://www.gnu.org/licenses/>.
 #! /usr/bin/env python
+
 import os
 import OpenGL
 # OpenGL.FORWARD_COMPATIBLE_ONLY = True
@@ -138,10 +139,24 @@ class GlWindow(object):
 class DisplayServer(KinematicServer):
     """OpenGL server
     """
-    lightZeroPosition = [5.0,4.0,5.0]
-    lightZeroSpecularColor = [.8, .8, .8]
-    lightZeroDiffuseColor = [.8, .8, .8]
-    lightAmbient = [.1, .1, .1]
+    light0_position = [5.0,4.0,5.0]
+    light0_specular_color = [.8, .8, .8]
+    light0_diffuse_color = [.8, .8, .8]
+    light_ambient = [.1, .1, .1]
+    light_specular_brightness = 1.
+    light_diffuse_brightness = 1.
+    max_specular = 1.
+    background = [1., 1., 1.]
+    shininess = 1.0
+    param_keys = [
+        "light0_position", "light0_specular_color", "light0_diffuse_color",
+        "light_ambient",
+        "light_specular_brightness", "light_diffuse_brightness",
+        "max_specular", "background", "shininess"
+        ]
+
+    param_changed = dict((p, False) for p in param_keys)
+
     width = 640
     height = 480
     cameras = []
@@ -249,6 +264,7 @@ class DisplayServer(KinematicServer):
                             ]:
             self.usage += 20*""+ "{0}:{1}\n".format(key, effect)
 
+        self.update_params()
         self.ready = True
 
     def add_cameras(self):
@@ -332,13 +348,16 @@ class DisplayServer(KinematicServer):
             glUseProgram(program)
             self.specular_highlights = True
             shader.uShowSpecularHighlights = self.specular_highlights
+            shader.uAmbientLightingColor        = self.light_ambient + [1.]
+            shader.uPointLightingLocation       = self.light0_position
+            shader.uPointLightingDiffuseColor   = self.light0_diffuse_color + [1.]
+            shader.uPointLightingSpecularColor  = self.light0_specular_color + [1.]
+            shader.uMaterialShininess           = self.shininess
+            shader.uModernShader                = self.modern_shader
+            shader.uLightSpecularBrightness     = self.light_specular_brightness
+            shader.uLightDiffuseBrightness      = self.light_diffuse_brightness
+            shader.uMaxSpecular                 = self.max_specular
 
-            shader.uAmbientLightingColor        = self.lightAmbient + [1.]
-            shader.uPointLightingLocation       = self.lightZeroPosition
-            shader.uPointLightingDiffuseColor   = self.lightZeroDiffuseColor + [1.]
-            shader.uPointLightingSpecularColor  = self.lightZeroSpecularColor + [1.]
-            shader.uMaterialShininess = 1.0
-            shader.uModernShader = self.modern_shader
             self.shaders[glutGetWindow()] = shader
 
         glutIdleFunc(self.refresh_cb)
@@ -424,14 +443,60 @@ class DisplayServer(KinematicServer):
         self.elements = {}
         self.need_refresh = True
 
+    @classmethod
+    def parse_number(self,s):
+        result = [float(w) for w in s.split(",")]
+        if len(result) == 1:
+            result = result[0]
+        return result
+
     def parse_config(self):
         KinematicServer.parse_config(self)
-        bg = self.global_configs.get('background')
-        if bg:
-            for win in self.windows:
-                glutSetWindow(win)
-                glClearColor (bg[0], bg[1], bg[2], 0.5);
+
+        for key in self.param_keys:
+            s = self.config.get('global',key)
+            if s:
+                val = self.parse_number(s)
+                setattr(self, key, val)
         self.need_refresh = True
+
+    def update_params(self):
+        for key in self.param_keys:
+            self.update_param(key, getattr(self,key))
+
+    def update_param(self, key, val):
+        if key == "background":
+            glClearColor(val[0], val[1], val[2], 0.5)
+
+        for id, shader in self.shaders.items():
+            if key == "light0_position":
+                shader.uPointLightingLocation = val
+
+            elif key == "light0_specular_color":
+                shader.uPointLightingSpecularColor = val + [1.]
+
+            elif key == "light0_diffuse_color":
+                shader.uPointLightingSpecularColor = val + [1.]
+
+            elif key == "light_ambient":
+                shader.uAmbientLightingColor = val + [1.]
+
+            elif key == "light_specular_brightness":
+                shader.uLightSpecularBrightness = val
+
+            elif key == "light_diffuse_brightness":
+                shader.uLightDiffuseBrightness = val
+
+            elif key == "light_diffuse_brightness":
+                shader.uLightDiffuseBrightness = val
+
+            elif key == "shininess":
+                shader.uMaterialShininess = val
+
+            elif key == "max_specular":
+                shader.uMaxSpecular = val
+
+
 
 
     def run(self):
@@ -464,6 +529,11 @@ class DisplayServer(KinematicServer):
 
 
     def draw_cb(self, *arg):
+        for key in self.param_changed:
+            if self.param_changed[key]:
+                self.update_param(key, getattr(self, key))
+                self.param_changed[key] = False
+
         if self.quit:
             glutLeaveMainLoop()
             #glutDestroyWindow(self.window)
@@ -718,26 +788,6 @@ class DisplayServer(KinematicServer):
                 for name, e in self.elements.items():
                     if isinstance(e, kinematics.Robot):
                         e.set_transparency(self.transparency)
-        elif args[0] == 'l':
-            if self.lightAmbient < 1.0:
-                self.lightAmbient += 0.05
-                glLightModelfv(GL_LIGHT_MODEL_AMBIENT,
-                               [self.lightAmbient,
-                                self.lightAmbient,
-                                self.lightAmbient,
-                                1])
-            print "lightAmbient = ", self.lightAmbient
-
-
-        elif args[0] == 'd':
-            if self.lightAmbient >0 :
-                self.lightAmbient -= 0.05
-                glLightModelfv(GL_LIGHT_MODEL_AMBIENT,
-                               [self.lightAmbient,
-                                self.lightAmbient,
-                                self.lightAmbient,
-                                1])
-            print "lightAmbient = ", self.lightAmbient
 
 
         elif args[0] == 'e':
@@ -913,10 +963,8 @@ class DisplayServer(KinematicServer):
         glEnable (GL_BLEND)
         glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-
         # glEnable(GL_FOG)
         # fogColor = [0.5, 0.5, 0.5, 1.0]
-
         # fogMode = GL_EXP;
         # glFogi (GL_FOG_MODE, fogMode);
         # glFogfv (GL_FOG_COLOR, fogColor);
@@ -925,13 +973,11 @@ class DisplayServer(KinematicServer):
         # glFogf (GL_FOG_START, 0.0);
         # glFogf (GL_FOG_END, 50.0);
 
-
-
-        glLightfv(GL_LIGHT0, GL_POSITION, self.lightZeroPosition)
-        glLightfv(GL_LIGHT0, GL_DIFFUSE, self.lightZeroDiffuseColor + [1.])
-        glLightfv(GL_LIGHT0, GL_SPECULAR, self.lightZeroSpecularColor + [1.])
+        glLightfv(GL_LIGHT0, GL_POSITION, self.light0_position)
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, self.light0_diffuse_color + [1.])
+        glLightfv(GL_LIGHT0, GL_SPECULAR, self.light0_specular_color + [1.])
         glLightfv(GL_LIGHT0, GL_AMBIENT, [0,0,0,1])
-        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, self.lightAmbient + [1.])
+        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, self.light_ambient + [1.])
 
         glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.5)
         glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self.lightAttenuation)
@@ -1072,3 +1118,20 @@ class DisplayServer(KinematicServer):
             logger.exception("Object took too long to create")
             return False
         return True
+
+
+    def getParams(self):
+        import yaml
+        res = {}
+        for key in self.param_keys:
+            res[key] = getattr(self, key)
+        return yaml.dump(res)
+
+    def setParams(self, s):
+        import yaml
+        params = yaml.load(s)
+        for key in params.keys():
+            setattr(self, key, params[key])
+            self.param_changed[key] = True
+
+

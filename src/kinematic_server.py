@@ -51,8 +51,8 @@ class KinematicServer(object):
     """
     config_dir = os.environ['HOME']+'/.robotviewer/'
     config_file = os.path.join(config_dir,"config")
-    global_configs = {}
     idle_cbs = []
+    config = None
     def __init__(self, options = {}, args = []):
         self.pendingObjects = []
         self.elements = {}
@@ -111,33 +111,27 @@ class KinematicServer(object):
     def parse_config(self):
         prog_version = distutils.version.StrictVersion(
             version.__version__)
-        config = CustomConfigParser()
-        config.read(self.config_file)
-        logger.info( 'parsed_config %s'%config)
+        self.config = CustomConfigParser()
+        self.config.read(self.config_file)
+        logger.info( 'parsed_config %s'%self.config)
 
-        if not config.has_section('global'):
+        if not self.config.has_section('global'):
             self.parse_configLegacy(config)
             return
 
-        for section in config.sections():
-            for options in config.options(section):
-                value = self._replace_env_var(config.get(section,options))
-                config.set(section, options, value)
+        for section in self.config.sections():
+            for options in self.config.options(section):
+                value = self._replace_env_var(self.config.get(section,options))
+                self.config.set(section, options, value)
 
         conf_version = (distutils.version.StrictVersion
-                        (config.get('global','version')))
+                        (self.config.get('global','version')))
         if prog_version < conf_version:
             raise Exception(("Your config version ({0}) "+
                              "is newer than program version ({1})").
                             format(conf_version, prog_version))
 
-        value =  config.get('global','background')
-        if value:
-            value = value.replace(","," ")
-            value = [float(e) for e in value.split() if e != ""]
-            self.global_configs['background'] = value
-
-        sections = config.sections()
+        sections = self.config.sections()
         join_pairs = []
 
         obj_tree = []
@@ -147,7 +141,7 @@ class KinematicServer(object):
             otype = words[0]
 
             if otype in ["robot", "object"]:
-                parser_file = config.get(section, "parser")
+                parser_file = self.config.get(section, "parser")
                 if not parser_file:
                     parser = None
                 else:
@@ -155,32 +149,32 @@ class KinematicServer(object):
                     sys.path.append(path)
                     module = module.replace(".py","")
                     parser = __import__(module)
-                exclude_cameras = config.get(section, 'excl_cams')
+                exclude_cameras = self.config.get(section, 'excl_cams')
                 if not words[1:]:
                     raise Exception("All robots must have a name.")
                 oname = words[1]
                 print oname, exclude_cameras
 
-                geometry = config.get(section, 'geometry')
+                geometry = self.config.get(section, 'geometry')
                 if not geometry:
                     raise Exception("missing geometry section for {0}"
                                     .format(section))
-                scale = config.get(section, 'scale')
+                scale = self.config.get(section, 'scale')
                 if not scale:
                     scale = "1 1 1"
                 scale = [float(w) for w in scale.split()]
 
-                joint_rank = config.get(section, 'joint_rank')
+                joint_rank = self.config.get(section, 'joint_rank')
                 if otype == "robot" and joint_rank:
                     self.set_robot_joint_rank( oname, joint_rank)
 
-                position = config.get(section, 'position')
+                position = self.config.get(section, 'position')
                 if not position:
                     postion = 6*[0.0]
                 else:
                     position = [float(e) for e in position.split()]
 
-                parent = config.get(section, 'parent')
+                parent = self.config.get(section, 'parent')
                 if not parent:
                     self._create_element(otype, oname,
                                      geometry, scale, parser)
