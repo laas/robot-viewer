@@ -40,7 +40,7 @@ class NullHandler(logging.Handler):
 #logger.addHandler(NullHandler())
 
 USE_VBO = False
-MODERN_SHADER = False
+MODERN_SHADER = True
 
 
 def ifenabled(f):
@@ -124,6 +124,10 @@ class DisplayObject(object):
             shaders[glutGetWindow()].uMaterialEmissiveColor = self.appearance.material.emissiveColor + [1.]
             shaders[glutGetWindow()].uMaterialDiffuseColor = self.appearance.material.diffuseColor + [1.]
             shaders[glutGetWindow()].uMaterialShininess = self.appearance.material.shininess
+
+            shaders[glutGetWindow()].uMaterialAmbientIntensity = self.appearance.material.ambientIntensity
+
+
 
         if not USE_VBO:
             geo_list = self.geo_gl_list.get(win)

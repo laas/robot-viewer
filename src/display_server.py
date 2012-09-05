@@ -142,7 +142,7 @@ class DisplayServer(KinematicServer):
     light0_position = [5.0,4.0,5.0]
     light0_specular_color = [.8, .8, .8]
     light0_diffuse_color = [.8, .8, .8]
-    light_ambient = [.1, .1, .1]
+    light_ambient_color = [1., 1., 1.]
     light_specular_brightness = 1.
     light_diffuse_brightness = 1.
     max_specular = 1.
@@ -150,7 +150,7 @@ class DisplayServer(KinematicServer):
     shininess = 1.0
     param_keys = [
         "light0_position", "light0_specular_color", "light0_diffuse_color",
-        "light_ambient",
+        "light_ambient_color",
         "light_specular_brightness", "light_diffuse_brightness",
         "max_specular", "background", "shininess"
         ]
@@ -348,7 +348,7 @@ class DisplayServer(KinematicServer):
             glUseProgram(program)
             self.specular_highlights = True
             shader.uShowSpecularHighlights = self.specular_highlights
-            shader.uAmbientLightingColor        = self.light_ambient + [1.]
+            shader.uAmbientLightingColor        = self.light_ambient_color + [1.]
             shader.uPointLightingLocation       = self.light0_position
             shader.uPointLightingDiffuseColor   = self.light0_diffuse_color + [1.]
             shader.uPointLightingSpecularColor  = self.light0_specular_color + [1.]
@@ -357,6 +357,7 @@ class DisplayServer(KinematicServer):
             shader.uLightSpecularBrightness     = self.light_specular_brightness
             shader.uLightDiffuseBrightness      = self.light_diffuse_brightness
             shader.uMaxSpecular                 = self.max_specular
+            shader.uMaterialAmbientIntensity    = 0.2
 
             self.shaders[glutGetWindow()] = shader
 
@@ -478,7 +479,7 @@ class DisplayServer(KinematicServer):
             elif key == "light0_diffuse_color":
                 shader.uPointLightingSpecularColor = val + [1.]
 
-            elif key == "light_ambient":
+            elif key == "light_ambient_color":
                 shader.uAmbientLightingColor = val + [1.]
 
             elif key == "light_specular_brightness":
@@ -977,7 +978,7 @@ class DisplayServer(KinematicServer):
         glLightfv(GL_LIGHT0, GL_DIFFUSE, self.light0_diffuse_color + [1.])
         glLightfv(GL_LIGHT0, GL_SPECULAR, self.light0_specular_color + [1.])
         glLightfv(GL_LIGHT0, GL_AMBIENT, [0,0,0,1])
-        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, self.light_ambient + [1.])
+        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, self.light_ambient_color + [1.])
 
         glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.5)
         glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, self.lightAttenuation)
