@@ -384,7 +384,7 @@ class VrmlProcessor(DispatchProcessor):
         return s
 
     def USE(self,(tag,start,stop,subtags), buffer ):
-        return None
+        # return None
         s = buffer[start:stop]
 
         if s not in self.def_dict.keys():
