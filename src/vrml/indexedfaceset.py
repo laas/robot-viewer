@@ -76,7 +76,13 @@ class IndexedFaceSet(nodes.IndexedFaceSet, Geometry):
             and self.normal.vector):
             self.compute_normals()
 
+
         glBegin(GL_TRIANGLES)
+        if self.ccw:
+            glFrontFace(GL_CCW)
+        else:
+            glFrontFace(GL_CW)
+
         for i in self.tri_idxs:
             n = [ self.normal.vector[i][0],
                   self.normal.vector[i][1],
@@ -220,3 +226,5 @@ class IndexedFaceSet(nodes.IndexedFaceSet, Geometry):
             poly=[]
 
         self.normal.vector = normals
+        if not self.ccw:
+            self.normal.vector = [-e for e in self.normal.vector]
