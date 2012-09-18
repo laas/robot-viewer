@@ -77,11 +77,11 @@ class IndexedFaceSet(nodes.IndexedFaceSet, Geometry):
             self.compute_normals()
 
 
-        glBegin(GL_TRIANGLES)
         if self.ccw:
             glFrontFace(GL_CCW)
         else:
             glFrontFace(GL_CW)
+        glBegin(GL_TRIANGLES)
 
         for i in self.tri_idxs:
             n = [ self.normal.vector[i][0],
