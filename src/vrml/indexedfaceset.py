@@ -225,6 +225,8 @@ class IndexedFaceSet(nodes.IndexedFaceSet, Geometry):
                     #    print "produced invalid normal", alpha, normal_i, vertices
             poly=[]
 
-        self.normal.vector = normals
         if not self.ccw:
-            self.normal.vector = [-e for e in self.normal.vector]
+            normals = [(-e).tolist() for e in normals]
+        else:
+            normals = [e.tolist() for e in normals]
+        self.normal.vector = normals
