@@ -15,9 +15,6 @@
 # along with robot-viewer.  If not, see <http://www.gnu.org/licenses/>.
 #! /usr/bin/env python
 
-from OpenGL.GL import *
-from OpenGL.GLUT import *
-from OpenGL.GLU import *
 import numpy
 import numpy.linalg
 import math
@@ -71,6 +68,9 @@ class IndexedFaceSet(nodes.IndexedFaceSet, Geometry):
 
     def render(self, scale = 3*[1.]):
         #logger.debug("Generating glList for {0}".format(self))
+        from OpenGL.GL import *
+        from OpenGL.GLUT import *
+        from OpenGL.GLU import *
 
         if not (self.tri_idxs[:] and self.normal
             and self.normal.vector):

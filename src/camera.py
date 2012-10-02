@@ -21,9 +21,15 @@ import transformations as tf
 import copy
 import alias
 from ctypes import *
-from OpenGL.GL.ARB.framebuffer_object import *
-from OpenGL.GL.EXT.framebuffer_object import *
-import PIL.Image
+try:
+    from OpenGL.GL.ARB.framebuffer_object import *
+    from OpenGL.GL.EXT.framebuffer_object import *
+except:
+    print "did not import OpenGL"
+try:    
+    import PIL.Image
+except:
+    print "did not import PIL"
 from kinematics import Shape
 def norm(a):
     return sqrt(numpy.dot(a,a))

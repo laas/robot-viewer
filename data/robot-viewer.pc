@@ -1,0 +1,5 @@
+prefix=/home/duongdan/env
+datarootdir=/home/duongdan/env/share
+Name: robot-viewer
+Description:
+Version: 2.0.1

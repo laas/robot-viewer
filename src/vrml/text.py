@@ -25,13 +25,17 @@ import __builtin__
 import traceback
 import parser
 import standard_nodes as nodes
-import OpenGL
-# OpenGL.FORWARD_COMPATIBLE_ONLY = True
-from OpenGL.GL import *
-from OpenGL.GLUT import *
-from OpenGL.GLU import *
-from OpenGL.GL.ARB.vertex_buffer_object import *
+try:
+    import OpenGL
+    # OpenGL.FORWARD_COMPATIBLE_ONLY = True
+    from OpenGL.GL import *
+    from OpenGL.GLUT import *
+    from OpenGL.GLU import *
+    from OpenGL.GL.ARB.vertex_buffer_object import *
+except:
+    print "did not import OpenGL"
 from abc import ABCMeta, abstractmethod
+    
 import numpy
 import numpy.linalg
 import pprint

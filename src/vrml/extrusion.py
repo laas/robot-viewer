@@ -15,9 +15,14 @@
 # along with robot-viewer.  If not, see <http://www.gnu.org/licenses/>.
 #! /usr/bin/env python
 
-from OpenGL.GL import *
-from OpenGL.GLUT import *
-from OpenGL.GLU import *
+
+try:
+    from OpenGL.GL import *
+    from OpenGL.GLUT import *
+    from OpenGL.GLU import *
+except:
+    print "did not import OpenGL"
+
 import numpy
 import parser
 import standard_nodes as nodes

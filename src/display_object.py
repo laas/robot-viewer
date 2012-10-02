@@ -13,12 +13,15 @@
 
 # You should have received a copy of the GNU Lesser General Public License
 # along with robot-viewer.  If not, see <http://www.gnu.org/licenses/>.
-import OpenGL
 # OpenGL.FORWARD_COMPATIBLE_ONLY = True
-from OpenGL.GL import *
-from OpenGL.GLUT import *
-from OpenGL.GLU import *
-from OpenGL.GL.ARB.vertex_buffer_object import *
+try:
+    import OpenGL
+    from OpenGL.GL import *
+    from OpenGL.GLUT import *
+    from OpenGL.GLU import *
+    from OpenGL.GL.ARB.vertex_buffer_object import *
+except:
+    print "Did not import OpenGL"
 import numpy, time
 from safeeval import safe_eval
 import traceback
