@@ -6,8 +6,6 @@ precision highp float;
 uniform float uLightSpecularBrightness;
 uniform float uLightDiffuseBrightness;
 uniform float uMaxSpecular;
-uniform float uMaterialAmbientIntensity;
-
 
 varying vec2 vTextureCoord;
 varying vec3 vTransformedNormal;
@@ -75,8 +73,7 @@ vec4 compute_color(vec4 materialAmbientColor,
   Idiff =  materialDiffuseColor * diffuseLightWeighting ;
   Ispec = materialSpecularColor * specularLightWeighting;
   Ispec = clamp(Ispec, 0.0, uMaxSpecular);
-  //Iamb = materialAmbientColor * ambientLightWeighting;
-  Iamb = materialAmbientColor;
+  Iamb = materialAmbientColor * ambientLightWeighting;
   Iemis = materialEmissiveColor;
   res = ( Iamb + Idiff + Iemis + Ispec);
   res = res + gl_Color;
@@ -87,10 +84,7 @@ vec4 compute_color(vec4 materialAmbientColor,
 void main(void) {
   if (uModernShader)
     {
-      //vec4 ambientColor = uMaterialDiffuseColor*uMaterialAmbientIntensity;
-      vec4 ambientColor = uMaterialDiffuseColor*0.2;
-
-      gl_FragColor = compute_color( ambientColor,
+      gl_FragColor = compute_color( uMaterialAmbientColor,
                                     uMaterialDiffuseColor,
                                     uMaterialSpecularColor,
                                     uMaterialEmissiveColor,
