@@ -237,7 +237,7 @@ class KinematicServer(object):
         logger.debug("Creating {0} {1} {2} {3}".format(etype, ename,
                                                        epath, scale))
         if self.elements.has_key(ename):
-            logger.exception("Element with that name exists already")
+            logger.exception("Element with the name '"+ ename +"' does not exist")
             return
 
         if etype == 'robot':
@@ -301,7 +301,7 @@ class KinematicServer(object):
         - `name`:         string, element name
         """
         if not self.elements.has_key(name):
-            logger.exception("Element with that name does not exist")
+            logger.exception("Element with the name '"+ name +"' does not exist")
             return False
 
         del self.elements[name]
@@ -341,7 +341,7 @@ class KinematicServer(object):
         - `name`:         string, element name
         """
         if not self.elements.has_key(name):
-            logger.exception("Element with that name does not exist")
+            logger.exception("Element with the name '"+ name +"' does not exist")
             return False
 
         self.elements[name].update_config(config)
@@ -355,7 +355,7 @@ class KinematicServer(object):
         """
         if not self.elements.has_key(name):
             logger.exception(KeyError,
-                             "Element with that name does not exist")
+                             "Element with the name '"+ name +"' does not exist")
             return []
         cfg = self.elements[name].get_config()
         if not isinstance(cfg, list):
